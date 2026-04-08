@@ -1,0 +1,47 @@
+@* ApplicationB — UserProfile.razor *@
+@* Bug Scenario: Missing null check on user avatar URL causes broken image rendering *@
+
+@using ApplicationB.Models
+
+<div class="user-profile">
+    <div class="profile-header">
+        @* BUG: No null check on User.AvatarUrl.
+           When AvatarUrl is null, the img tag renders with src=""
+           which causes a broken image icon and a spurious HTTP request
+           to the current page URL. Should fall back to a default avatar. *@
+        <img src="@User.AvatarUrl" alt="@User.DisplayName" class="avatar" />
+
+        <div class="profile-info">
+            <h2>@User.DisplayName</h2>
+            <p class="email">@User.Email</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(User.Bio))
+    {
+        <div class="bio-section">
+            <h4>About</h4>
+            <p>@User.Bio</p>
+        </div>
+    }
+
+    <div class="profile-actions">
+        <button class="btn btn-outline-primary" @onclick="EditProfile">Edit Profile</button>
+        <button class="btn btn-outline-secondary" @onclick="SendMessage">Message</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public UserProfile User { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnMessage { get; set; }
+
+    private async Task EditProfile() => await OnEdit.InvokeAsync();
+
+    private async Task SendMessage() => await OnMessage.InvokeAsync();
+}

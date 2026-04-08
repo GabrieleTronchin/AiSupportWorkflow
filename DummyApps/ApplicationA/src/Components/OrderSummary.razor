@@ -1,0 +1,39 @@
+@* ApplicationA — OrderSummary.razor *@
+@* Bug Scenario: Incorrect data binding — uses wrong property name (TotalCost instead of TotalPrice) *@
+
+@using ApplicationA.Models
+
+<div class="order-summary">
+    <h3>Order #@Order?.OrderId</h3>
+
+    <div class="summary-details">
+        <p><strong>Customer:</strong> @Order?.CustomerName</p>
+
+        @* BUG: The property is named "TotalPrice" on OrderSummaryDto,
+           but this binding references "TotalCost" which does not exist.
+           The component renders nothing for the total instead of the actual price. *@
+        <p><strong>Total:</strong> @Order?.TotalCost</p>
+
+        <p><strong>Items:</strong> @Order?.ItemCount</p>
+        <p><strong>Status:</strong> @Order?.Status</p>
+    </div>
+
+    @if (Order?.ItemCount > 0)
+    {
+        <button class="btn btn-primary" @onclick="ViewDetails">View Details</button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public OrderSummaryDto? Order { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnViewDetails { get; set; }
+
+    private async Task ViewDetails()
+    {
+        if (Order != null)
+            await OnViewDetails.InvokeAsync(Order.OrderId);
+    }
+}
