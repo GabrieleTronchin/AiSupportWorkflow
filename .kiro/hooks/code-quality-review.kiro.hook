@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Code Quality Review",
+  "description": "Analyzes modified source code files for potential improvements including code smells, design patterns, and best practices. Generates suggestions for improving readability, maintainability, and performance while preserving existing functionality.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.cs"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the changed file for potential code quality improvements. Analyze for:\n\n1. Code smells (long methods, duplicated logic, magic numbers, deep nesting)\n2. Design pattern opportunities (Result pattern usage, proper record/immutable patterns, async/await best practices)\n3. .NET and C# best practices (nullable reference types, file-scoped namespaces, pattern matching, expression-bodied members, collection expressions, target-typed new)\n4. Readability and maintainability (naming conventions, method length, single responsibility)\n5. Performance considerations (unnecessary allocations, LINQ misuse, async overhead)\n\nProvide concise, actionable suggestions. Do not rewrite the entire file — just highlight specific areas and recommend improvements. Respect existing functionality and architecture."
+  },
+  "workspaceFolderName": "Test",
+  "shortName": "code-quality-review"
+}
