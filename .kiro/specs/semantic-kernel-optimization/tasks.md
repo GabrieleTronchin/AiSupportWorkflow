@@ -69,7 +69,7 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - Same simplification as 5.1
     - _Requirements: 4.4_
 
-- [ ] 6. Checkpoint
+- [x] 6. Checkpoint
   - Ensure all existing tests pass with `dotnet test AiSupportWorkflow.sln`. Ask the user if questions arise.
 
 - [ ]* 7. Write property tests for correctness properties
@@ -116,7 +116,7 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - For any provider string not in `{"openai"}`, calling `AddSemanticKernel` throws `InvalidOperationException`
     - **Validates: Requirements 5.2, 5.6**
 
-- [ ] 8. Final checkpoint
+- [x] 8. Final checkpoint
   - Ensure all tests pass with `dotnet test AiSupportWorkflow.sln`. Ask the user if questions arise.
 
 ## Notes
