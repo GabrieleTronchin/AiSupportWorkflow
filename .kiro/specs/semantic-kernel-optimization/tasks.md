@@ -38,8 +38,8 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
 - [x] 3. Checkpoint
   - Ensure the solution builds successfully with `dotnet build AiSupportWorkflow.sln`. Ask the user if questions arise.
 
-- [ ] 4. Refactor LLM services to use direct `IChatCompletionService` injection with `PromptExecutionSettings`
-  - [ ] 4.1 Refactor `IssueClassifierService`
+- [x] 4. Refactor LLM services to use direct `IChatCompletionService` injection with `PromptExecutionSettings`
+  - [x] 4.1 Refactor `IssueClassifierService`
     - Replace constructor parameter `Kernel kernel` with `IChatCompletionService chatService`
     - Remove `kernel.GetRequiredService<IChatCompletionService>()` call, use `chatService` directly
     - Add static `PromptExecutionSettings` field with temperature `0.1` via `ExtensionData`
@@ -47,11 +47,11 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - Remove `using Microsoft.SemanticKernel;` (Kernel namespace) if no longer needed
     - _Requirements: 1.1, 1.2, 2.1, 2.4, 2.5, 4.1, 4.2, 5.7_
 
-  - [ ] 4.2 Refactor `BugResolverService`
+  - [x] 4.2 Refactor `BugResolverService`
     - Same pattern as 4.1: replace `Kernel` with `IChatCompletionService`, add static settings with temperature `0.2`
     - _Requirements: 1.1, 1.2, 2.2, 2.4, 2.5, 4.1, 4.2, 5.7_
 
-  - [ ] 4.3 Refactor `CodeChangeGeneratorService`
+  - [x] 4.3 Refactor `CodeChangeGeneratorService`
     - Same pattern as 4.1: replace `Kernel` with `IChatCompletionService`, add static settings with temperature `0.5`
     - _Requirements: 1.1, 1.2, 2.3, 2.4, 2.5, 4.1, 4.2, 5.7_
 

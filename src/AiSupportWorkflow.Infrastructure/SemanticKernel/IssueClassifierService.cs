@@ -9,8 +9,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-public class IssueClassifierService(Kernel kernel, ILogger<IssueClassifierService> logger) : IIssueClassifier
+public class IssueClassifierService(IChatCompletionService chatService, ILogger<IssueClassifierService> logger) : IIssueClassifier
 {
+    private static readonly PromptExecutionSettings Settings = new()
+    {
+        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.1 }
+    };
+
     private const string SystemPrompt = """
         You are a support email classifier. Analyze the email and classify it.
         Respond ONLY with a JSON object in this exact format (no markdown, no extra text):
@@ -27,11 +32,10 @@ public class IssueClassifierService(Kernel kernel, ILogger<IssueClassifierServic
     {
         try
         {
-            var chatService = kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory(SystemPrompt);
             history.AddUserMessage($"Subject: {issue.Subject}\n\nBody: {issue.Body}");
 
-            var response = await chatService.GetChatMessageContentAsync(history, cancellationToken: ct);
+            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
             return ParseClassificationResponse(response.Content ?? "");
         }
         catch (Exception ex)

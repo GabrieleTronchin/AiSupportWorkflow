@@ -8,8 +8,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-public class CodeChangeGeneratorService(Kernel kernel, ILogger<CodeChangeGeneratorService> logger) : ICodeChangeGenerator
+public class CodeChangeGeneratorService(IChatCompletionService chatService, ILogger<CodeChangeGeneratorService> logger) : ICodeChangeGenerator
 {
+    private static readonly PromptExecutionSettings Settings = new()
+    {
+        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.5 }
+    };
+
     private const string SystemPrompt = """
         You are a code change generator. Given a resolution report, produce a simulated code fix.
         Respond ONLY with a JSON object in this exact format (no markdown, no extra text):
@@ -26,11 +31,10 @@ public class CodeChangeGeneratorService(Kernel kernel, ILogger<CodeChangeGenerat
     {
         try
         {
-            var chatService = kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory(SystemPrompt);
             history.AddUserMessage(BuildPrompt(resolution));
 
-            var response = await chatService.GetChatMessageContentAsync(history, cancellationToken: ct);
+            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
             return ParsePullRequestResponse(resolution.IssueId, response.Content ?? "");
         }
         catch (Exception ex)
