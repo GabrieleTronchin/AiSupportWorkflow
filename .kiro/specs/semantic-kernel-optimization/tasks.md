@@ -6,17 +6,17 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
 
 ## Tasks
 
-- [ ] 1. Create provider-agnostic configuration model and update config binding
-  - [ ] 1.1 Create `LlmProviderConfiguration` class replacing `OpenAIConfiguration`
+- [x] 1. Create provider-agnostic configuration model and update config binding
+  - [x] 1.1 Create `LlmProviderConfiguration` class replacing `OpenAIConfiguration`
     - Create `src/AiSupportWorkflow.Infrastructure/Configuration/LlmProviderConfiguration.cs` with properties: `Provider` (default `"OpenAI"`), `ModelName` (default `"gpt-4o-mini"`), `ApiKey` (default `""`), `Endpoint` (nullable string)
     - Delete or keep `OpenAIConfiguration.cs` for backward compatibility during transition
     - _Requirements: 5.1, 5.4_
 
-  - [ ] 1.2 Update `appsettings.json` to use `LlmProvider` section
+  - [x] 1.2 Update `appsettings.json` to use `LlmProvider` section
     - Replace the `"OpenAI"` section with `"LlmProvider": { "Provider": "OpenAI", "ModelName": "gpt-4o-mini" }`
     - _Requirements: 5.5_
 
-  - [ ] 1.3 Update `InfrastructureServiceExtensions` to bind `LlmProviderConfiguration`
+  - [x] 1.3 Update `InfrastructureServiceExtensions` to bind `LlmProviderConfiguration`
     - Change `services.Configure<OpenAIConfiguration>(...)` to `services.Configure<LlmProviderConfiguration>(configuration.GetSection("LlmProvider"))`
     - _Requirements: 5.4_
 
