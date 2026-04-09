@@ -35,7 +35,7 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - Call `services.ConfigureHttpClientDefaults` with `AddStandardResilienceHandler` configured for max 3 retries, exponential backoff with jitter
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
 
-- [ ] 3. Checkpoint
+- [x] 3. Checkpoint
   - Ensure the solution builds successfully with `dotnet build AiSupportWorkflow.sln`. Ask the user if questions arise.
 
 - [ ] 4. Refactor LLM services to use direct `IChatCompletionService` injection with `PromptExecutionSettings`
