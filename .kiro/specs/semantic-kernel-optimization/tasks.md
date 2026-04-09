@@ -55,17 +55,17 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - Same pattern as 4.1: replace `Kernel` with `IChatCompletionService`, add static settings with temperature `0.5`
     - _Requirements: 1.1, 1.2, 2.3, 2.4, 2.5, 4.1, 4.2, 5.7_
 
-- [ ] 5. Update unit tests to inject `IChatCompletionService` directly
-  - [ ] 5.1 Update `IssueClassifierTests`
+- [x] 5. Update unit tests to inject `IChatCompletionService` directly
+  - [x] 5.1 Update `IssueClassifierTests`
     - Simplify `CreateSut` to `new IssueClassifierService(chatService, logger)` — remove `Kernel.CreateBuilder()` usage
     - Remove `using Microsoft.SemanticKernel;` import
     - _Requirements: 4.4_
 
-  - [ ] 5.2 Update `BugResolverTests`
+  - [x] 5.2 Update `BugResolverTests`
     - Same simplification as 5.1
     - _Requirements: 4.4_
 
-  - [ ] 5.3 Update `CodeChangeGeneratorTests`
+  - [x] 5.3 Update `CodeChangeGeneratorTests`
     - Same simplification as 5.1
     - _Requirements: 4.4_
 
