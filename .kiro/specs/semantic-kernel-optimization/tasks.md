@@ -20,18 +20,18 @@ Refactor the Semantic Kernel integration to fix the captive dependency antipatte
     - Change `services.Configure<OpenAIConfiguration>(...)` to `services.Configure<LlmProviderConfiguration>(configuration.GetSection("LlmProvider"))`
     - _Requirements: 5.4_
 
-- [ ] 2. Refactor `SemanticKernelSetup` with provider switch and resilience pipeline
-  - [ ] 2.1 Refactor `SemanticKernelSetup.AddSemanticKernel` to read `LlmProviderConfiguration`
+- [x] 2. Refactor `SemanticKernelSetup` with provider switch and resilience pipeline
+  - [x] 2.1 Refactor `SemanticKernelSetup.AddSemanticKernel` to read `LlmProviderConfiguration`
     - Read config from `"LlmProvider"` section instead of `"OpenAI"`
     - Add `switch` on `config.Provider.ToLowerInvariant()` with `"openai"` case calling `AddOpenAIChatCompletion`
     - Throw `InvalidOperationException` for unsupported provider names
     - _Requirements: 5.2, 5.3, 5.6_
 
-  - [ ] 2.2 Add `Microsoft.Extensions.Http.Resilience` NuGet package to Infrastructure project
+  - [x] 2.2 Add `Microsoft.Extensions.Http.Resilience` NuGet package to Infrastructure project
     - Add `<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.6.0" />` to `AiSupportWorkflow.Infrastructure.csproj`
     - _Requirements: 3.4_
 
-  - [ ] 2.3 Add resilience pipeline to `SemanticKernelSetup`
+  - [x] 2.3 Add resilience pipeline to `SemanticKernelSetup`
     - Call `services.ConfigureHttpClientDefaults` with `AddStandardResilienceHandler` configured for max 3 retries, exponential backoff with jitter
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
 
