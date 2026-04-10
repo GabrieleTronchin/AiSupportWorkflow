@@ -80,7 +80,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `src/AiSupportWorkflow.Presentation/Program.cs`
     - _Requirements: 1.1, 5.4_
 
-- [ ] 8. Checkpoint
+- [x] 8. Checkpoint
   - Build the solution and run all existing tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Update existing unit tests for new interfaces
