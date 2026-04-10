@@ -52,6 +52,7 @@ Follows Clean Architecture: Domain → Application → Infrastructure → Presen
 |---------|---------|
 | Microsoft.SemanticKernel | AI orchestration and LLM integration |
 | Microsoft.SemanticKernel.Connectors.OpenAI | OpenAI ChatGPT connector (non-Azure) |
+| Microsoft.Extensions.Http.Resilience | Retry and resilience for outbound LLM HTTP calls |
 | Akka.NET + Akka.Hosting | Actor model for agent lifecycle, supervision, and message passing |
 | FsCheck.Xunit | Property-based testing |
 | xUnit | Unit testing |

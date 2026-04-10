@@ -5,7 +5,6 @@ using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Infrastructure.SemanticKernel;
 using AiSupportWorkflow.UnitTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 public class IssueClassifierTests
@@ -13,12 +12,8 @@ public class IssueClassifierTests
     private static IssueRecord MakeIssue() =>
         new(Guid.NewGuid(), "user@test.com", "Bug", "Details", DateTimeOffset.UtcNow);
 
-    private static IssueClassifierService CreateSut(IChatCompletionService chatService)
-    {
-        var builder = Kernel.CreateBuilder();
-        builder.Services.AddSingleton(chatService);
-        return new IssueClassifierService(builder.Build(), NullLogger<IssueClassifierService>.Instance);
-    }
+    private static IssueClassifierService CreateSut(IChatCompletionService chatService) =>
+        new(chatService, NullLogger<IssueClassifierService>.Instance);
 
     [Fact]
     public async Task ClassifyAsync_ValidBackendBugJson_ReturnsCodeRelatedClassification()

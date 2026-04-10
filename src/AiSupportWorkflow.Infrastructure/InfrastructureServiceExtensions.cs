@@ -12,7 +12,7 @@ public static class InfrastructureServiceExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<OpenAIConfiguration>(configuration.GetSection("OpenAI"));
+        services.Configure<LlmProviderConfiguration>(configuration.GetSection("LlmProvider"));
         services.Configure<WorkflowConfiguration>(configuration.GetSection("Workflow"));
 
         services.AddSemanticKernel(configuration);

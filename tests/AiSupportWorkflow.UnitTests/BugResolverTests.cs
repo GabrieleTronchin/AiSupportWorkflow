@@ -6,7 +6,6 @@ using AiSupportWorkflow.Domain.ValueObjects;
 using AiSupportWorkflow.Infrastructure.SemanticKernel;
 using AiSupportWorkflow.UnitTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 public class BugResolverTests
@@ -17,12 +16,8 @@ public class BugResolverTests
     private static AgentAssignment MakeAgent() =>
         new("TeamA_BackendDeveloper", "TeamA", AgentRole.BackendDeveloper);
 
-    private static BugResolverService CreateSut(IChatCompletionService chatService)
-    {
-        var builder = Kernel.CreateBuilder();
-        builder.Services.AddSingleton(chatService);
-        return new BugResolverService(builder.Build(), NullLogger<BugResolverService>.Instance);
-    }
+    private static BugResolverService CreateSut(IChatCompletionService chatService) =>
+        new(chatService, NullLogger<BugResolverService>.Instance);
 
     [Fact]
     public async Task ResolveAsync_ValidJson_ReturnsResolutionReport()

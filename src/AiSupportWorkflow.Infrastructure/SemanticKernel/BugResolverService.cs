@@ -8,8 +8,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-public class BugResolverService(Kernel kernel, ILogger<BugResolverService> logger) : IBugResolver
+public class BugResolverService(IChatCompletionService chatService, ILogger<BugResolverService> logger) : IBugResolver
 {
+    private static readonly PromptExecutionSettings Settings = new()
+    {
+        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.2 }
+    };
+
     private const string SystemPrompt = """
         You are a senior software engineer performing root cause analysis.
         Analyze the issue and produce a resolution report.
@@ -29,12 +34,11 @@ public class BugResolverService(Kernel kernel, ILogger<BugResolverService> logge
     {
         try
         {
-            var chatService = kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory(SystemPrompt);
             history.AddUserMessage(
                 $"Agent: {agent.AgentId} ({agent.Role})\nSubject: {issue.Subject}\n\nBody: {issue.Body}");
 
-            var response = await chatService.GetChatMessageContentAsync(history, cancellationToken: ct);
+            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
             return ParseResolutionResponse(issue.Id, response.Content ?? "");
         }
         catch (Exception ex)
