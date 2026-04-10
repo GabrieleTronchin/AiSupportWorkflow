@@ -15,12 +15,12 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `src/AiSupportWorkflow.Domain/Messages/ActorMessages.cs`
     - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 2. Create ISupervisorActorBridge interface and implementation
-  - [ ] 2.1 Create `ISupervisorActorBridge` interface in Domain layer
+- [x] 2. Create ISupervisorActorBridge interface and implementation
+  - [x] 2.1 Create `ISupervisorActorBridge` interface in Domain layer
     - Define `Task<ResolutionReport> AssignIssueAsync(string agentId, IssueRecord issue, IssueCategory category, TimeSpan timeout, CancellationToken ct)` method
     - File: `src/AiSupportWorkflow.Domain/Interfaces/ISupervisorActorBridge.cs`
     - _Requirements: 1.1, 1.2_
-  - [ ] 2.2 Create `SupervisorActorBridge` implementation in Infrastructure layer
+  - [x] 2.2 Create `SupervisorActorBridge` implementation in Infrastructure layer
     - Implement `ISupervisorActorBridge` using `IRequiredActor<SupervisorActor>` to obtain the supervisor `IActorRef`
     - Use `_supervisor.Ask<ResolutionCompleteMessage>` to send targeted `AssignIssueMessage` and await the response
     - File: `src/AiSupportWorkflow.Infrastructure/Actors/SupervisorActorBridge.cs`
