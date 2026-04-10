@@ -48,11 +48,16 @@ builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
         var agents = resolver.GetService<IEnumerable<IAIAgent>>()
             ?? Enumerable.Empty<IAIAgent>();
 
-        var supervisorProps = Props.Create(() => new SupervisorActor(agents));
+        var logger = resolver.GetService<ILogger<SupervisorActor>>()!;
+
+        var supervisorProps = Props.Create(() => new SupervisorActor(agents, logger));
         var supervisor = system.ActorOf(supervisorProps, "supervisor");
         registry.Register<SupervisorActor>(supervisor);
     });
 });
+
+// Register the supervisor actor bridge for Application layer access
+builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
 
 var app = builder.Build();
 

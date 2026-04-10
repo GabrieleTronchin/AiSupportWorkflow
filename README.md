@@ -24,7 +24,7 @@ Simulates an AI-driven technical support workflow for a virtual company. The sys
 5. Resolves the bug through AI-powered root cause analysis
 6. Generates a simulated code fix and pull request
 
-The company has two teams, each with three AI agents. All agents run as Akka.NET actors, all reasoning flows through Microsoft Semantic Kernel + OpenAI ChatGPT.
+The company has two teams, each with three AI agents. All agents run as Akka.NET actors, all reasoning flows through Microsoft Semantic Kernel + OpenAI ChatGPT. See [Actor Architecture](docs/actor-architecture.md) for details on the actor hierarchy, message protocol, supervision strategy, and Akka.Hosting integration.
 
 ## Project Structure
 

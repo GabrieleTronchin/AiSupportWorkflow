@@ -1,12 +1,10 @@
 namespace AiSupportWorkflow.Application.Services;
 
-using Akka.Actor;
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
-using AiSupportWorkflow.Domain.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +15,7 @@ public class Orchestrator(
     IAgentSelector agentSelector,
     ICodeChangeGenerator codeChangeGenerator,
     IWorkflowStateTracker stateTracker,
-    ActorSystem actorSystem,
+    ISupervisorActorBridge supervisorBridge,
     ILogger<Orchestrator> logger,
     IOptions<WorkflowConfiguration> workflowConfig) : IOrchestrator
 {
@@ -84,22 +82,15 @@ public class Orchestrator(
     private AgentAssignment SelectAgent(TeamAssignment team, IssueCategory category) =>
         agentSelector.Select(team, category);
 
-    private async Task<ResolutionReport> ResolveWithActorAsync(
+    private Task<ResolutionReport> ResolveWithActorAsync(
         IssueRecord issue,
         IssueCategory category,
         AgentAssignment agent,
         CancellationToken ct)
     {
-        var agentPath = $"/user/supervisor/{agent.AgentId}";
-        var agentActor = await actorSystem.ActorSelection(agentPath)
-            .ResolveOne(TimeSpan.FromSeconds(5), ct);
-
-        var response = await agentActor.Ask<ResolutionCompleteMessage>(
-            new AssignIssueMessage(issue, category),
-            TimeSpan.FromMinutes(2),
-            ct);
-
-        return response.Report;
+        return supervisorBridge.AssignIssueAsync(
+            agent.AgentId, issue, category,
+            TimeSpan.FromMinutes(2), ct);
     }
 
     private void LogClassificationDecision(Guid issueId, ClassificationResult classification)

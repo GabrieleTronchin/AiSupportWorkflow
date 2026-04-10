@@ -1,7 +1,5 @@
 namespace AiSupportWorkflow.UnitTests;
 
-using Akka.Actor;
-using Akka.TestKit.Xunit2;
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Entities;
@@ -13,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
-public class OrchestratorTests : TestKit
+public class OrchestratorTests
 {
     private readonly IEmailProcessor _emailProcessor = Substitute.For<IEmailProcessor>();
     private readonly IIssueClassifier _issueClassifier = Substitute.For<IIssueClassifier>();
@@ -21,6 +19,7 @@ public class OrchestratorTests : TestKit
     private readonly IAgentSelector _agentSelector = Substitute.For<IAgentSelector>();
     private readonly ICodeChangeGenerator _codeChangeGenerator = Substitute.For<ICodeChangeGenerator>();
     private readonly IWorkflowStateTracker _stateTracker = Substitute.For<IWorkflowStateTracker>();
+    private readonly ISupervisorActorBridge _supervisorBridge = Substitute.For<ISupervisorActorBridge>();
 
     private static IncomingEmail ValidEmail() =>
         new("user@test.com", "Bug in ApplicationA", "The /orders endpoint returns 500 in ApplicationA");
@@ -34,7 +33,7 @@ public class OrchestratorTests : TestKit
         var config = Options.Create(new WorkflowConfiguration { EnableVisualization = false });
         return new Orchestrator(
             _emailProcessor, _issueClassifier, _teamRouter, _agentSelector,
-            _codeChangeGenerator, _stateTracker, Sys,
+            _codeChangeGenerator, _stateTracker, _supervisorBridge,
             NullLogger<Orchestrator>.Instance, config);
     }
 
@@ -54,9 +53,10 @@ public class OrchestratorTests : TestKit
         _codeChangeGenerator.GenerateAsync(Arg.Any<ResolutionReport>(), Arg.Any<CancellationToken>())
             .Returns(pr);
 
-        // Create proper actor hierarchy: /user/supervisor/TeamA_BackendDeveloper
-        var supervisorProps = Props.Create(() => new StubSupervisorActor(resolution));
-        Sys.ActorOf(supervisorProps, "supervisor");
+        _supervisorBridge.AssignIssueAsync(
+            Arg.Any<string>(), Arg.Any<IssueRecord>(), Arg.Any<IssueCategory>(),
+            Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(resolution);
     }
 
     [Fact]
@@ -143,21 +143,4 @@ public class OrchestratorTests : TestKit
         Assert.Equal(3, uniqueIds.Count);
     }
 
-    private class StubSupervisorActor : ReceiveActor
-    {
-        public StubSupervisorActor(ResolutionReport report)
-        {
-            var agentProps = Props.Create(() => new StubAgentActor(report));
-            Context.ActorOf(agentProps, "TeamA_BackendDeveloper");
-        }
-    }
-
-    private class StubAgentActor : ReceiveActor
-    {
-        public StubAgentActor(ResolutionReport report)
-        {
-            Receive<AssignIssueMessage>(_ =>
-                Sender.Tell(new ResolutionCompleteMessage(report.IssueId, report)));
-        }
-    }
 }
