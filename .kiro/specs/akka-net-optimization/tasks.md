@@ -63,8 +63,8 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
 - [x] 5. Checkpoint
   - Build the solution with `dotnet build AiSupportWorkflow.sln` to verify all compile errors from the refactor are resolved before proceeding. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Modify VisualizationEndpoints to use IRequiredActor
-  - [ ] 6.1 Refactor `/api/support/agents` endpoint
+- [x] 6. Modify VisualizationEndpoints to use IRequiredActor
+  - [x] 6.1 Refactor `/api/support/agents` endpoint
     - Replace `ActorSystem actorSystem` parameter with `IRequiredActor<SupervisorActor> supervisorActor` and `IOptions<WorkflowConfiguration> config`
     - Send a single `AgentStatusQuery(null)` to the supervisor via `supervisorActor.ActorRef.Ask<AggregatedAgentStatusResponse>`
     - Return `response.Statuses` directly instead of iterating agents
