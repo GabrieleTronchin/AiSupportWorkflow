@@ -2,12 +2,15 @@ namespace AiSupportWorkflow.Presentation.Endpoints;
 
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Interfaces;
+using AiSupportWorkflow.Presentation.Endpoints.Primitives;
 
-public static class SupportEmailEndpoints
+public class SupportEmailEndpoints : IEndpoint
 {
-    public static IEndpointRouteBuilder MapSupportEmailEndpoints(this IEndpointRouteBuilder routes)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        routes.MapPost("/api/support/emails", async (IncomingEmail email, IOrchestrator orchestrator, CancellationToken ct) =>
+        var group = app.MapGroup("/api/support").WithTags("Support Emails");
+
+        group.MapPost("/emails", async (IncomingEmail email, IOrchestrator orchestrator, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(email.Subject) || string.IsNullOrWhiteSpace(email.Body))
                 return Results.BadRequest(new { Error = "Subject and Body are required." });
@@ -18,7 +21,5 @@ public static class SupportEmailEndpoints
                 ? Results.Ok(result)
                 : Results.BadRequest(new { result.FailureReason });
         });
-
-        return routes;
     }
 }

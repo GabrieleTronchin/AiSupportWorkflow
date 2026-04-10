@@ -1,23 +1,24 @@
 namespace AiSupportWorkflow.Presentation.Endpoints;
 
 using AiSupportWorkflow.Domain.Interfaces;
+using AiSupportWorkflow.Presentation.Endpoints.Primitives;
 
-public static class WorkflowStatusEndpoints
+public class WorkflowStatusEndpoints : IEndpoint
 {
-    public static IEndpointRouteBuilder MapWorkflowStatusEndpoints(this IEndpointRouteBuilder routes)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        routes.MapGet("/api/support/issues/{id:guid}", (Guid id, IWorkflowStateTracker stateTracker) =>
+        var group = app.MapGroup("/api/support").WithTags("Workflow Status");
+
+        group.MapGet("/issues/{id:guid}", (Guid id, IWorkflowStateTracker stateTracker) =>
         {
             var state = stateTracker.GetState(id);
             return Results.Ok(state);
         });
 
-        routes.MapGet("/api/support/issues", (IWorkflowStateTracker stateTracker) =>
+        group.MapGet("/issues", (IWorkflowStateTracker stateTracker) =>
         {
             var states = stateTracker.GetAllStates();
             return Results.Ok(states);
         });
-
-        return routes;
     }
 }

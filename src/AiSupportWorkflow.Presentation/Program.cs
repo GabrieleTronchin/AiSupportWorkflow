@@ -7,7 +7,7 @@ using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure;
 using AiSupportWorkflow.Infrastructure.Actors;
 using AiSupportWorkflow.Infrastructure.Agents;
-using AiSupportWorkflow.Presentation.Endpoints;
+using AiSupportWorkflow.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,11 +59,12 @@ builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
 // Register the supervisor actor bridge for Application layer access
 builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
 
+// Discover and register all IEndpoint implementations
+builder.Services.AddEndpoints(typeof(Program).Assembly);
+
 var app = builder.Build();
 
 // Map all Minimal API endpoints
-app.MapSupportEmailEndpoints();
-app.MapWorkflowStatusEndpoints();
-app.MapVisualizationEndpoints();
+app.MapEndpoints();
 
 app.Run();

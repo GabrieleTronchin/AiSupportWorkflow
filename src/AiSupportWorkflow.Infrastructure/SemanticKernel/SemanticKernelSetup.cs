@@ -12,12 +12,17 @@ public static class SemanticKernelSetup
     {
         var config = configuration.GetSection("LlmProvider").Get<LlmProviderConfiguration>()
             ?? new LlmProviderConfiguration();
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? config.ApiKey;
+
+        if (string.IsNullOrWhiteSpace(config.ApiKey))
+        {
+            throw new InvalidOperationException(
+                "LLM API key is not configured. Set 'LlmProvider:ApiKey' in appsettings.Development.json.");
+        }
 
         switch (config.Provider.ToLowerInvariant())
         {
             case "openai":
-                services.AddOpenAIChatCompletion(config.ModelName, apiKey);
+                services.AddOpenAIChatCompletion(config.ModelName, config.ApiKey);
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported LLM provider: {config.Provider}");

@@ -1,0 +1,28 @@
+@HostAddress = http://localhost:5080
+
+### Submit a support email
+
+POST {{HostAddress}}/api/support/emails
+Content-Type: application/json
+
+{
+  "Sender": "developer@example.com",
+  "Subject": "Bug in Application A order processing",
+  "Body": "The OrderController is returning a 500 error when processing orders with null shipping addresses. This is affecting production users in Application A."
+}
+
+### Get workflow state by issue ID
+
+GET {{HostAddress}}/api/support/issues/00000000-0000-0000-0000-000000000000
+
+### List all processed issues
+
+GET {{HostAddress}}/api/support/issues
+
+### Stream workflow updates (SSE)
+
+GET {{HostAddress}}/api/support/stream
+
+### Get current state of all AI agents
+
+GET {{HostAddress}}/api/support/agents
