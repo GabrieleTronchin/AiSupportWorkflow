@@ -48,7 +48,9 @@ builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
         var agents = resolver.GetService<IEnumerable<IAIAgent>>()
             ?? Enumerable.Empty<IAIAgent>();
 
-        var supervisorProps = Props.Create(() => new SupervisorActor(agents));
+        var logger = resolver.GetService<ILogger<SupervisorActor>>()!;
+
+        var supervisorProps = Props.Create(() => new SupervisorActor(agents, logger));
         var supervisor = system.ActorOf(supervisorProps, "supervisor");
         registry.Register<SupervisorActor>(supervisor);
     });

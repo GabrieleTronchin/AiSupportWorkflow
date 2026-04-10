@@ -87,7 +87,7 @@ public static class VisualizationEndpoints
                 .ResolveOne(TimeSpan.FromSeconds(2), ct);
 
             return await agentActor.Ask<AgentStatusResponse>(
-                new AgentStatusQuery(),
+                new AgentStatusQuery(null),
                 TimeSpan.FromSeconds(5),
                 ct);
         }

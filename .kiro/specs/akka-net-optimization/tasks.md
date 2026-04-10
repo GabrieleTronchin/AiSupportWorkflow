@@ -60,7 +60,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - Remove `<PackageReference Include="Akka" Version="1.5.64" />` from `src/AiSupportWorkflow.Application/AiSupportWorkflow.Application.csproj`
     - _Requirements: 1.1_
 
-- [~] 5. Checkpoint
+- [x] 5. Checkpoint
   - Build the solution with `dotnet build AiSupportWorkflow.sln` to verify all compile errors from the refactor are resolved before proceeding. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Modify VisualizationEndpoints to use IRequiredActor
