@@ -7,13 +7,16 @@ using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.Messages;
 using AiSupportWorkflow.Infrastructure.Actors;
+using AiSupportWorkflow.Presentation.Endpoints.Primitives;
 using Microsoft.Extensions.Options;
 
-public static class VisualizationEndpoints
+public class VisualizationEndpoints : IEndpoint
 {
-    public static IEndpointRouteBuilder MapVisualizationEndpoints(this IEndpointRouteBuilder routes)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        routes.MapGet("/api/support/stream", async (
+        var group = app.MapGroup("/api/support").WithTags("Visualization");
+
+        group.MapGet("/stream", async (
             HttpContext context,
             IWorkflowStateTracker stateTracker,
             IOptions<WorkflowConfiguration> config,
@@ -26,7 +29,7 @@ public static class VisualizationEndpoints
             return Results.Empty;
         });
 
-        routes.MapGet("/api/support/agents", async (
+        group.MapGet("/agents", async (
             IRequiredActor<SupervisorActor> supervisorActor,
             IOptions<WorkflowConfiguration> config,
             CancellationToken ct) =>
@@ -42,8 +45,6 @@ public static class VisualizationEndpoints
 
             return Results.Ok(response.Statuses);
         });
-
-        return routes;
     }
 
     private static async Task StreamWorkflowStatesAsync(
