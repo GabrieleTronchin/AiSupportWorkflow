@@ -124,7 +124,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `README.md`
     - _Requirements: 7.6_
 
-- [ ] 12. Final checkpoint
+- [x] 12. Final checkpoint
   - Build the solution and run all tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
