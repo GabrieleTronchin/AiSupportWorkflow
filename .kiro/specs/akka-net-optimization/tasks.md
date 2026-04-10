@@ -110,8 +110,8 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
 - [x] 10. Checkpoint
   - Run all tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Create actor architecture documentation
-  - [ ] 11.1 Create `docs/actor-architecture.md`
+- [x] 11. Create actor architecture documentation
+  - [x] 11.1 Create `docs/actor-architecture.md`
     - Document the actor hierarchy (SupervisorActor → AIAgentActor children)
     - Document the message protocol (all message types, their fields, and routing behavior)
     - Document the supervisor strategy (exception-type mapping to directives)
@@ -119,7 +119,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - Document the `ISupervisorActorBridge` abstraction and Clean Architecture rationale
     - File: `docs/actor-architecture.md`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
-  - [ ] 11.2 Update `README.md` with link to actor documentation
+  - [x] 11.2 Update `README.md` with link to actor documentation
     - Add a reference and link to `docs/actor-architecture.md` in the README
     - File: `README.md`
     - _Requirements: 7.6_
