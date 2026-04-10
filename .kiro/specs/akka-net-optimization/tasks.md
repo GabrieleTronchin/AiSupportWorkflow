@@ -73,8 +73,8 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `src/AiSupportWorkflow.Presentation/Endpoints/VisualizationEndpoints.cs`
     - _Requirements: 3.1, 3.2, 3.3, 4.1, 4.2, 4.3_
 
-- [ ] 7. Update Program.cs DI wiring
-  - [ ] 7.1 Update Akka actor setup and register SupervisorActorBridge
+- [x] 7. Update Program.cs DI wiring
+  - [x] 7.1 Update Akka actor setup and register SupervisorActorBridge
     - Resolve `ILogger<SupervisorActor>` in the `WithActors` callback and pass it to `SupervisorActor` constructor
     - Register `ISupervisorActorBridge` → `SupervisorActorBridge` as singleton after the Akka setup
     - File: `src/AiSupportWorkflow.Presentation/Program.cs`

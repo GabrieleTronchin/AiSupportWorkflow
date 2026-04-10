@@ -56,6 +56,9 @@ builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
     });
 });
 
+// Register the supervisor actor bridge for Application layer access
+builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
+
 var app = builder.Build();
 
 // Map all Minimal API endpoints
