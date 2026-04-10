@@ -83,8 +83,8 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
 - [x] 8. Checkpoint
   - Build the solution and run all existing tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Update existing unit tests for new interfaces
-  - [ ] 9.1 Update `OrchestratorTests` to use `ISupervisorActorBridge`
+- [x] 9. Update existing unit tests for new interfaces
+  - [x] 9.1 Update `OrchestratorTests` to use `ISupervisorActorBridge`
     - Replace `ActorSystem` (`Sys`) dependency with a mocked `ISupervisorActorBridge` via NSubstitute
     - Remove `TestKit` base class inheritance (no longer needed since Orchestrator doesn't use ActorSystem)
     - Update `CreateSut()` to pass the mocked bridge instead of `Sys`
@@ -92,12 +92,12 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - Remove `StubSupervisorActor` and `StubAgentActor` inner classes
     - File: `tests/AiSupportWorkflow.UnitTests/OrchestratorTests.cs`
     - _Requirements: 1.1, 1.2_
-  - [ ] 9.2 Write unit tests for `SupervisorActorBridge`
+  - [x] 9.2 Write unit tests for `SupervisorActorBridge`
     - Test that `AssignIssueAsync` sends the correct `AssignIssueMessage` with `TargetAgentId` to the supervisor and returns the `ResolutionReport` from the response
     - Use `Akka.TestKit.Xunit2` to create a test probe as the supervisor
     - File: `tests/AiSupportWorkflow.UnitTests/SupervisorActorBridgeTests.cs`
     - _Requirements: 1.2_
-  - [ ] 9.3 Write unit tests for `SupervisorActor` targeted routing and strategy
+  - [x] 9.3 Write unit tests for `SupervisorActor` targeted routing and strategy
     - Test targeted `AssignIssueMessage` routes to the correct agent only
     - Test `AssignIssueMessage` for unknown agent returns `AgentNotFoundMessage`
     - Test `AgentStatusQuery(null)` returns `AggregatedAgentStatusResponse` with all agents
@@ -107,7 +107,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `tests/AiSupportWorkflow.UnitTests/SupervisorActorTests.cs`
     - _Requirements: 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 10. Checkpoint
+- [~] 10. Checkpoint
   - Run all tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Create actor architecture documentation
