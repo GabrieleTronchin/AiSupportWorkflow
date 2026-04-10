@@ -26,22 +26,22 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `src/AiSupportWorkflow.Infrastructure/Actors/SupervisorActorBridge.cs`
     - _Requirements: 1.1, 1.2_
 
-- [ ] 3. Modify SupervisorActor for targeted routing and improved strategy
-  - [ ] 3.1 Update `SupervisorActor` constructor to accept `ILogger<SupervisorActor>`
+- [x] 3. Modify SupervisorActor for targeted routing and improved strategy
+  - [x] 3.1 Update `SupervisorActor` constructor to accept `ILogger<SupervisorActor>`
     - Add `_logger` field and update constructor signature
     - File: `src/AiSupportWorkflow.Infrastructure/Actors/SupervisorActor.cs`
     - _Requirements: 5.4_
-  - [ ] 3.2 Replace broadcast in `HandleAssignIssue` with targeted routing
+  - [x] 3.2 Replace broadcast in `HandleAssignIssue` with targeted routing
     - Look up the agent by `message.TargetAgentId` in `_agentActors` dictionary
     - Forward to the matching agent only; respond with `AgentNotFoundMessage` if not found
     - _Requirements: 1.3, 1.4, 2.1, 2.4_
-  - [ ] 3.3 Implement aggregated status query in `HandleStatusQuery`
+  - [x] 3.3 Implement aggregated status query in `HandleStatusQuery`
     - Change handler to `ReceiveAsync<AgentStatusQuery>`
     - If `TargetAgentId` is specified, forward to that single agent (or respond with `AgentNotFoundMessage`)
     - If `TargetAgentId` is null, query all agents in parallel via `Task.WhenAll` and respond with `AggregatedAgentStatusResponse`
     - Include "Unavailable" fallback for agents that fail to respond within timeout
     - _Requirements: 2.2, 2.3, 2.4, 3.1, 3.3_
-  - [ ] 3.4 Implement exception-type-aware supervisor strategy with logging
+  - [x] 3.4 Implement exception-type-aware supervisor strategy with logging
     - `TimeoutException`, `HttpRequestException` → `Directive.Restart`
     - `ArgumentException`, `InvalidOperationException` → `Directive.Stop`
     - `OutOfMemoryException` → `Directive.Escalate`
