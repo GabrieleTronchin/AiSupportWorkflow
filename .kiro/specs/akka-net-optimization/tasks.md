@@ -49,18 +49,18 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - Log exception type, actor identifier, and applied directive via `_logger.LogWarning`
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 4. Modify Orchestrator to use ISupervisorActorBridge
-  - [ ] 4.1 Refactor `Orchestrator` constructor and `ResolveWithActorAsync`
+- [x] 4. Modify Orchestrator to use ISupervisorActorBridge
+  - [x] 4.1 Refactor `Orchestrator` constructor and `ResolveWithActorAsync`
     - Replace `ActorSystem actorSystem` parameter with `ISupervisorActorBridge supervisorBridge`
     - Replace `ResolveWithActorAsync` body: call `supervisorBridge.AssignIssueAsync(agent.AgentId, issue, category, TimeSpan.FromMinutes(2), ct)` instead of `ActorSelection` + `Ask`
     - Remove `using Akka.Actor;` import
     - File: `src/AiSupportWorkflow.Application/Services/Orchestrator.cs`
     - _Requirements: 1.1, 1.2_
-  - [ ] 4.2 Remove Akka package reference from Application.csproj
+  - [x] 4.2 Remove Akka package reference from Application.csproj
     - Remove `<PackageReference Include="Akka" Version="1.5.64" />` from `src/AiSupportWorkflow.Application/AiSupportWorkflow.Application.csproj`
     - _Requirements: 1.1_
 
-- [ ] 5. Checkpoint
+- [~] 5. Checkpoint
   - Build the solution with `dotnet build AiSupportWorkflow.sln` to verify all compile errors from the refactor are resolved before proceeding. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Modify VisualizationEndpoints to use IRequiredActor
