@@ -107,7 +107,7 @@ Refactor the Akka.NET actor integration to replace `ActorSelection` with direct 
     - File: `tests/AiSupportWorkflow.UnitTests/SupervisorActorTests.cs`
     - _Requirements: 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 5.1, 5.2, 5.3, 5.4_
 
-- [~] 10. Checkpoint
+- [x] 10. Checkpoint
   - Run all tests with `dotnet test AiSupportWorkflow.sln`. Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Create actor architecture documentation
