@@ -109,8 +109,8 @@ Implement six developer experience improvements across the Application, Presenta
     - Add tests to `tests/AiSupportWorkflow.UnitTests/EndpointTests.cs`
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 7. Create PowerShell SSE monitor script
-  - [ ] 7.1 Create `scripts/Monitor-Workflow.ps1`
+- [x] 7. Create PowerShell SSE monitor script
+  - [x] 7.1 Create `scripts/Monitor-Workflow.ps1`
     - Create the file at `scripts/Monitor-Workflow.ps1` in the repository root
     - Add `[CmdletBinding()]` and `param()` block with `-BaseUrl` (string, default `http://localhost:5080`) and `-Agents` (switch)
     - Implement `-Agents` mode: `Invoke-RestMethod` to `{BaseUrl}/api/support/agents`, format as table, exit
