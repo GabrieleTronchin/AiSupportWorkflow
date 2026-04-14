@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Write bug condition exploration tests
+- [x] 1. Write bug condition exploration tests
   - **Property 1: Bug Condition** — Project Configuration Defects
   - **CRITICAL**: Run these checks BEFORE implementing any fixes
   - **GOAL**: Surface counterexamples that demonstrate all three bugs exist
@@ -16,7 +16,7 @@
   - Mark task complete when all three bugs are confirmed and documented
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2. Write preservation verification tests (BEFORE implementing fixes)
+- [x] 2. Write preservation verification tests (BEFORE implementing fixes)
   - **Property 2: Preservation** — Existing Behavior Baseline
   - **IMPORTANT**: Follow observation-first methodology — verify current correct behaviors BEFORE any changes
   - **Checks to perform:**
@@ -29,9 +29,9 @@
   - Mark task complete when all baselines are documented and confirmed passing on unfixed code
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 3. Fix Bug 1: Remove `appsettings.Development.json` from git tracking
+- [x] 3. Fix Bug 1: Remove `appsettings.Development.json` from git tracking
 
-  - [ ] 3.1 Run `git rm --cached src/AiSupportWorkflow.Presentation/appsettings.Development.json`
+  - [x] 3.1 Run `git rm --cached src/AiSupportWorkflow.Presentation/appsettings.Development.json`
     - This removes the file from the git index (stops tracking) while keeping it on the local filesystem
     - The `.gitignore` rule already prevents future re-addition
     - _Bug_Condition: isBugCondition(input) where input.file == "appsettings.Development.json" AND input.isInGitignore == true AND input.isTrackedByGit == true_
@@ -39,7 +39,7 @@
     - _Preservation: File remains on disk with original contents; `.gitignore` rule unchanged_
     - _Requirements: 2.1, 3.1, 3.2_
 
-  - [ ] 3.2 Verify bug condition exploration test now passes for Bug 1
+  - [x] 3.2 Verify bug condition exploration test now passes for Bug 1
     - **Property 1: Expected Behavior** — Git Tracking Removal
     - **IMPORTANT**: Re-run the SAME check from task 1 — do NOT write a new test
     - Run `git ls-files --cached src/AiSupportWorkflow.Presentation/appsettings.Development.json` — expect empty output (file no longer tracked)
@@ -47,16 +47,16 @@
     - **EXPECTED OUTCOME**: Check PASSES (confirms Bug 1 is fixed)
     - _Requirements: 2.1_
 
-  - [ ] 3.3 Verify preservation tests still pass for Bug 1
+  - [x] 3.3 Verify preservation tests still pass for Bug 1
     - **Property 2: Preservation** — Local Dev Config Unaffected
     - **IMPORTANT**: Re-run the SAME checks from task 2 — do NOT write new tests
     - Verify `appsettings.Development.json` still exists on disk at `src/AiSupportWorkflow.Presentation/appsettings.Development.json`
     - Verify `.gitignore` still contains the `appsettings.Development.json` rule
     - **EXPECTED OUTCOME**: Checks PASS (confirms no regressions)
 
-- [ ] 4. Fix Bug 2: Expand HTTP test file with scenario and edge-case tests
+- [x] 4. Fix Bug 2: Expand HTTP test file with scenario and edge-case tests
 
-  - [ ] 4.1 Add 6 DummyApps bug scenario POST tests to the HTTP file
+  - [x] 4.1 Add 6 DummyApps bug scenario POST tests to the HTTP file
     - Edit `src/AiSupportWorkflow.Presentation/AiSupportWorkflow.Presentation.http`
     - Keep the existing `@HostAddress` variable and all existing GET endpoint tests
     - Replace the single generic POST test with 6 scenario-specific POST requests to `/api/support/emails`:
@@ -73,7 +73,7 @@
     - _Preservation: Existing GET endpoint tests retained unchanged_
     - _Requirements: 2.2, 3.3_
 
-  - [ ] 4.2 Add 4 false-positive and edge-case POST tests to the HTTP file
+  - [x] 4.2 Add 4 false-positive and edge-case POST tests to the HTTP file
     - Append to the HTTP file after the scenario tests:
       - **Out-of-scope**: Non-code-related email (e.g., password reset request) — should be classified as OutOfScope
       - **Ambiguous routing**: Email mentioning both Application A and Application B — should fail routing with ambiguous error
@@ -84,7 +84,7 @@
     - _Expected_Behavior: HTTP file contains 4 false-positive/edge-case POST requests_
     - _Requirements: 2.3_
 
-  - [ ] 4.3 Verify bug condition exploration test now passes for Bug 2
+  - [x] 4.3 Verify bug condition exploration test now passes for Bug 2
     - **Property 1: Expected Behavior** — HTTP Test Completeness
     - **IMPORTANT**: Re-run the SAME check from task 1 — do NOT write a new test
     - Inspect the HTTP file and confirm it contains exactly 6 scenario POST tests (A1–A3, B1–B3) + 4 edge-case POST tests + the original GET tests
@@ -92,16 +92,16 @@
     - **EXPECTED OUTCOME**: Check PASSES (confirms Bug 2 is fixed)
     - _Requirements: 2.2, 2.3_
 
-  - [ ] 4.4 Verify preservation tests still pass for Bug 2
+  - [x] 4.4 Verify preservation tests still pass for Bug 2
     - **Property 2: Preservation** — Existing HTTP Tests Retained
     - **IMPORTANT**: Re-run the SAME checks from task 2 — do NOT write new tests
     - Verify the HTTP file still contains GET tests for `/api/support/issues/{id}`, `/api/support/issues`, `/api/support/stream`, `/api/support/agents`
     - **EXPECTED OUTCOME**: Checks PASS (confirms no regressions)
     - _Requirements: 3.3_
 
-- [ ] 5. Fix Bug 3: Update CI pipeline branch target from `dev` to `master`
+- [x] 5. Fix Bug 3: Update CI pipeline branch target from `dev` to `master`
 
-  - [ ] 5.1 Change `on.pull_request.branches` from `[dev]` to `[master]` in `.github/workflows/ci.yml`
+  - [x] 5.1 Change `on.pull_request.branches` from `[dev]` to `[master]` in `.github/workflows/ci.yml`
     - Edit line 4 of `ci.yml`: replace `branches: [dev]` with `branches: [master]`
     - No other changes to the file — job structure, steps, and configuration remain identical
     - _Bug_Condition: isBugCondition(input) where input.triggerBranch == "dev" AND input.expectedBranch == "master"_
@@ -109,14 +109,14 @@
     - _Preservation: `check-branch-name` job, `build-and-test` job, .NET 10.0.x, `AiSupportWorkflow.sln` all unchanged_
     - _Requirements: 2.4, 2.5, 3.4, 3.5_
 
-  - [ ] 5.2 Verify bug condition exploration test now passes for Bug 3
+  - [x] 5.2 Verify bug condition exploration test now passes for Bug 3
     - **Property 1: Expected Behavior** — CI Branch Target
     - **IMPORTANT**: Re-run the SAME check from task 1 — do NOT write a new test
     - Read `ci.yml` and confirm `on.pull_request.branches` is `[master]` and does not contain `dev`
     - **EXPECTED OUTCOME**: Check PASSES (confirms Bug 3 is fixed)
     - _Requirements: 2.4, 2.5_
 
-  - [ ] 5.3 Verify preservation tests still pass for Bug 3
+  - [x] 5.3 Verify preservation tests still pass for Bug 3
     - **Property 2: Preservation** — CI Pipeline Structure Unchanged
     - **IMPORTANT**: Re-run the SAME checks from task 2 — do NOT write new tests
     - Verify `check-branch-name` job still validates `feature/[a-z0-9-]+` pattern
@@ -124,7 +124,7 @@
     - **EXPECTED OUTCOME**: Checks PASS (confirms no regressions)
     - _Requirements: 3.4, 3.5_
 
-- [ ] 6. Checkpoint — Ensure all fixes are applied and verified
+- [x] 6. Checkpoint — Ensure all fixes are applied and verified
   - Confirm Bug 1: `appsettings.Development.json` is no longer tracked by git (but exists on disk)
   - Confirm Bug 2: HTTP file contains 6 scenario tests + 4 edge-case tests + all original GET tests
   - Confirm Bug 3: CI pipeline targets `master` instead of `dev`
