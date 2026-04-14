@@ -91,18 +91,18 @@ Implement six developer experience improvements across the Application, Presenta
     - Add test to `tests/AiSupportWorkflow.PropertyTests/LoggingProperties.cs`
     - **Validates: Requirements 5.3**
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Mark visualization endpoints as frontend-dedicated
-  - [ ] 6.1 Add Frontend tag and summaries to VisualizationEndpoints
+- [x] 6. Mark visualization endpoints as frontend-dedicated
+  - [x] 6.1 Add Frontend tag and summaries to VisualizationEndpoints
     - In `src/AiSupportWorkflow.Presentation/Endpoints/VisualizationEndpoints.cs`, change `.WithTags("Visualization")` to `.WithTags("Visualization", "Frontend")`
     - Add `.WithSummary("Frontend-dedicated: SSE stream of workflow state updates")` to the `/stream` endpoint
     - Add `.WithSummary("Frontend-dedicated: Current state of all AI agents")` to the `/agents` endpoint
     - Do not change the `EnableVisualization` guard behavior — endpoints still return 404 when disabled
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 6.2 Write unit tests for endpoint tags and summaries
+  - [x] 6.2 Write unit tests for endpoint tags and summaries
     - Test that both endpoints have "Visualization" and "Frontend" tags
     - Test that endpoint summaries match expected strings
     - Test that endpoints still return 404 when `EnableVisualization` is false
