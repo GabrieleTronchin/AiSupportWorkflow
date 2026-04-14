@@ -19,8 +19,6 @@ public class Orchestrator(
     ILogger<Orchestrator> logger,
     IOptions<WorkflowConfiguration> workflowConfig) : IOrchestrator
 {
-    private bool IsVisualizationEnabled => workflowConfig.Value.EnableVisualization;
-
     public async Task<WorkflowResult> ProcessIssueAsync(IncomingEmail email, CancellationToken ct = default)
     {
         var issueResult = emailProcessor.Process(email);
@@ -90,22 +88,24 @@ public class Orchestrator(
     {
         return supervisorBridge.AssignIssueAsync(
             agent.AgentId, issue, category,
-            TimeSpan.FromMinutes(2), ct);
+            GetActorAskTimeout(), ct);
+    }
+
+    private TimeSpan GetActorAskTimeout()
+    {
+        var seconds = workflowConfig.Value.ActorAskTimeoutSeconds;
+        return TimeSpan.FromSeconds(seconds > 0 ? seconds : 120);
     }
 
     private void LogClassificationDecision(Guid issueId, ClassificationResult classification)
     {
-        if (!IsVisualizationEnabled) return;
-
         logger.LogInformation(
-            "[Visualization] Classification decision for issue {IssueId}: Category={Category}, Confidence={Confidence:F2}, IsCodeRelated={IsCodeRelated}, Reasoning={Reasoning}",
+            "[Visualization] Classification decision for issue {IssueId}: Category={Category}, ConfidenceScore={ConfidenceScore:F2}, IsCodeRelated={IsCodeRelated}, Reasoning={Reasoning}",
             issueId, classification.Category, classification.ConfidenceScore, classification.IsCodeRelated, classification.Reasoning);
     }
 
     private void LogTeamAssignmentDecision(Guid issueId, TeamAssignment team)
     {
-        if (!IsVisualizationEnabled) return;
-
         logger.LogInformation(
             "[Visualization] Team assignment decision for issue {IssueId}: TeamName={TeamName}, ApplicationName={ApplicationName}",
             issueId, team.TeamName, team.ApplicationName);
@@ -113,8 +113,6 @@ public class Orchestrator(
 
     private void LogAgentSelectionDecision(Guid issueId, AgentAssignment agent)
     {
-        if (!IsVisualizationEnabled) return;
-
         logger.LogInformation(
             "[Visualization] Agent selection decision for issue {IssueId}: AgentId={AgentId}, Role={Role}",
             issueId, agent.AgentId, agent.Role);

@@ -7,6 +7,7 @@ using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.Messages;
 using AiSupportWorkflow.Domain.ValueObjects;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -31,6 +32,19 @@ public class OrchestratorTests
     private Orchestrator CreateSut()
     {
         var config = Options.Create(new WorkflowConfiguration { EnableVisualization = false });
+        return new Orchestrator(
+            _emailProcessor, _issueClassifier, _teamRouter, _agentSelector,
+            _codeChangeGenerator, _stateTracker, _supervisorBridge,
+            NullLogger<Orchestrator>.Instance, config);
+    }
+
+    private Orchestrator CreateSutWithTimeout(int timeoutSeconds)
+    {
+        var config = Options.Create(new WorkflowConfiguration
+        {
+            EnableVisualization = false,
+            ActorAskTimeoutSeconds = timeoutSeconds
+        });
         return new Orchestrator(
             _emailProcessor, _issueClassifier, _teamRouter, _agentSelector,
             _codeChangeGenerator, _stateTracker, _supervisorBridge,
@@ -143,4 +157,102 @@ public class OrchestratorTests
         Assert.Equal(3, uniqueIds.Count);
     }
 
+    [Fact]
+    public void WorkflowConfiguration_ActorAskTimeoutSeconds_DefaultsTo120()
+    {
+        var config = new WorkflowConfiguration();
+        Assert.Equal(120, config.ActorAskTimeoutSeconds);
+    }
+
+    [Fact]
+    public async Task Orchestrator_UsesConfiguredTimeoutValue()
+    {
+        var issue = MakeIssue();
+        SetupFullPipeline(issue);
+        var sut = CreateSutWithTimeout(300);
+
+        await sut.ProcessIssueAsync(ValidEmail());
+
+        await _supervisorBridge.Received(1).AssignIssueAsync(
+            Arg.Any<string>(), Arg.Any<IssueRecord>(), Arg.Any<IssueCategory>(),
+            TimeSpan.FromSeconds(300), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-100)]
+    public async Task Orchestrator_FallsBackTo120_WhenTimeoutIsZeroOrNegative(int timeoutSeconds)
+    {
+        var issue = MakeIssue();
+        SetupFullPipeline(issue);
+        var sut = CreateSutWithTimeout(timeoutSeconds);
+
+        await sut.ProcessIssueAsync(ValidEmail());
+
+        await _supervisorBridge.Received(1).AssignIssueAsync(
+            Arg.Any<string>(), Arg.Any<IssueRecord>(), Arg.Any<IssueCategory>(),
+            TimeSpan.FromSeconds(120), Arg.Any<CancellationToken>());
+    }
+
+    private sealed class CapturingLogger : ILogger<Orchestrator>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+    }
+
+    private Orchestrator CreateSutWithLogger(ILogger<Orchestrator> logger, bool enableVisualization)
+    {
+        var config = Options.Create(new WorkflowConfiguration { EnableVisualization = enableVisualization });
+        return new Orchestrator(
+            _emailProcessor, _issueClassifier, _teamRouter, _agentSelector,
+            _codeChangeGenerator, _stateTracker, _supervisorBridge,
+            logger, config);
+    }
+
+    [Fact]
+    public async Task Orchestrator_LogsDecisions_WhenVisualizationDisabled()
+    {
+        var issue = MakeIssue();
+        SetupFullPipeline(issue);
+        var logger = new CapturingLogger();
+        var sut = CreateSutWithLogger(logger, enableVisualization: false);
+
+        await sut.ProcessIssueAsync(ValidEmail());
+
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Classification decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Team assignment decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Agent selection decision"));
+    }
+
+    [Fact]
+    public async Task Orchestrator_LogsDecisions_WhenVisualizationEnabled()
+    {
+        var issue = MakeIssue();
+        SetupFullPipeline(issue);
+        var logger = new CapturingLogger();
+        var sut = CreateSutWithLogger(logger, enableVisualization: true);
+
+        await sut.ProcessIssueAsync(ValidEmail());
+
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Classification decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Team assignment decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Agent selection decision"));
+    }
+
+    [Fact]
+    public void Orchestrator_DoesNotHave_IsVisualizationEnabled_Property()
+    {
+        var property = typeof(Orchestrator).GetProperty(
+            "IsVisualizationEnabled",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        Assert.Null(property);
+    }
 }
