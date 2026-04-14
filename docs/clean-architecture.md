@@ -1,5 +1,7 @@
 # Clean Architecture
 
+> **📚 Navigation:** [← Back to README](../README.md) | [Documentation Index](index.md) | **Clean Architecture** | [Actor Architecture](actor-architecture.md) | [Semantic Kernel Integration](semantic-kernel-integration.md)
+
 This document describes how [Clean Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures#clean-architecture) is applied in the AI Support Workflow project.
 
 ## Four-Layer Structure
