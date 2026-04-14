@@ -6,56 +6,56 @@ Implement six developer experience improvements across the Application, Presenta
 
 ## Tasks
 
-- [ ] 1. Add configurable actor ask timeout to WorkflowConfiguration and Orchestrator
-  - [ ] 1.1 Add `ActorAskTimeoutSeconds` property to `WorkflowConfiguration`
+- [x] 1. Add configurable actor ask timeout to WorkflowConfiguration and Orchestrator
+  - [x] 1.1 Add `ActorAskTimeoutSeconds` property to `WorkflowConfiguration`
     - Add `public int ActorAskTimeoutSeconds { get; set; } = 120;` to `src/AiSupportWorkflow.Application/Configuration/WorkflowConfiguration.cs`
     - _Requirements: 1.1_
 
-  - [ ] 1.2 Replace hardcoded timeout in Orchestrator with config-driven value
+  - [x] 1.2 Replace hardcoded timeout in Orchestrator with config-driven value
     - Add a private `GetActorAskTimeout()` helper method that reads `ActorAskTimeoutSeconds` from config, falling back to 120 if value ≤ 0
     - Modify `ResolveWithActorAsync` to call `GetActorAskTimeout()` instead of `TimeSpan.FromMinutes(2)`
     - _Requirements: 1.3, 1.6_
 
-  - [ ] 1.3 Update `appsettings.Development.json` with timeout and logging overrides
+  - [x] 1.3 Update `appsettings.Development.json` with timeout and logging overrides
     - Add `"Workflow": { "ActorAskTimeoutSeconds": 600 }` to `src/AiSupportWorkflow.Presentation/appsettings.Development.json`
     - Add `"Logging": { "LogLevel": { "AiSupportWorkflow": "Debug" } }` to the same file
     - Verify `appsettings.json` does NOT include `ActorAskTimeoutSeconds` (preserving 120-second default)
     - _Requirements: 1.4, 1.5, 5.4, 5.5_
 
-  - [ ] 1.4 Write property test for configurable timeout fallback rule
+  - [x] 1.4 Write property test for configurable timeout fallback rule
     - **Property 1: Configurable timeout respects fallback rule**
     - Generate random integers (positive, zero, negative), configure `WorkflowConfiguration`, mock `ISupervisorActorBridge`, run Orchestrator, capture the `TimeSpan` argument passed to `AssignIssueAsync`
     - Add test to `tests/AiSupportWorkflow.PropertyTests/` (e.g., `TimeoutProperties.cs`)
     - **Validates: Requirements 1.3, 1.6**
 
-  - [ ] 1.5 Write unit tests for timeout configuration
+  - [x] 1.5 Write unit tests for timeout configuration
     - Test that `WorkflowConfiguration.ActorAskTimeoutSeconds` defaults to 120
     - Test that Orchestrator uses configured timeout value
     - Test that Orchestrator falls back to 120 when value is 0 or negative
     - Add tests to `tests/AiSupportWorkflow.UnitTests/OrchestratorTests.cs`
     - _Requirements: 1.1, 1.3, 1.6_
 
-- [ ] 2. Decouple logging from visualization flag and add structured decision logs
-  - [ ] 2.1 Remove `IsVisualizationEnabled` guard from Orchestrator logging
+- [x] 2. Decouple logging from visualization flag and add structured decision logs
+  - [x] 2.1 Remove `IsVisualizationEnabled` guard from Orchestrator logging
     - Remove the `private bool IsVisualizationEnabled` property from `Orchestrator`
     - Remove the `if (!IsVisualizationEnabled) return;` guard from `LogClassificationDecision`, `LogTeamAssignmentDecision`, and `LogAgentSelectionDecision`
     - Ensure all three log methods emit unconditionally
     - _Requirements: 4.1, 4.2, 4.6_
 
-  - [ ] 2.2 Add structured properties to decision log entries
+  - [x] 2.2 Add structured properties to decision log entries
     - Update `LogClassificationDecision` to include `IssueId`, `Category`, `ConfidenceScore`, `IsCodeRelated`, and `Reasoning` as structured log properties
     - Update `LogTeamAssignmentDecision` to include `IssueId`, `TeamName`, and `ApplicationName` as structured log properties
     - Update `LogAgentSelectionDecision` to include `IssueId`, `AgentId`, and `Role` as structured log properties
     - Use structured logging placeholders (`{PropertyName}`), not string interpolation
     - _Requirements: 4.3, 4.4, 4.5_
 
-  - [ ] 2.3 Write property test for decision log structured properties
+  - [x] 2.3 Write property test for decision log structured properties
     - **Property 2: Decision logs include all required structured properties**
     - Generate random `ClassificationResult`, `TeamAssignment`, `AgentAssignment` values; mock all dependencies; capture `ILogger` calls; verify structured property names are present
     - Add test to `tests/AiSupportWorkflow.PropertyTests/` (e.g., `LoggingProperties.cs`)
     - **Validates: Requirements 4.3, 4.4, 4.5**
 
-  - [ ] 2.4 Write unit tests for unconditional logging
+  - [x] 2.4 Write unit tests for unconditional logging
     - Test that Orchestrator logs classification, team assignment, and agent selection when `EnableVisualization` is false
     - Test that Orchestrator logs classification, team assignment, and agent selection when `EnableVisualization` is true
     - Test via reflection that `Orchestrator` no longer has an `IsVisualizationEnabled` property
