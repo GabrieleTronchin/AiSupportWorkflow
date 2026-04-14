@@ -14,7 +14,7 @@ public class VisualizationEndpoints : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/support").WithTags("Visualization");
+        var group = app.MapGroup("/api/support").WithTags("Visualization", "Frontend");
 
         group.MapGet("/stream", async (
             HttpContext context,
@@ -27,7 +27,7 @@ public class VisualizationEndpoints : IEndpoint
 
             await StreamWorkflowStatesAsync(context, stateTracker, ct);
             return Results.Empty;
-        });
+        }).WithSummary("Frontend-dedicated: SSE stream of workflow state updates");
 
         group.MapGet("/agents", async (
             IRequiredActor<SupervisorActor> supervisorActor,
@@ -44,7 +44,7 @@ public class VisualizationEndpoints : IEndpoint
                 ct);
 
             return Results.Ok(response.Statuses);
-        });
+        }).WithSummary("Frontend-dedicated: Current state of all AI agents");
     }
 
     private static async Task StreamWorkflowStatesAsync(

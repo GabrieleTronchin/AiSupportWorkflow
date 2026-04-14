@@ -1,5 +1,7 @@
 # Actor Architecture
 
+> **📚 Navigation:** [← Back to README](../README.md) | [Clean Architecture](clean-architecture.md) | [Semantic Kernel Integration](semantic-kernel-integration.md)
+
 This document describes the Akka.NET actor system used in the AI Support Workflow project, including the actor hierarchy, message protocol, supervision strategy, and integration with .NET dependency injection via Akka.Hosting.
 
 ## Actor Hierarchy
@@ -168,6 +170,8 @@ public interface ISupervisorActorBridge
         TimeSpan timeout, CancellationToken ct = default);
 }
 ```
+
+The `timeout` parameter is driven by `WorkflowConfiguration.ActorAskTimeoutSeconds`. The `Orchestrator` reads this value at runtime and falls back to 120 seconds if the configured value is ≤ 0. In `appsettings.Development.json`, the timeout is set to 600 seconds (10 minutes) to allow comfortable step-by-step debugging without hitting timeouts.
 
 The Infrastructure layer provides the implementation `SupervisorActorBridge`, which wraps `IRequiredActor<SupervisorActor>` and uses the Akka `Ask` pattern internally:
 
