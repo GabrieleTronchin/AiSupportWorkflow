@@ -112,6 +112,34 @@ flowchart LR
 
    The API will be available at `http://localhost:5000` (or the port configured in `launchSettings.json`).
 
+### Configuration
+
+The `Workflow` section in `appsettings.json` controls runtime behavior:
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `EnableVisualization` | `bool` | `false` | Enables the SSE stream and agents endpoints |
+| `ActorAskTimeoutSeconds` | `int` | `120` | Timeout (in seconds) for the Akka.NET actor Ask when assigning issues. Set to a higher value in Development for step-by-step debugging. Values ≤ 0 fall back to the 120-second default. |
+| `Teams` | `array` | — | Team and agent configuration |
+
+The default `appsettings.json` does not include `ActorAskTimeoutSeconds`, so non-development environments use the 120-second default. In `appsettings.Development.json`, it is set to `600` (10 minutes) to avoid timeouts during debugging.
+
+### Verbose Logging
+
+To enable detailed structured logging of every workflow stage transition, set the `AiSupportWorkflow` log level to `Debug` in `appsettings.Development.json`:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "AiSupportWorkflow": "Debug"
+    }
+  }
+}
+```
+
+The default `appsettings.json` retains `Logging:LogLevel:Default` as `Information`, so verbose logs are suppressed in non-development environments. Workflow decision logs (classification, team assignment, agent selection) are always emitted regardless of log level — only the stage transition detail logs require `Debug`.
+
 ---
 
 ## API Endpoints
@@ -123,8 +151,8 @@ All endpoints are served under the `/api/support` base path.
 | `POST` | `/api/support/emails` | Submit a support email for processing |
 | `GET` | `/api/support/issues/{id:guid}` | Get workflow state by issue ID |
 | `GET` | `/api/support/issues` | List all processed issues |
-| `GET` | `/api/support/stream` | SSE stream of real-time workflow updates |
-| `GET` | `/api/support/agents` | Get current state of all AI agents |
+| `GET` | `/api/support/stream` | Frontend-dedicated: SSE stream of real-time workflow updates |
+| `GET` | `/api/support/agents` | Frontend-dedicated: Current state of all AI agents |
 
 ### POST /api/support/emails
 
@@ -277,6 +305,50 @@ GET /api/support/agents
 ]
 ```
 
+### Key Behavioral Constraints
+
+- **Email validation:** Both `Subject` and `Body` must be non-empty/non-whitespace.
+- **Classification** is async and LLM-backed; all other routing/selection is synchronous and deterministic.
+- **Workflow decision logging is always active**, independent of the `EnableVisualization` flag. Classification, team assignment, and agent selection decisions are logged unconditionally with structured properties. The `EnableVisualization` flag only controls whether the SSE stream and agents endpoints return data or HTTP 404.
+- **Actor resolution** uses `ISupervisorActorBridge` with a configurable Ask timeout (see [Configuration](#configuration)).
+
+---
+
+## PowerShell Monitor Script
+
+The `scripts/Monitor-Workflow.ps1` script lets you monitor workflow progress from the terminal without a frontend.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `-BaseUrl` | `string` | `http://localhost:5080` | Base URL of the running API |
+| `-Agents` | `switch` | — | Query agent statuses instead of streaming events |
+
+### Usage
+
+**Stream workflow events in real time:**
+
+```powershell
+./scripts/Monitor-Workflow.ps1
+```
+
+**Stream from a custom URL:**
+
+```powershell
+./scripts/Monitor-Workflow.ps1 -BaseUrl http://localhost:5000
+```
+
+**View current agent statuses:**
+
+```powershell
+./scripts/Monitor-Workflow.ps1 -Agents
+```
+
+The script handles 404 responses (visualization disabled) with a helpful message, connection failures with the attempted URL, and supports graceful Ctrl+C termination during SSE streaming.
+
+---
+
 ### HTTP File for Testing
 
 The project includes an HTTP file with ready-made requests for all endpoints:
@@ -388,6 +460,9 @@ AiSupportWorkflow/
 │   ├── clean-architecture.md
 │   ├── actor-architecture.md
 │   └── semantic-kernel-integration.md
+│
+├── scripts/
+│   └── Monitor-Workflow.ps1                 # PowerShell SSE monitor for terminal-based workflow monitoring
 │
 ├── AiSupportWorkflow.sln                    # Solution file
 └── README.md

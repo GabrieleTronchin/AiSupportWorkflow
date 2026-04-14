@@ -171,6 +171,8 @@ public interface ISupervisorActorBridge
 }
 ```
 
+The `timeout` parameter is driven by `WorkflowConfiguration.ActorAskTimeoutSeconds`. The `Orchestrator` reads this value at runtime and falls back to 120 seconds if the configured value is ≤ 0. In `appsettings.Development.json`, the timeout is set to 600 seconds (10 minutes) to allow comfortable step-by-step debugging without hitting timeouts.
+
 The Infrastructure layer provides the implementation `SupervisorActorBridge`, which wraps `IRequiredActor<SupervisorActor>` and uses the Akka `Ask` pattern internally:
 
 ```csharp

@@ -120,8 +120,8 @@ Implement six developer experience improvements across the Application, Presenta
     - Support graceful Ctrl+C termination via `try/finally` for HTTP stream cleanup
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 8. Update documentation
-  - [ ] 8.1 Update README.md
+- [x] 8. Update documentation
+  - [x] 8.1 Update README.md
     - Document `Workflow:ActorAskTimeoutSeconds` configuration option in the Configuration section
     - Add a section describing `scripts/Monitor-Workflow.ps1`, its parameters (`-BaseUrl`, `-Agents`), and usage examples
     - Update the API Endpoints table to mark `/api/support/stream` and `/api/support/agents` as frontend-dedicated
@@ -129,11 +129,11 @@ Implement six developer experience improvements across the Application, Presenta
     - Document how to enable verbose logging by setting `AiSupportWorkflow` log level to `Debug` in `appsettings.Development.json`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ] 8.2 Update `docs/actor-architecture.md`
+  - [x] 8.2 Update `docs/actor-architecture.md`
     - Update the ISupervisorActorBridge section to reference the configurable timeout from `WorkflowConfiguration` instead of the hardcoded 2-minute value
     - _Requirements: 6.6_
 
-- [ ] 9. Final checkpoint - Ensure all tests pass
+- [x] 9. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
