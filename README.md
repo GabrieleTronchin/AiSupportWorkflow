@@ -65,17 +65,78 @@ flowchart LR
 
 ---
 
-## Technologies
+## DummyApps & Test Scenarios
 
-| Technology | Version | Purpose | Docs |
-|---|---|---|---|
-| .NET | 10.0 | Runtime and web framework | [dotnet.microsoft.com](https://dotnet.microsoft.com/) |
-| Akka.NET | 1.5.64 | Actor model for agent lifecycle and message passing | [getakka.net](https://getakka.net/) |
-| Semantic Kernel | 1.74.0 | AI orchestration and LLM integration | [learn.microsoft.com](https://learn.microsoft.com/en-us/semantic-kernel/overview/) |
-| OpenAI | GPT-4o-mini | LLM provider for classification, analysis, and code generation | [platform.openai.com](https://platform.openai.com/docs) |
-| xUnit | 2.9.3 | Unit testing framework | [xunit.net](https://xunit.net/) |
-| FsCheck | 3.3.2 | Property-based testing | [fscheck.github.io/FsCheck](https://fscheck.github.io/FsCheck/) |
-| NSubstitute | 5.3.0 | Mocking library for unit tests | [nsubstitute.github.io](https://nsubstitute.github.io/NSubstitute/) |
+The `DummyApps/` folder contains two sample applications — **ApplicationA** and **ApplicationB** — that serve as test fixtures for the AI workflow. Each application includes source code with intentional bugs and a `BugScenarios.md` file documenting three predefined scenarios (one per issue category).
+
+### Bug Categories
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| **BackendBug** | Server-side logic errors (null references, SQL injection) | App A: `NullReferenceException` in `GetOrderSummary`; App B: SQL injection in `SearchUsers` |
+| **FrontendBug** | UI/component rendering issues (wrong bindings, missing null checks) | App A: incorrect property binding in `OrderSummary.razor`; App B: missing null check on avatar URL |
+| **QualityTestIssue** | Missing or flaky tests that let bugs slip through | App A: missing test for empty order edge case; App B: flaky test with hardcoded date |
+
+### Scenario Files
+
+- [`DummyApps/ApplicationA/BugScenarios.md`](DummyApps/ApplicationA/BugScenarios.md) — Three scenarios (A1–A3) covering an order management system
+- [`DummyApps/ApplicationB/BugScenarios.md`](DummyApps/ApplicationB/BugScenarios.md) — Three scenarios (B1–B3) covering a user management system
+
+
+---
+
+## API Endpoints
+
+All endpoints are served under the `/api/support` base path.
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/support/emails` | Submit a support email for processing |
+| `GET` | `/api/support/issues/{id:guid}` | Get workflow state by issue ID |
+| `GET` | `/api/support/issues` | List all processed issues |
+| `GET` | `/api/support/stream` | SSE stream of real-time workflow updates |
+| `GET` | `/api/support/agents` | Current state of all AI agents |
+
+📄 [Full API reference with request/response examples →](docs/api-endpoints.md)
+
+---
+
+## Project Structure
+
+```
+AiSupportWorkflow/
+├── src/
+│   ├── AiSupportWorkflow.Domain/            # Pure domain layer — entities, enums, interfaces, value objects, messages
+│   ├── AiSupportWorkflow.Application/       # Business logic — orchestrator, services, use cases, configuration
+│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Semantic Kernel, services
+│   └── AiSupportWorkflow.Presentation/      # REST API & composition root — Minimal API endpoints, Program.cs
+│
+├── tests/
+│   ├── AiSupportWorkflow.UnitTests/         # xUnit + NSubstitute unit tests
+│   └── AiSupportWorkflow.PropertyTests/     # FsCheck property-based tests
+│
+├── DummyApps/
+│   ├── ApplicationA/                        # Sample app with predefined bug scenarios
+│   └── ApplicationB/                        # Sample app with predefined bug scenarios
+│
+├── docs/                                    # In-depth documentation
+├── scripts/                                 # PowerShell monitoring script
+├── AiSupportWorkflow.sln                    # Solution file
+└── README.md
+```
+
+---
+
+## Deep-Dive Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Clean Architecture](docs/clean-architecture.md) | Four-layer structure, dependency rules, and compliance verification |
+| [Actor Architecture](docs/actor-architecture.md) | Akka.NET actor system, supervision strategy, and message routing |
+| [Semantic Kernel Integration](docs/semantic-kernel-integration.md) | LLM-backed services for classification, resolution, and code generation |
+| [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
+| [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
+
 
 ---
 
@@ -119,14 +180,12 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `EnableVisualization` | `bool` | `false` | Enables the SSE stream and agents endpoints |
-| `ActorAskTimeoutSeconds` | `int` | `120` | Timeout (in seconds) for the Akka.NET actor Ask when assigning issues. Set to a higher value in Development for step-by-step debugging. Values ≤ 0 fall back to the 120-second default. |
+| `ActorAskTimeoutSeconds` | `int` | `120` | Timeout for the Akka.NET actor Ask. Values ≤ 0 fall back to 120s. |
 | `Teams` | `array` | — | Team and agent configuration |
-
-The default `appsettings.json` does not include `ActorAskTimeoutSeconds`, so non-development environments use the 120-second default. In `appsettings.Development.json`, it is set to `600` (10 minutes) to avoid timeouts during debugging.
 
 ### Verbose Logging
 
-To enable detailed structured logging of every workflow stage transition, set the `AiSupportWorkflow` log level to `Debug` in `appsettings.Development.json`:
+Set the `AiSupportWorkflow` log level to `Debug` in `appsettings.Development.json`:
 
 ```json
 {
@@ -137,338 +196,6 @@ To enable detailed structured logging of every workflow stage transition, set th
   }
 }
 ```
-
-The default `appsettings.json` retains `Logging:LogLevel:Default` as `Information`, so verbose logs are suppressed in non-development environments. Workflow decision logs (classification, team assignment, agent selection) are always emitted regardless of log level — only the stage transition detail logs require `Debug`.
-
----
-
-## API Endpoints
-
-All endpoints are served under the `/api/support` base path.
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/support/emails` | Submit a support email for processing |
-| `GET` | `/api/support/issues/{id:guid}` | Get workflow state by issue ID |
-| `GET` | `/api/support/issues` | List all processed issues |
-| `GET` | `/api/support/stream` | Frontend-dedicated: SSE stream of real-time workflow updates |
-| `GET` | `/api/support/agents` | Frontend-dedicated: Current state of all AI agents |
-
-### POST /api/support/emails
-
-Submits a support email to the AI workflow pipeline. The email is validated, classified by an LLM, routed to the appropriate team and agent, and processed through root cause analysis and code fix generation.
-
-**Request body:**
-
-```json
-{
-  "Sender": "dev.team@example.com",
-  "Subject": "NullReferenceException in GetOrderSummary endpoint",
-  "Body": "We have a critical bug in Application A. The GetOrderSummary endpoint throws a NullReferenceException when order.Items is null."
-}
-```
-
-All three fields are strings. `Subject` and `Body` must be non-empty.
-
-**Success response** (`200 OK`):
-
-```json
-{
-  "issueId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "isSuccess": true,
-  "pullRequest": {
-    "id": "...",
-    "issueId": "...",
-    "title": "...",
-    "description": "...",
-    "affectedFilePaths": ["..."],
-    "simulatedDiff": "..."
-  },
-  "isOutOfScope": false,
-  "failureReason": null
-}
-```
-
-For out-of-scope emails, `isSuccess` is `true`, `isOutOfScope` is `true`, and `pullRequest` is `null`.
-
-**Error response** (`400 Bad Request`) — missing fields:
-
-```json
-{
-  "error": "Subject and Body are required."
-}
-```
-
-**Error response** (`400 Bad Request`) — processing failure (e.g., routing failure):
-
-```json
-{
-  "failureReason": "Routing failed: no matching application found."
-}
-```
-
-### GET /api/support/issues/{id:guid}
-
-Returns the current workflow state for a specific issue.
-
-**Parameters:**
-
-| Name | Type | Location | Description |
-|------|------|----------|-------------|
-| `id` | `GUID` | Path | The issue ID returned when the email was submitted |
-
-**Example request:**
-
-```
-GET /api/support/issues/3fa85f64-5717-4562-b3fc-2c963f66afa6
-```
-
-**Response** (`200 OK`):
-
-```json
-{
-  "issueId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "stage": "CodeChangeGenerated",
-  "lastUpdated": "2025-01-15T10:30:00+00:00",
-  "detail": "Pull request generated.",
-  "isTerminal": true
-}
-```
-
-The `stage` field is one of: `Received`, `Classified`, `ClassifiedOutOfScope`, `TeamAssigned`, `AgentAssigned`, `Resolving`, `Resolved`, `CodeChangeGenerated`, `Failed`, `ManualReviewRequired`.
-
-### GET /api/support/issues
-
-Returns the list of all processed issues and their current workflow states.
-
-**Example request:**
-
-```
-GET /api/support/issues
-```
-
-**Response** (`200 OK`):
-
-```json
-[
-  {
-    "issueId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "stage": "CodeChangeGenerated",
-    "lastUpdated": "2025-01-15T10:30:00+00:00",
-    "detail": "Pull request generated.",
-    "isTerminal": true
-  }
-]
-```
-
-### GET /api/support/stream
-
-Opens a Server-Sent Events (SSE) stream that pushes real-time workflow state updates every second. The response uses `text/event-stream` content type with `no-cache` and `keep-alive` headers.
-
-> **Requires visualization to be enabled.** Set `Workflow:EnableVisualization` to `true` in `appsettings.json`. Returns `404 Not Found` with `{ "error": "Visualization is disabled." }` when disabled.
-
-**Example request:**
-
-```
-GET /api/support/stream
-```
-
-**Response** (SSE stream):
-
-```
-data: [{"issueId":"...","stage":"Resolving","lastUpdated":"...","detail":"...","isTerminal":false}]
-
-data: [{"issueId":"...","stage":"Resolved","lastUpdated":"...","detail":"...","isTerminal":false}]
-```
-
-### GET /api/support/agents
-
-Returns the current state of all AI agents managed by the supervisor actor.
-
-> **Requires visualization to be enabled.** Set `Workflow:EnableVisualization` to `true` in `appsettings.json`. Returns `404 Not Found` with `{ "error": "Visualization is disabled." }` when disabled.
-
-**Example request:**
-
-```
-GET /api/support/agents
-```
-
-**Response** (`200 OK`):
-
-```json
-[
-  {
-    "agentId": "TeamA_BackendDeveloper",
-    "status": "Idle",
-    "lastAction": null
-  }
-]
-```
-
-### Key Behavioral Constraints
-
-- **Email validation:** Both `Subject` and `Body` must be non-empty/non-whitespace.
-- **Classification** is async and LLM-backed; all other routing/selection is synchronous and deterministic.
-- **Workflow decision logging is always active**, independent of the `EnableVisualization` flag. Classification, team assignment, and agent selection decisions are logged unconditionally with structured properties. The `EnableVisualization` flag only controls whether the SSE stream and agents endpoints return data or HTTP 404.
-- **Actor resolution** uses `ISupervisorActorBridge` with a configurable Ask timeout (see [Configuration](#configuration)).
-
----
-
-## PowerShell Monitor Script
-
-The `scripts/Monitor-Workflow.ps1` script lets you monitor workflow progress from the terminal without a frontend.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `-BaseUrl` | `string` | `http://localhost:5080` | Base URL of the running API |
-| `-Agents` | `switch` | — | Query agent statuses instead of streaming events |
-
-### Usage
-
-**Stream workflow events in real time:**
-
-```powershell
-./scripts/Monitor-Workflow.ps1
-```
-
-**Stream from a custom URL:**
-
-```powershell
-./scripts/Monitor-Workflow.ps1 -BaseUrl http://localhost:5000
-```
-
-**View current agent statuses:**
-
-```powershell
-./scripts/Monitor-Workflow.ps1 -Agents
-```
-
-The script handles 404 responses (visualization disabled) with a helpful message, connection failures with the attempted URL, and supports graceful Ctrl+C termination during SSE streaming.
-
----
-
-### HTTP File for Testing
-
-The project includes an HTTP file with ready-made requests for all endpoints:
-
-```
-src/AiSupportWorkflow.Presentation/AiSupportWorkflow.Presentation.http
-```
-
-Open this file in Visual Studio, VS Code (with the REST Client extension), or JetBrains Rider to send requests directly from your IDE. It contains test requests for all six bug scenarios across Application A and Application B, plus edge cases (out-of-scope emails, ambiguous routing, failed routing, and empty input validation).
-
-## Deep-Dive Documentation
-
-### Clean Architecture
-
-The project applies Clean Architecture across four layers — Domain, Application, Infrastructure, and Presentation — each in its own project under `src/`. Dependencies flow strictly inward: the Domain layer has zero external package references, while Infrastructure implements Domain interfaces using Akka.NET and Semantic Kernel. The document includes a full compliance verification of `.csproj` references and a NuGet package license audit confirming all dependencies are permissive open-source.
-
-📄 [Read the full Clean Architecture guide →](docs/clean-architecture.md)
-
-### Actor Architecture
-
-The Akka.NET actor system uses a `SupervisorActor` that creates and manages `AIAgentActor` children, one per team-role combination (e.g., `TeamA_BackendDeveloper`). Messages are immutable C# records routed by agent ID, with a `OneForOneStrategy` supervision policy that restarts on transient failures and stops on programming errors. The `ISupervisorActorBridge` abstraction keeps the Application layer free of any Akka dependency while enabling full actor communication.
-
-📄 [Read the full Actor Architecture guide →](docs/actor-architecture.md)
-
-### Semantic Kernel Integration
-
-Microsoft Semantic Kernel provides the AI orchestration layer through three LLM-backed services: `IssueClassifierService` (classification at temperature 0.1), `BugResolverService` (root cause analysis at 0.2), and `CodeChangeGeneratorService` (code fix generation at 0.5). Each service injects `IChatCompletionService`, uses structured JSON prompts, and falls back gracefully on LLM or parse errors. Agents are wired as `SemanticKernelAgent` instances from configuration and wrapped in Akka.NET actors for the resolution stage.
-
-📄 [Read the full Semantic Kernel Integration guide →](docs/semantic-kernel-integration.md)
-
----
-
-## DummyApps & Test Scenarios
-
-The `DummyApps/` folder contains two sample applications — **ApplicationA** and **ApplicationB** — that serve as test fixtures for the AI workflow. Each application includes source code with intentional bugs and a `BugScenarios.md` file documenting three predefined scenarios (one per issue category).
-
-### Bug Categories
-
-| Category | Description | Example |
-|----------|-------------|---------|
-| **BackendBug** | Server-side logic errors (null references, SQL injection) | App A: `NullReferenceException` in `GetOrderSummary`; App B: SQL injection in `SearchUsers` |
-| **FrontendBug** | UI/component rendering issues (wrong bindings, missing null checks) | App A: incorrect property binding in `OrderSummary.razor`; App B: missing null check on avatar URL |
-| **QualityTestIssue** | Missing or flaky tests that let bugs slip through | App A: missing test for empty order edge case; App B: flaky test with hardcoded date |
-
-### Scenario Files
-
-- [`DummyApps/ApplicationA/BugScenarios.md`](DummyApps/ApplicationA/BugScenarios.md) — Three scenarios (A1–A3) covering an order management system
-- [`DummyApps/ApplicationB/BugScenarios.md`](DummyApps/ApplicationB/BugScenarios.md) — Three scenarios (B1–B3) covering a user management system
-
-Each scenario documents the category, description, affected file, buggy code, and expected fix. Send the matching email through the API to trigger the full workflow for any scenario.
-
-### Ready-Made Test Requests
-
-The HTTP file at `src/AiSupportWorkflow.Presentation/AiSupportWorkflow.Presentation.http` contains ready-made requests for all six bug scenarios across both applications, plus edge cases for out-of-scope emails, ambiguous routing (both apps mentioned), failed routing (no app mentioned), and empty input validation. Open it in Visual Studio, VS Code (REST Client), or Rider to test directly from your IDE.
-
----
-
-## Testing
-
-### Test Organization
-
-| Type | Framework | Location | Purpose |
-|------|-----------|----------|---------|
-| Unit tests | xUnit + NSubstitute | `tests/AiSupportWorkflow.UnitTests/` | Verify individual services with mocked dependencies |
-| Property tests | FsCheck (via FsCheck.Xunit) | `tests/AiSupportWorkflow.PropertyTests/` | Generative/invariant testing across randomized inputs |
-
-### Commands
-
-```bash
-# Run all tests (unit + property)
-dotnet test AiSupportWorkflow.sln
-
-# Run unit tests only
-dotnet test tests/AiSupportWorkflow.UnitTests
-
-# Run property-based tests only
-dotnet test tests/AiSupportWorkflow.PropertyTests
-```
-
-### Conventions
-
-- **One test class per service** — each service under test has a dedicated test class.
-- **Arrange-Act-Assert (AAA) pattern** — all unit tests follow the standard AAA structure for clarity.
-- **NSubstitute for mocking** — domain interfaces are mocked with NSubstitute to isolate the unit under test from external dependencies.
-- **FsCheck for properties** — property-based tests define invariants that must hold across all generated inputs, catching edge cases that example-based tests might miss.
-
----
-
-## Project Structure
-
-```
-AiSupportWorkflow/
-├── src/
-│   ├── AiSupportWorkflow.Domain/            # Pure domain layer — entities, enums, interfaces, value objects, messages
-│   ├── AiSupportWorkflow.Application/       # Business logic — orchestrator, services, use cases, configuration
-│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Semantic Kernel, services
-│   └── AiSupportWorkflow.Presentation/      # REST API & composition root — Minimal API endpoints, Program.cs
-│
-├── tests/
-│   ├── AiSupportWorkflow.UnitTests/         # xUnit + NSubstitute unit tests
-│   └── AiSupportWorkflow.PropertyTests/     # FsCheck property-based tests
-│
-├── DummyApps/
-│   ├── ApplicationA/                        # Sample app with predefined bug scenarios
-│   └── ApplicationB/                        # Sample app with predefined bug scenarios
-│
-├── docs/                                    # In-depth architectural documentation
-│   ├── index.md
-│   ├── clean-architecture.md
-│   ├── actor-architecture.md
-│   └── semantic-kernel-integration.md
-│
-├── scripts/
-│   └── Monitor-Workflow.ps1                 # PowerShell SSE monitor for terminal-based workflow monitoring
-│
-├── AiSupportWorkflow.sln                    # Solution file
-└── README.md
-```
-
-**Architecture layers follow a strict inward dependency flow:** Presentation → Infrastructure → Application → Domain. The Domain layer has zero external dependencies.
 
 ---
 

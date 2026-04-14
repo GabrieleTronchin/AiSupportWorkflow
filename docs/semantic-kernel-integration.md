@@ -1,6 +1,6 @@
 # Semantic Kernel Integration
 
-> **📚 Navigation:** [← Back to README](../README.md) | [Documentation Index](index.md) | [Clean Architecture](clean-architecture.md) | [Actor Architecture](actor-architecture.md) | **Semantic Kernel Integration**
+> **📚 Navigation:** [← Back to README](../README.md) | [Clean Architecture](clean-architecture.md) | [Actor Architecture](actor-architecture.md)
 
 This document describes how [Microsoft Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/overview/) is used in the AI Support Workflow project to power LLM-backed services.
 

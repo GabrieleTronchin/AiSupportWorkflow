@@ -1,6 +1,6 @@
 # Actor Architecture
 
-> **📚 Navigation:** [← Back to README](../README.md) | [Documentation Index](index.md) | [Clean Architecture](clean-architecture.md) | **Actor Architecture** | [Semantic Kernel Integration](semantic-kernel-integration.md)
+> **📚 Navigation:** [← Back to README](../README.md) | [Clean Architecture](clean-architecture.md) | [Semantic Kernel Integration](semantic-kernel-integration.md)
 
 This document describes the Akka.NET actor system used in the AI Support Workflow project, including the actor hierarchy, message protocol, supervision strategy, and integration with .NET dependency injection via Akka.Hosting.
 
