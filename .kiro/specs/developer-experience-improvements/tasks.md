@@ -65,27 +65,27 @@ Implement six developer experience improvements across the Application, Presenta
 - [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Add structured verbose logging at workflow stage transitions
-  - [ ] 4.1 Add Debug-level structured log entries at each stage transition in Orchestrator
+- [x] 4. Add structured verbose logging at workflow stage transitions
+  - [x] 4.1 Add Debug-level structured log entries at each stage transition in Orchestrator
     - Wrap each `stateTracker.Transition(...)` call with a structured `Debug`-level log entry containing `IssueId`, source `WorkflowStage`, target `WorkflowStage`, and transition detail string
     - For the `Received` stage, include `Sender` and `Subject` as additional structured properties
     - For the `Failed` stage, emit at `Warning` level instead of `Debug`, including the failure reason
     - Use `LoggerMessage` source-generated pattern or structured logging placeholders — no string interpolation
     - _Requirements: 5.1, 5.2, 5.3, 5.6_
 
-  - [ ] 4.2 Write property test for stage transition Debug-level logs
+  - [x] 4.2 Write property test for stage transition Debug-level logs
     - **Property 3: Stage transition logs are emitted at Debug level**
     - Generate random workflow paths (varying email content, classification results); capture all `ILogger` calls; verify each non-Failed transition has a Debug-level entry with `IssueId`, source stage, target stage, and detail
     - Add test to `tests/AiSupportWorkflow.PropertyTests/LoggingProperties.cs`
     - **Validates: Requirements 5.1**
 
-  - [ ] 4.3 Write property test for Received stage email metadata
+  - [x] 4.3 Write property test for Received stage email metadata
     - **Property 4: Received stage log includes email metadata**
     - Generate random `IncomingEmail` with arbitrary `Sender` and `Subject` strings; verify the Received stage log includes both values as structured properties at Debug level
     - Add test to `tests/AiSupportWorkflow.PropertyTests/LoggingProperties.cs`
     - **Validates: Requirements 5.2**
 
-  - [ ] 4.4 Write property test for Failed stage Warning level
+  - [x] 4.4 Write property test for Failed stage Warning level
     - **Property 5: Failed stage logs at Warning level**
     - Generate random exceptions/failure scenarios; verify the Failed transition log is at `Warning` level (not Debug) and includes the failure reason
     - Add test to `tests/AiSupportWorkflow.PropertyTests/LoggingProperties.cs`

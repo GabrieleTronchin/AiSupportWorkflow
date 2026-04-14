@@ -26,6 +26,9 @@ public class Orchestrator(
             return WorkflowResult.Failed(Guid.Empty, issueResult.Error!);
 
         var issue = issueResult.Value!;
+        logger.LogDebug(
+            "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}, Sender={Sender}, Subject={Subject}",
+            issue.Id, "None", WorkflowStage.Received, (string?)null, email.Sender, email.Subject);
         stateTracker.Transition(issue.Id, WorkflowStage.Received);
 
         try
@@ -35,25 +38,47 @@ public class Orchestrator(
 
             if (!classification.IsCodeRelated)
             {
+                logger.LogDebug(
+                    "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                    issue.Id, WorkflowStage.Received, WorkflowStage.ClassifiedOutOfScope, classification.Reasoning);
                 stateTracker.Transition(issue.Id, WorkflowStage.ClassifiedOutOfScope, classification.Reasoning);
                 return WorkflowResult.OutOfScope(issue.Id);
             }
 
-            stateTracker.Transition(issue.Id, WorkflowStage.Classified, $"{classification.Category} ({classification.ConfidenceScore:P0})");
+            var classifiedDetail = $"{classification.Category} ({classification.ConfidenceScore:P0})";
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.Received, WorkflowStage.Classified, classifiedDetail);
+            stateTracker.Transition(issue.Id, WorkflowStage.Classified, classifiedDetail);
 
             var team = AssignTeam(issue, classification);
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.Classified, WorkflowStage.TeamAssigned, team.TeamName);
             stateTracker.Transition(issue.Id, WorkflowStage.TeamAssigned, team.TeamName);
             LogTeamAssignmentDecision(issue.Id, team);
 
             var agent = SelectAgent(team, classification.Category);
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.TeamAssigned, WorkflowStage.AgentAssigned, agent.AgentId);
             stateTracker.Transition(issue.Id, WorkflowStage.AgentAssigned, agent.AgentId);
             LogAgentSelectionDecision(issue.Id, agent);
 
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.AgentAssigned, WorkflowStage.Resolving, (string?)null);
             stateTracker.Transition(issue.Id, WorkflowStage.Resolving);
             var resolution = await ResolveWithActorAsync(issue, classification.Category, agent, ct);
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.Resolving, WorkflowStage.Resolved, resolution.ProposedFixSummary);
             stateTracker.Transition(issue.Id, WorkflowStage.Resolved, resolution.ProposedFixSummary);
 
             var pullRequest = await codeChangeGenerator.GenerateAsync(resolution, ct);
+            logger.LogDebug(
+                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
+                issue.Id, WorkflowStage.Resolved, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
             stateTracker.Transition(issue.Id, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
 
             return WorkflowResult.Completed(issue.Id, pullRequest);
@@ -61,6 +86,9 @@ public class Orchestrator(
         catch (Exception ex)
         {
             logger.LogError(ex, "Workflow failed for issue {IssueId}", issue.Id);
+            logger.LogWarning(
+                "Workflow stage transition FAILED for issue {IssueId}: {SourceStage} → {TargetStage}, FailureReason={FailureReason}",
+                issue.Id, WorkflowStage.Received, WorkflowStage.Failed, ex.Message);
             stateTracker.Transition(issue.Id, WorkflowStage.Failed, ex.Message);
             return WorkflowResult.Failed(issue.Id, ex.Message);
         }
