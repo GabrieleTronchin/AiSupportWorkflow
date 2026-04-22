@@ -6,30 +6,30 @@ Migrate the AI Support Workflow project from Microsoft Semantic Kernel (v1.74.0)
 
 ## Tasks
 
-- [ ] 1. Swap NuGet packages from Semantic Kernel to Agent Framework
-  - [ ] 1.1 Update Infrastructure .csproj packages
+- [x] 1. Swap NuGet packages from Semantic Kernel to Agent Framework
+  - [x] 1.1 Update Infrastructure .csproj packages
     - In `src/AiSupportWorkflow.Infrastructure/AiSupportWorkflow.Infrastructure.csproj`, remove `Microsoft.SemanticKernel` (1.74.0) and `Microsoft.SemanticKernel.Connectors.OpenAI` (1.74.0)
     - Add `Microsoft.Agents.AI` (1.2.0) and `Microsoft.Agents.AI.OpenAI` (1.2.0)
     - _Requirements: 1.1, 1.4_
-  - [ ] 1.2 Update Presentation .csproj package
+  - [x] 1.2 Update Presentation .csproj package
     - In `src/AiSupportWorkflow.Presentation/AiSupportWorkflow.Presentation.csproj`, remove `Microsoft.SemanticKernel` (1.74.0)
     - Add `Microsoft.Agents.AI` (1.2.0)
     - _Requirements: 1.2, 1.4_
 
-- [ ] 2. Rewrite DI setup and create AgentFramework folder
-  - [ ] 2.1 Create `ChatClientSetup.cs` in the new AgentFramework folder
+- [x] 2. Rewrite DI setup and create AgentFramework folder
+  - [x] 2.1 Create `ChatClientSetup.cs` in the new AgentFramework folder
     - Create `src/AiSupportWorkflow.Infrastructure/AgentFramework/ChatClientSetup.cs`
     - Namespace: `AiSupportWorkflow.Infrastructure.AgentFramework`
     - Implement `AddChatClient` extension method: read `LlmProvider` config, validate API key, create `OpenAIClient` + `OpenAIChatClient`, register as `IChatClient` singleton, configure Polly resilience (3 retries, exponential backoff, jitter)
     - Throw `InvalidOperationException` for missing API key or unsupported provider
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 9.2_
-  - [ ] 2.2 Update `InfrastructureServiceExtensions.cs` to use new setup
+  - [x] 2.2 Update `InfrastructureServiceExtensions.cs` to use new setup
     - Change `using` from `AiSupportWorkflow.Infrastructure.SemanticKernel` to `AiSupportWorkflow.Infrastructure.AgentFramework`
     - Replace `services.AddSemanticKernel(configuration)` with `services.AddChatClient(configuration)`
     - _Requirements: 4.4_
 
-- [ ] 3. Migrate the three LLM services to IChatClient
-  - [ ] 3.1 Migrate `IssueClassifierService`
+- [x] 3. Migrate the three LLM services to IChatClient
+  - [x] 3.1 Migrate `IssueClassifierService`
     - Create `src/AiSupportWorkflow.Infrastructure/AgentFramework/IssueClassifierService.cs`
     - Change constructor injection from `IChatCompletionService` to `IChatClient`
     - Replace `PromptExecutionSettings` with `ChatOptions { Temperature = 0.1f }`
@@ -37,50 +37,50 @@ Migrate the AI Support Workflow project from Microsoft Semantic Kernel (v1.74.0)
     - Replace `GetChatMessageContentAsync` with `GetResponseAsync`, use `response.Text`
     - Preserve system prompt, JSON parsing logic, and error fallback behavior
     - _Requirements: 2.1, 2.4, 2.5, 2.6, 2.7, 9.1_
-  - [ ] 3.2 Migrate `BugResolverService`
+  - [x] 3.2 Migrate `BugResolverService`
     - Create `src/AiSupportWorkflow.Infrastructure/AgentFramework/BugResolverService.cs`
     - Same pattern as IssueClassifierService: `IChatClient`, `ChatOptions { Temperature = 0.2f }`, `List<ChatMessage>`, `GetResponseAsync`
     - Preserve system prompt, JSON parsing logic, and escalation fallback behavior
     - _Requirements: 2.2, 2.4, 2.5, 2.6, 2.8, 9.1_
-  - [ ] 3.3 Migrate `CodeChangeGeneratorService`
+  - [x] 3.3 Migrate `CodeChangeGeneratorService`
     - Create `src/AiSupportWorkflow.Infrastructure/AgentFramework/CodeChangeGeneratorService.cs`
     - Same pattern: `IChatClient`, `ChatOptions { Temperature = 0.5f }`, `List<ChatMessage>`, `GetResponseAsync`
     - Preserve system prompt, JSON parsing logic, and fallback PR behavior
     - _Requirements: 2.3, 2.4, 2.5, 2.6, 2.9, 9.1_
-  - [ ] 3.4 Delete the old `SemanticKernel` folder
+  - [x] 3.4 Delete the old `SemanticKernel` folder
     - Remove `src/AiSupportWorkflow.Infrastructure/SemanticKernel/` directory and all files within it (`SemanticKernelSetup.cs`, `IssueClassifierService.cs`, `BugResolverService.cs`, `CodeChangeGeneratorService.cs`)
     - _Requirements: 4.1, 4.2_
 
-- [ ] 4. Rename SemanticKernelAgent to AiAgent
-  - [ ] 4.1 Create `AiAgent.cs` and remove `SemanticKernelAgent.cs`
+- [x] 4. Rename SemanticKernelAgent to AiAgent
+  - [x] 4.1 Create `AiAgent.cs` and remove `SemanticKernelAgent.cs`
     - Create `src/AiSupportWorkflow.Infrastructure/Agents/AiAgent.cs` with identical behavior (holds agent identity, delegates to `IBugResolver`)
     - Delete `src/AiSupportWorkflow.Infrastructure/Agents/SemanticKernelAgent.cs`
     - _Requirements: 5.1, 5.3_
-  - [ ] 4.2 Update `Program.cs` to reference `AiAgent`
+  - [x] 4.2 Update `Program.cs` to reference `AiAgent`
     - Replace `new SemanticKernelAgent(...)` with `new AiAgent(...)` in the agent factory lambda
     - _Requirements: 5.2_
 
-- [ ] 5. Checkpoint — Verify solution builds
+- [x] 5. Checkpoint — Verify solution builds
   - Ensure `dotnet build AiSupportWorkflow.sln` completes with zero errors. Ask the user if questions arise.
   - _Requirements: 1.3, 10.1_
 
-- [ ] 6. Migrate test helper and update unit tests
-  - [ ] 6.1 Create `FakeChatClient` test helper
+- [x] 6. Migrate test helper and update unit tests
+  - [x] 6.1 Create `FakeChatClient` test helper
     - Create `tests/AiSupportWorkflow.UnitTests/Helpers/FakeChatClient.cs`
     - Implement `IChatClient` from `Microsoft.Extensions.AI`
     - Support construction with a response string (returns `ChatResponse` with assistant message) and with an `Exception` (throws on call)
     - Implement `GetResponseAsync`, minimal `GetStreamingResponseAsync`, and `Dispose`
     - Delete `tests/AiSupportWorkflow.UnitTests/Helpers/FakeChatCompletionService.cs`
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
-  - [ ] 6.2 Update `IssueClassifierTests.cs`
+  - [x] 6.2 Update `IssueClassifierTests.cs`
     - Replace `using Microsoft.SemanticKernel.ChatCompletion` and `using AiSupportWorkflow.Infrastructure.SemanticKernel` with `using AiSupportWorkflow.Infrastructure.AgentFramework`
     - Replace `IChatCompletionService` with `IChatClient` in `CreateSut`
     - Replace `FakeChatCompletionService` with `FakeChatClient`
     - _Requirements: 6.5, 10.3, 10.4_
-  - [ ] 6.3 Update `BugResolverTests.cs`
+  - [x] 6.3 Update `BugResolverTests.cs`
     - Same using/type replacements as IssueClassifierTests
     - _Requirements: 6.5, 10.3, 10.4_
-  - [ ] 6.4 Update `CodeChangeGeneratorTests.cs`
+  - [x] 6.4 Update `CodeChangeGeneratorTests.cs`
     - Same using/type replacements as IssueClassifierTests
     - _Requirements: 6.5, 10.3, 10.4_
 

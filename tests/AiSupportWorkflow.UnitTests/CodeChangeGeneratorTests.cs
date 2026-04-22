@@ -1,18 +1,18 @@
 namespace AiSupportWorkflow.UnitTests;
 
 using AiSupportWorkflow.Domain.ValueObjects;
-using AiSupportWorkflow.Infrastructure.SemanticKernel;
+using AiSupportWorkflow.Infrastructure.AgentFramework;
 using AiSupportWorkflow.UnitTests.Helpers;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 public class CodeChangeGeneratorTests
 {
     private static ResolutionReport MakeResolution(Guid? issueId = null) =>
         new(issueId ?? Guid.NewGuid(), "Null ref", "OrderController", "High", "Add null check", false, null);
 
-    private static CodeChangeGeneratorService CreateSut(IChatCompletionService chatService) =>
-        new(chatService, NullLogger<CodeChangeGeneratorService>.Instance);
+    private static CodeChangeGeneratorService CreateSut(IChatClient chatClient) =>
+        new(chatClient, NullLogger<CodeChangeGeneratorService>.Instance);
 
     [Fact]
     public async Task GenerateAsync_ValidJson_ReturnsPullRequestWithCorrectIssueId()
@@ -27,7 +27,7 @@ public class CodeChangeGeneratorTests
           "diff":"--- a/file\n+++ b/file\n-old\n+new"
         }
         """;
-        var sut = CreateSut(new FakeChatCompletionService(json));
+        var sut = CreateSut(new FakeChatClient(json));
 
         var pr = await sut.GenerateAsync(resolution);
 
@@ -43,7 +43,7 @@ public class CodeChangeGeneratorTests
     {
         var issueId = Guid.NewGuid();
         var resolution = MakeResolution(issueId);
-        var sut = CreateSut(new FakeChatCompletionService(new HttpRequestException("API down")));
+        var sut = CreateSut(new FakeChatClient(new HttpRequestException("API down")));
 
         var pr = await sut.GenerateAsync(resolution);
 

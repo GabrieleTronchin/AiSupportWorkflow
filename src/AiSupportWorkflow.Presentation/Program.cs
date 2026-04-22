@@ -32,7 +32,7 @@ builder.Services.AddSingleton<IEnumerable<IAIAgent>>(sp =>
 
     return config.Teams
         .SelectMany(team => team.Agents.Select(agent =>
-            (IAIAgent)new SemanticKernelAgent(
+            (IAIAgent)new AiAgent(
                 $"{team.TeamName}_{agent.Role}",
                 team.TeamName,
                 agent.Role,

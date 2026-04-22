@@ -1,19 +1,15 @@
-namespace AiSupportWorkflow.Infrastructure.SemanticKernel;
+namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 
 using System.Text.Json;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 
-public class BugResolverService(IChatCompletionService chatService, ILogger<BugResolverService> logger) : IBugResolver
+public class BugResolverService(IChatClient chatClient, ILogger<BugResolverService> logger) : IBugResolver
 {
-    private static readonly PromptExecutionSettings Settings = new()
-    {
-        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.2 }
-    };
+    private static readonly ChatOptions Options = new() { Temperature = 0.2f };
 
     private const string SystemPrompt = """
         You are a senior software engineer performing root cause analysis.
@@ -34,12 +30,14 @@ public class BugResolverService(IChatCompletionService chatService, ILogger<BugR
     {
         try
         {
-            var history = new ChatHistory(SystemPrompt);
-            history.AddUserMessage(
-                $"Agent: {agent.AgentId} ({agent.Role})\nSubject: {issue.Subject}\n\nBody: {issue.Body}");
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, SystemPrompt),
+                new(ChatRole.User, $"Agent: {agent.AgentId} ({agent.Role})\nSubject: {issue.Subject}\n\nBody: {issue.Body}")
+            };
 
-            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
-            return ParseResolutionResponse(issue.Id, response.Content ?? "");
+            var response = await chatClient.GetResponseAsync(messages, Options, ct);
+            return ParseResolutionResponse(issue.Id, response.Text ?? "");
         }
         catch (Exception ex)
         {
@@ -48,7 +46,7 @@ public class BugResolverService(IChatCompletionService chatService, ILogger<BugR
         }
     }
 
-    private static ResolutionReport ParseResolutionResponse(Guid issueId, string responseText)
+    internal static ResolutionReport ParseResolutionResponse(Guid issueId, string responseText)
     {
         try
         {

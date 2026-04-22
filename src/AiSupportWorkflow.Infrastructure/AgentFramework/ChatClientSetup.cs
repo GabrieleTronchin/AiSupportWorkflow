@@ -1,14 +1,16 @@
-namespace AiSupportWorkflow.Infrastructure.SemanticKernel;
+namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 
+using System.ClientModel;
 using AiSupportWorkflow.Infrastructure.Configuration;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
-using Microsoft.SemanticKernel;
+using OpenAI;
 
-public static class SemanticKernelSetup
+public static class ChatClientSetup
 {
-    public static IServiceCollection AddSemanticKernel(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddChatClient(this IServiceCollection services, IConfiguration configuration)
     {
         var config = configuration.GetSection("LlmProvider").Get<LlmProviderConfiguration>()
             ?? new LlmProviderConfiguration();
@@ -22,7 +24,11 @@ public static class SemanticKernelSetup
         switch (config.Provider.ToLowerInvariant())
         {
             case "openai":
-                services.AddOpenAIChatCompletion(config.ModelName, config.ApiKey);
+                var openAiClient = new OpenAIClient(new ApiKeyCredential(config.ApiKey));
+                IChatClient chatClient = openAiClient
+                    .GetChatClient(config.ModelName)
+                    .AsIChatClient();
+                services.AddSingleton(chatClient);
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported LLM provider: {config.Provider}");
