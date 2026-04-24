@@ -11,7 +11,7 @@ using AiSupportWorkflow.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Infrastructure services (Semantic Kernel, classifiers, resolvers, state tracker, config)
+// Infrastructure services (Agent Framework, classifiers, resolvers, state tracker, config)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Application services

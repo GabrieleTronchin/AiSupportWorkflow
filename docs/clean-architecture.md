@@ -1,6 +1,6 @@
 # Clean Architecture
 
-> **📚 Navigation:** [← Back to README](../README.md) | [Actor Architecture](actor-architecture.md) | [Semantic Kernel Integration](semantic-kernel-integration.md)
+> **📚 Navigation:** [← Back to README](../README.md) | [Actor Architecture](actor-architecture.md) | [Agent Framework Integration](agent-framework-integration.md)
 
 This document describes how [Clean Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures#clean-architecture) is applied in the AI Support Workflow project.
 
@@ -35,11 +35,11 @@ Contains business logic, use cases, and service implementations that depend only
 
 ### Infrastructure
 
-Implements Domain interfaces using external libraries (Akka.NET, Semantic Kernel, OpenAI). This is where third-party integrations live.
+Implements Domain interfaces using external libraries (Akka.NET, Agent Framework, OpenAI). This is where third-party integrations live.
 
 - `Actors/` — `AIAgentActor`, `SupervisorActor` (Akka.NET)
-- `Agents/` — `SemanticKernelAgent` (LLM-backed agent)
-- `SemanticKernel/` — `IssueClassifierService`, `BugResolverService`, `CodeChangeGeneratorService`
+- `Agents/` — `AiAgent` (LLM-backed agent)
+- `AgentFramework/` — `IssueClassifierService`, `BugResolverService`, `CodeChangeGeneratorService`
 - `Services/` — `WorkflowStateTracker`
 - `InfrastructureServiceExtensions.cs` — DI registration
 
@@ -76,8 +76,8 @@ The project's `.csproj` files were inspected to confirm the dependency flow:
 
 - **Domain** (`AiSupportWorkflow.Domain.csproj`): Zero `<ProjectReference>` entries and zero `<PackageReference>` entries. Fully independent. ✅
 - **Application** (`AiSupportWorkflow.Application.csproj`): References only `AiSupportWorkflow.Domain`. Uses minimal infrastructure-agnostic packages (`Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options`). ✅
-- **Infrastructure** (`AiSupportWorkflow.Infrastructure.csproj`): References `AiSupportWorkflow.Domain` and `AiSupportWorkflow.Application`. All external integrations (Akka.NET, Semantic Kernel, OpenAI) are confined to this layer. ✅
-- **Presentation** (`AiSupportWorkflow.Presentation.csproj`): References `AiSupportWorkflow.Infrastructure`, `AiSupportWorkflow.Application`, and `AiSupportWorkflow.Domain`. Acts as the composition root with `Akka.Hosting` and `Microsoft.SemanticKernel` for DI wiring. ✅
+- **Infrastructure** (`AiSupportWorkflow.Infrastructure.csproj`): References `AiSupportWorkflow.Domain` and `AiSupportWorkflow.Application`. All external integrations (Akka.NET, Agent Framework, OpenAI) are confined to this layer. ✅
+- **Presentation** (`AiSupportWorkflow.Presentation.csproj`): References `AiSupportWorkflow.Infrastructure`, `AiSupportWorkflow.Application`, and `AiSupportWorkflow.Domain`. Acts as the composition root with `Akka.Hosting` and `Microsoft.Agents.AI` for DI wiring. ✅
 
 **Result**: The project fully complies with clean architecture dependency rules. No deviations found.
 
@@ -88,7 +88,7 @@ All NuGet packages used in this solution are free and open-source. No paid or pr
 | Package | License | Free for OSS |
 |---------|---------|:------------:|
 | Akka.NET / Akka.Hosting / Akka.TestKit.Xunit2 | Apache-2.0 | ✅ |
-| Microsoft.SemanticKernel / Connectors.OpenAI | MIT | ✅ |
+| Microsoft.Agents.AI / Microsoft.Agents.AI.OpenAI | MIT | ✅ |
 | Microsoft.Extensions.* (Options, Logging, Http.Resilience, Options.ConfigurationExtensions) | MIT | ✅ |
 | xUnit / xunit.runner.visualstudio | Apache-2.0 | ✅ |
 | FsCheck.Xunit | BSD-3-Clause | ✅ |

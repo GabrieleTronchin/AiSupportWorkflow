@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AiSupportWorkflow.PropertyTests" />
+    <InternalsVisibleTo Include="AiSupportWorkflow.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Akka" Version="1.5.64" />
     <PackageReference Include="Akka.Hosting" Version="1.5.64" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.5" />
