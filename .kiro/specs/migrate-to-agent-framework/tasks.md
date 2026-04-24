@@ -84,12 +84,12 @@ Migrate the AI Support Workflow project from Microsoft Semantic Kernel (v1.74.0)
     - Same using/type replacements as IssueClassifierTests
     - _Requirements: 6.5, 10.3, 10.4_
 
-- [ ] 7. Checkpoint — Verify all existing tests pass
+- [x] 7. Checkpoint — Verify all existing tests pass
   - Run `dotnet test AiSupportWorkflow.sln` and ensure all tests pass with the same results as before migration. Ask the user if questions arise.
   - _Requirements: 6.6, 10.2_
 
-- [ ] 8. Write property-based tests for migration correctness
-  - [ ] 8.1 Create property test file for migration properties
+- [x] 8. Write property-based tests for migration correctness
+  - [x] 8.1 Create property test file for migration properties
     - Create `tests/AiSupportWorkflow.PropertyTests/MigrationCorrectnessTests.cs`
     - Add necessary project references if missing (Infrastructure project is already referenced)
     - Use FsCheck.Xunit with `MaxTest = 100`
@@ -123,17 +123,17 @@ Migrate the AI Support Workflow project from Microsoft Semantic Kernel (v1.74.0)
     - For any non-null string, constructing `FakeChatClient` and calling `GetResponseAsync` returns a `ChatResponse` with matching text
     - **Validates: Requirements 6.4**
 
-- [ ] 9. Checkpoint — Verify all tests pass including property tests
+- [x] 9. Checkpoint — Verify all tests pass including property tests
   - Run `dotnet test AiSupportWorkflow.sln` and ensure all tests pass. Ask the user if questions arise.
   - _Requirements: 10.2_
 
-- [ ] 10. Update documentation
-  - [ ] 10.1 Replace `semantic-kernel-integration.md` with `agent-framework-integration.md`
+- [x] 10. Update documentation
+  - [x] 10.1 Replace `semantic-kernel-integration.md` with `agent-framework-integration.md`
     - Create `docs/agent-framework-integration.md` describing the Agent Framework integration: `IChatClient` abstraction, `ChatMessage`, `ChatOptions`, `ChatResponse`, DI registration flow, temperature strategy, service behavior, actor integration, and provider-agnostic benefits
     - Include a Migration Note section explaining: Agent Framework is the successor to Semantic Kernel, `IChatClient` is the standard .NET AI abstraction, key API mapping changes, and domain layer required zero changes
     - Delete `docs/semantic-kernel-integration.md`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 8.5, 9.3_
-  - [ ] 10.2 Update `README.md`
+  - [x] 10.2 Update `README.md`
     - Replace all "Semantic Kernel" references with "Agent Framework"
     - Update architecture diagram to reference "Agent Framework Services" instead of "Semantic Kernel Services"
     - Update project structure section (AgentFramework folder instead of SemanticKernel, AiAgent instead of SemanticKernelAgent)
@@ -141,7 +141,7 @@ Migrate the AI Support Workflow project from Microsoft Semantic Kernel (v1.74.0)
     - Update Getting Started section and NuGet package references
     - _Requirements: 7.5, 7.6_
 
-- [ ] 11. Final checkpoint — Full build and test verification
+- [x] 11. Final checkpoint — Full build and test verification
   - Run `dotnet build AiSupportWorkflow.sln` (zero errors) and `dotnet test AiSupportWorkflow.sln` (all tests pass)
   - Verify zero references to `Microsoft.SemanticKernel` in any .csproj or .cs file
   - Verify `AgentFramework/` folder exists and `SemanticKernel/` folder is removed
