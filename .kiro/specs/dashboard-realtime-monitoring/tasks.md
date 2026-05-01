@@ -163,7 +163,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
 - [x] 6. Checkpoint — Verify backend build and tests
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 7. Frontend — Types and gRPC-Web Client
+- [x] 7. Frontend — Types and gRPC-Web Client
   - [x] 7.1 Update TypeScript types
     - Add `StateTransitionEvent` interface (id, issueId, previousStage, newStage, timestamp, detail)
     - Add `InboxMessage` interface (id, sender, subject, status, receivedAt, processedAt, error)
@@ -179,13 +179,13 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Create hook `useGrpcStream.ts` that replaces `useSSE.ts`
     - _Requirements: 6.4, 6.5, 6.6_
 
-  - [ ] 7.3 Write unit tests for gRPC-Web client
+  - [x] 7.3 Write unit tests for gRPC-Web client
     - Test: automatic reconnection after disconnection
     - Test: disconnected status indicator
     - Test: receiving WorkflowState updates
     - _Requirements: 6.5, 6.6_
 
-- [ ] 8. Frontend — PipelineVisualizer (Fixed Graph + Animations)
+- [x] 8. Frontend — PipelineVisualizer (Fixed Graph + Animations)
   - [x] 8.1 Disable interactions on PipelineVisualizer
     - Add props: `panOnDrag={false}`, `zoomOnScroll={false}`, `zoomOnPinch={false}`, `zoomOnDoubleClick={false}`, `elementsSelectable={false}`, `preventScrolling={false}`
     - Add `fitView` for automatic container fitting
@@ -201,20 +201,20 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Automatic selection of the most recent issue from the gRPC stream
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
-  - [ ] 8.3 Write property test for pipeline visualization (Property 9)
+  - [x] 8.3 Write property test for pipeline visualization (Property 9)
     - **Property 9: Pipeline visualization state correctness**
     - For any active stage in the main flow, verify that the active node has a pulsing effect, preceding nodes are green, edges are animated, and terminal error nodes are red
     - Use fast-check to generate random WorkflowStage
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4**
 
-  - [ ] 8.4 Write unit tests for PipelineVisualizer
+  - [x] 8.4 Write unit tests for PipelineVisualizer
     - Test: ReactFlow props disable pan, zoom, selection, scroll
     - Test: fitView active
     - Test: idle state → all nodes gray, no animations
     - Test: final success → all nodes green
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 5.6_
 
-- [ ] 9. Frontend — Overview Page (Integrated Layout)
+- [x] 9. Frontend — Overview Page (Integrated Layout)
   - [x] 9.1 Restructure the Overview Page layout
     - Two-column grid layout: PipelineVisualizer (left) + EmailComposer (right)
     - Maintain summary statistics (Total Issues, Active Agents, Recent Failures) at the top
@@ -223,13 +223,13 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Auto-selection of the most recent issue for the Pipeline_Graph
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 9.2 Write unit tests for Overview Page
+  - [x] 9.2 Write unit tests for Overview Page
     - Test: EmailComposer and PipelineVisualizer present on the page
     - Test: summary statistics visible
     - Test: two-column layout
     - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 10. Frontend — Agents Page
+- [x] 10. Frontend — Agents Page
   - [x] 10.1 Implement the Agents page with configured agents
     - Display all configured agents with: agentId, team, role, status (Idle/Working)
     - Implement periodic polling for status updates
@@ -237,51 +237,51 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Update hook `useAgents.ts` for the new endpoint
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-  - [ ] 10.2 Write unit tests for useAgents hook
+  - [x] 10.2 Write unit tests for useAgents hook
     - Test: returns list of configured agents from the backend
     - Test: periodic polling updates status
     - Test: error handling when endpoint is not reachable
     - Test: isLoading state during fetch
     - _Requirements: 3.5, 3.6_
 
-  - [ ] 10.3 Write property test for agent status mapping (Property 1)
+  - [x] 10.3 Write property test for agent status mapping (Property 1)
     - **Property 1: Agent status mapping correctness**
     - For any configured agent, if active as an Akka actor the status must be "Working", otherwise "Idle"
     - Use fast-check to generate random agents with active/inactive state
     - **Validates: Requirements 3.2, 3.3**
 
-  - [ ] 10.4 Write property test for agent display completeness (Property 2)
+  - [x] 10.4 Write property test for agent display completeness (Property 2)
     - **Property 2: Agent display completeness**
     - For any list of agents, every agent must be rendered with all four required fields
     - Use fast-check to generate lists of agents with random fields
     - **Validates: Requirements 3.1, 3.4**
 
-- [ ] 11. Frontend — Issues Page with Filters
+- [x] 11. Frontend — Issues Page with Filters
   - [x] 11.1 Implement the Issues page with current state and filters
     - Display each issue as a single row: ID, current stage, detail, last update timestamp
     - Implement filter by current stage
     - Update hook `useIssues.ts` for the new data format
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 11.2 Write unit tests for useIssues hook
+  - [x] 11.2 Write unit tests for useIssues hook
     - Test: returns issue list from the backend
     - Test: data update via gRPC stream
     - Test: error handling when endpoint is not reachable
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 11.3 Write property test for issue display (Property 3)
+  - [x] 11.3 Write property test for issue display (Property 3)
     - **Property 3: Issue display with current state**
     - For any list of issues, each issue must appear exactly once with stage, detail, and timestamp visible
     - Use fast-check to generate lists of random WorkflowState
     - **Validates: Requirements 4.1, 4.2**
 
-  - [ ] 11.4 Write property test for issue filtering (Property 4)
+  - [x] 11.4 Write property test for issue filtering (Property 4)
     - **Property 4: Issue filtering by stage**
     - For any list of issues and selected stage filter, the displayed issues must be exactly those whose current stage matches the filter
     - Use fast-check to generate issues + random stage filter
     - **Validates: Requirements 4.3**
 
-- [ ] 12. Frontend — Event Log Page (Persistent)
+- [x] 12. Frontend — Event Log Page (Persistent)
   - [x] 12.1 Implement the Event Log page with persistent data
     - Read events from the new endpoint `GET /api/support/events`
     - Display for each event: issue ID, previous stage, new stage, timestamp, detail
@@ -289,32 +289,32 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Maximum limit of 200 entries
     - _Requirements: 4.4, 4.5, 4.6, 4.8_
 
-  - [ ] 12.2 Write unit tests for EventLogPage and useEvents hook
+  - [x] 12.2 Write unit tests for EventLogPage and useEvents hook
     - Test: fetch events from the new endpoint `/api/support/events`
     - Test: events displayed in reverse chronological order
     - Test: maximum limit of 200 entries respected
     - Test: error handling when endpoint is not reachable
     - _Requirements: 4.4, 4.5, 4.8_
 
-  - [ ] 12.3 Write property test for event ordering (Property 5)
+  - [x] 12.3 Write property test for event ordering (Property 5)
     - **Property 5: Event log reverse chronological ordering**
     - For any list of events, the Event Log must display them in strictly descending order of timestamp
     - Use fast-check to generate events with random timestamps
     - **Validates: Requirements 4.4**
 
-  - [ ] 12.4 Write property test for event display completeness (Property 6)
+  - [x] 12.4 Write property test for event display completeness (Property 6)
     - **Property 6: Event display completeness**
     - For any event, the rendered output must contain: issue ID, previous stage (if available), new stage, timestamp, and detail
     - Use fast-check to generate random StateTransitionEvent
     - **Validates: Requirements 4.6**
 
-  - [ ] 12.5 Write property test for event capping (Property 7)
+  - [x] 12.5 Write property test for event capping (Property 7)
     - **Property 7: Event log capping invariant**
     - For any number of events in the Events_Table, the Event Log page must display at most 200 entries
     - Use fast-check to generate lists of variable length
     - **Validates: Requirements 4.8**
 
-- [ ] 13. Frontend — Inbox Page (Replaces Emails Page)
+- [x] 13. Frontend — Inbox Page (Replaces Emails Page)
   - [x] 13.1 Implement the Inbox page
     - Replace the `/emails` page with the new Inbox Page
     - Display table with: ID, sender, subject, status (colored badge), reception timestamp, processing timestamp
@@ -325,7 +325,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Create hook `useInbox.ts`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ] 13.2 Write unit tests for useInbox hook
+  - [x] 13.2 Write unit tests for useInbox hook
     - Test: fetch inbox messages from the backend
     - Test: periodic polling updates the list
     - Test: status filter works correctly
@@ -333,32 +333,32 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Test: error handling when endpoint is not reachable
     - _Requirements: 8.6, 8.7, 8.8_
 
-  - [ ] 13.3 Write property test for inbox status badge mapping (Property 14)
+  - [x] 13.3 Write property test for inbox status badge mapping (Property 14)
     - **Property 14: Inbox status badge mapping**
     - For any InboxMessage: ProcessedAt null → "Queued" (yellow); ProcessedAt set + Error null → "Processed" (green); Error non-null → "Failed" (red)
     - Use fast-check to generate InboxMessage with random states
     - **Validates: Requirements 8.3, 8.4, 8.5**
 
-  - [ ] 13.4 Write property test for inbox filtering (Property 15)
+  - [x] 13.4 Write property test for inbox filtering (Property 15)
     - **Property 15: Inbox filtering by status**
     - For any list of messages and selected status filter, the displayed messages must be exactly those matching the filter
     - Use fast-check to generate messages + random status filter
     - **Validates: Requirements 8.6**
 
-  - [ ] 13.5 Write property test for inbox counters (Property 16)
+  - [x] 13.5 Write property test for inbox counters (Property 16)
     - **Property 16: Inbox summary counters accuracy**
     - For any list of messages, the summary counters must exactly match the count of messages in each status category
     - Use fast-check to generate lists of messages with mixed states
     - **Validates: Requirements 8.8**
 
-- [ ] 14. Frontend — Navigation, Routing, and Dead Code Cleanup
+- [x] 14. Frontend — Navigation, Routing, and Dead Code Cleanup
   - [x] 14.1 Update navigation and routing
     - Update the router to replace `/emails` with `/inbox`
     - Update navigation links in the layout
     - Verify that all pages are reachable from the navigation
     - _Requirements: 8.1_
 
-  - [-] 14.2 Remove dead frontend code
+  - [x] 14.2 Remove dead frontend code
     - Delete `dashboard/src/api/sse.ts` (SSE client, replaced by gRPC-Web)
     - Delete `dashboard/src/hooks/useSSE.ts` (SSE hook, replaced by `useGrpcStream.ts`)
     - Delete `dashboard/src/pages/EmailsPage.tsx` (replaced by InboxPage)
@@ -366,7 +366,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Verify that no file imports deleted modules (grep for `sse`, `useSSE`, `EmailsPage`)
     - Delete any tests related to removed modules (`useSSE.test.ts` if present)
 
-- [ ] 15. Documentation and README
+- [-] 15. Documentation and README
   - [ ] 15.1 Update the main README.md
     - Add "Dashboard" section with brief description and link to `docs/dashboard.md`
     - Update the "API Endpoints" table: remove `/stream`, add `/events`, `/inbox`, update `/emails` (202) and `/agents` (configured)
