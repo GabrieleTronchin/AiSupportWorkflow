@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  push:
+    paths: ['src/**', 'tests/**']
   pull_request:
     branches: [master]
+    paths: ['src/**', 'tests/**']
 
 jobs:
   check-branch-name:

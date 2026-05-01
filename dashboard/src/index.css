@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/*
+ * Dark theme configuration for AI Support Workflow Dashboard
+ * Using Tailwind CSS v4 with CSS-based theming
+ */
+
+@theme {
+  /* Dark theme colors */
+  --color-background: var(--color-zinc-950);
+  --color-surface: var(--color-zinc-800);
+  --color-surface-alt: var(--color-zinc-900);
+  --color-foreground: var(--color-zinc-100);
+  --color-foreground-muted: var(--color-zinc-300);
+
+  /* Accent colors */
+  --color-accent-active: var(--color-blue-500);
+  --color-accent-completed: var(--color-emerald-500);
+  --color-accent-error: var(--color-red-500);
+  --color-accent-warning: var(--color-amber-500);
+}
+
+/*
+ * shadcn/ui dark mode CSS variables
+ * These follow the shadcn/ui theming convention for dark mode
+ */
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 217.2 91.2% 59.8%;
+  --radius: 0.5rem;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+}
+
+/*
+ * Base styles — dark theme applied globally
+ */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Utility layer for custom component styles
+ */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+}
