@@ -2,24 +2,24 @@ namespace AiSupportWorkflow.UnitTests;
 
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
-using AiSupportWorkflow.Infrastructure.SemanticKernel;
+using AiSupportWorkflow.Infrastructure.AgentFramework;
 using AiSupportWorkflow.UnitTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.Extensions.AI;
 
 public class IssueClassifierTests
 {
     private static IssueRecord MakeIssue() =>
         new(Guid.NewGuid(), "user@test.com", "Bug", "Details", DateTimeOffset.UtcNow);
 
-    private static IssueClassifierService CreateSut(IChatCompletionService chatService) =>
-        new(chatService, NullLogger<IssueClassifierService>.Instance);
+    private static IssueClassifierService CreateSut(IChatClient chatClient) =>
+        new(chatClient, NullLogger<IssueClassifierService>.Instance);
 
     [Fact]
     public async Task ClassifyAsync_ValidBackendBugJson_ReturnsCodeRelatedClassification()
     {
         var json = """{"category":"BackendBug","confidence":0.95,"reasoning":"API error detected"}""";
-        var sut = CreateSut(new FakeChatCompletionService(json));
+        var sut = CreateSut(new FakeChatClient(json));
 
         var result = await sut.ClassifyAsync(MakeIssue());
 
@@ -32,7 +32,7 @@ public class IssueClassifierTests
     public async Task ClassifyAsync_OutOfScopeJson_ReturnsNotCodeRelated()
     {
         var json = """{"category":"OutOfScope","confidence":0.8,"reasoning":"Billing question"}""";
-        var sut = CreateSut(new FakeChatCompletionService(json));
+        var sut = CreateSut(new FakeChatClient(json));
 
         var result = await sut.ClassifyAsync(MakeIssue());
 
@@ -43,7 +43,7 @@ public class IssueClassifierTests
     [Fact]
     public async Task ClassifyAsync_LlmThrowsException_ReturnsManualReviewFallback()
     {
-        var sut = CreateSut(new FakeChatCompletionService(new HttpRequestException("API unreachable")));
+        var sut = CreateSut(new FakeChatClient(new HttpRequestException("API unreachable")));
 
         var result = await sut.ClassifyAsync(MakeIssue());
 

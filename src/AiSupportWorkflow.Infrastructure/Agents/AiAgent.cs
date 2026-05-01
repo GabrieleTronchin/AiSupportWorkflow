@@ -5,7 +5,7 @@ using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
 
-public class SemanticKernelAgent(
+public class AiAgent(
     string agentId,
     string teamName,
     AgentRole role,

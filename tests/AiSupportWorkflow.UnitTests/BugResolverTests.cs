@@ -3,10 +3,10 @@ namespace AiSupportWorkflow.UnitTests;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.ValueObjects;
-using AiSupportWorkflow.Infrastructure.SemanticKernel;
+using AiSupportWorkflow.Infrastructure.AgentFramework;
 using AiSupportWorkflow.UnitTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.Extensions.AI;
 
 public class BugResolverTests
 {
@@ -16,8 +16,8 @@ public class BugResolverTests
     private static AgentAssignment MakeAgent() =>
         new("TeamA_BackendDeveloper", "TeamA", AgentRole.BackendDeveloper);
 
-    private static BugResolverService CreateSut(IChatCompletionService chatService) =>
-        new(chatService, NullLogger<BugResolverService>.Instance);
+    private static BugResolverService CreateSut(IChatClient chatClient) =>
+        new(chatClient, NullLogger<BugResolverService>.Instance);
 
     [Fact]
     public async Task ResolveAsync_ValidJson_ReturnsResolutionReport()
@@ -33,7 +33,7 @@ public class BugResolverTests
           "escalationReason":null
         }
         """;
-        var sut = CreateSut(new FakeChatCompletionService(json));
+        var sut = CreateSut(new FakeChatClient(json));
 
         var result = await sut.ResolveAsync(issue, MakeAgent());
 
@@ -48,7 +48,7 @@ public class BugResolverTests
     public async Task ResolveAsync_LlmThrowsException_ReturnsEscalatedReport()
     {
         var issue = MakeIssue();
-        var sut = CreateSut(new FakeChatCompletionService(new HttpRequestException("API down")));
+        var sut = CreateSut(new FakeChatClient(new HttpRequestException("API down")));
 
         var result = await sut.ResolveAsync(issue, MakeAgent());
 

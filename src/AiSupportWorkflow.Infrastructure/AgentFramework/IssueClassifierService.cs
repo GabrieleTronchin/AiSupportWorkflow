@@ -1,20 +1,16 @@
-namespace AiSupportWorkflow.Infrastructure.SemanticKernel;
+namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 
 using System.Text.Json;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 
-public class IssueClassifierService(IChatCompletionService chatService, ILogger<IssueClassifierService> logger) : IIssueClassifier
+public class IssueClassifierService(IChatClient chatClient, ILogger<IssueClassifierService> logger) : IIssueClassifier
 {
-    private static readonly PromptExecutionSettings Settings = new()
-    {
-        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.1 }
-    };
+    private static readonly ChatOptions Options = new() { Temperature = 0.1f };
 
     private const string SystemPrompt = """
         You are a support email classifier. Analyze the email and classify it.
@@ -32,11 +28,14 @@ public class IssueClassifierService(IChatCompletionService chatService, ILogger<
     {
         try
         {
-            var history = new ChatHistory(SystemPrompt);
-            history.AddUserMessage($"Subject: {issue.Subject}\n\nBody: {issue.Body}");
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, SystemPrompt),
+                new(ChatRole.User, $"Subject: {issue.Subject}\n\nBody: {issue.Body}")
+            };
 
-            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
-            return ParseClassificationResponse(response.Content ?? "");
+            var response = await chatClient.GetResponseAsync(messages, Options, ct);
+            return ParseClassificationResponse(response.Text ?? "");
         }
         catch (Exception ex)
         {
@@ -45,7 +44,7 @@ public class IssueClassifierService(IChatCompletionService chatService, ILogger<
         }
     }
 
-    private static ClassificationResult ParseClassificationResponse(string responseText)
+    internal static ClassificationResult ParseClassificationResponse(string responseText)
     {
         try
         {

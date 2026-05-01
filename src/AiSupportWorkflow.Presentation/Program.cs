@@ -11,7 +11,7 @@ using AiSupportWorkflow.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Infrastructure services (Semantic Kernel, classifiers, resolvers, state tracker, config)
+// Infrastructure services (Agent Framework, classifiers, resolvers, state tracker, config)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Application services
@@ -32,7 +32,7 @@ builder.Services.AddSingleton<IEnumerable<IAIAgent>>(sp =>
 
     return config.Teams
         .SelectMany(team => team.Agents.Select(agent =>
-            (IAIAgent)new SemanticKernelAgent(
+            (IAIAgent)new AiAgent(
                 $"{team.TeamName}_{agent.Role}",
                 team.TeamName,
                 agent.Role,

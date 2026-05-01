@@ -37,7 +37,7 @@ graph LR
         P[Minimal API<br/>Endpoints<br/>Program.cs]
     end
     subgraph Infrastructure
-        I[Akka.NET Actors<br/>Semantic Kernel Services<br/>WorkflowStateTracker]
+        I[Akka.NET Actors<br/>Agent Framework Services<br/>WorkflowStateTracker]
     end
     subgraph Application
         A[Orchestrator<br/>EmailProcessor<br/>AgentSelector / TeamRouter<br/>UseCases]
@@ -108,7 +108,7 @@ AiSupportWorkflow/
 ├── src/
 │   ├── AiSupportWorkflow.Domain/            # Pure domain layer — entities, enums, interfaces, value objects, messages
 │   ├── AiSupportWorkflow.Application/       # Business logic — orchestrator, services, use cases, configuration
-│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Semantic Kernel, services
+│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Agent Framework, services
 │   └── AiSupportWorkflow.Presentation/      # REST API & composition root — Minimal API endpoints, Program.cs
 │
 ├── tests/
@@ -133,7 +133,7 @@ AiSupportWorkflow/
 |----------|-------------|
 | [Clean Architecture](docs/clean-architecture.md) | Four-layer structure, dependency rules, and compliance verification |
 | [Actor Architecture](docs/actor-architecture.md) | Akka.NET actor system, supervision strategy, and message routing |
-| [Semantic Kernel Integration](docs/semantic-kernel-integration.md) | LLM-backed services for classification, resolution, and code generation |
+| [Agent Framework Integration](docs/agent-framework-integration.md) | LLM-backed services for classification, resolution, and code generation |
 | [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
 | [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
 

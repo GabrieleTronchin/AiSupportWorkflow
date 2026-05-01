@@ -1,19 +1,15 @@
-namespace AiSupportWorkflow.Infrastructure.SemanticKernel;
+namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 
 using System.Text.Json;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 
-public class CodeChangeGeneratorService(IChatCompletionService chatService, ILogger<CodeChangeGeneratorService> logger) : ICodeChangeGenerator
+public class CodeChangeGeneratorService(IChatClient chatClient, ILogger<CodeChangeGeneratorService> logger) : ICodeChangeGenerator
 {
-    private static readonly PromptExecutionSettings Settings = new()
-    {
-        ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.5 }
-    };
+    private static readonly ChatOptions Options = new() { Temperature = 0.5f };
 
     private const string SystemPrompt = """
         You are a code change generator. Given a resolution report, produce a simulated code fix.
@@ -31,11 +27,14 @@ public class CodeChangeGeneratorService(IChatCompletionService chatService, ILog
     {
         try
         {
-            var history = new ChatHistory(SystemPrompt);
-            history.AddUserMessage(BuildPrompt(resolution));
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, SystemPrompt),
+                new(ChatRole.User, BuildPrompt(resolution))
+            };
 
-            var response = await chatService.GetChatMessageContentAsync(history, Settings, cancellationToken: ct);
-            return ParsePullRequestResponse(resolution.IssueId, response.Content ?? "");
+            var response = await chatClient.GetResponseAsync(messages, Options, ct);
+            return ParsePullRequestResponse(resolution.IssueId, response.Text ?? "");
         }
         catch (Exception ex)
         {
@@ -53,7 +52,7 @@ public class CodeChangeGeneratorService(IChatCompletionService chatService, ILog
         Proposed Fix: {resolution.ProposedFixSummary}
         """;
 
-    private static PullRequest ParsePullRequestResponse(Guid issueId, string responseText)
+    internal static PullRequest ParsePullRequestResponse(Guid issueId, string responseText)
     {
         try
         {
