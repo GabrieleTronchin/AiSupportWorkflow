@@ -160,18 +160,18 @@ Incremental implementation of improvements to the AI Support workflow monitoring
       - Add `GET /api/support/inbox?status=queued` request (status filter)
       - Update the comment on the `POST /api/support/emails` response (now returns 202 Accepted)
 
-- [ ] 6. Checkpoint — Verify backend build and tests
+- [x] 6. Checkpoint — Verify backend build and tests
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Frontend — Types and gRPC-Web Client
-  - [ ] 7.1 Update TypeScript types
+- [-] 7. Frontend — Types and gRPC-Web Client
+  - [x] 7.1 Update TypeScript types
     - Add `StateTransitionEvent` interface (id, issueId, previousStage, newStage, timestamp, detail)
     - Add `InboxMessage` interface (id, sender, subject, status, receivedAt, processedAt, error)
     - Add `InboxStats` interface (queued, processed, failed)
     - Update existing types if necessary
     - _Requirements: 4.6, 8.2_
 
-  - [ ] 7.2 Create the gRPC-Web client (replaces SSE)
+  - [x] 7.2 Create the gRPC-Web client (replaces SSE)
     - Install dependencies: `@connectrpc/connect`, `@connectrpc/connect-web`, `@bufbuild/protobuf`
     - Generate TypeScript code from the `.proto` file
     - Create `dashboard/src/api/grpc-client.ts` with GrpcStreamClient interface

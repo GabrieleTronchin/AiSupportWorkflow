@@ -13,12 +13,16 @@ const mockFetchAgents = vi.mocked(fetchAgents);
 
 const agentA: AgentStatus = {
   agentId: 'TeamA_BackendDeveloper',
+  team: 'TeamA',
+  role: 'BackendDeveloper',
   status: 'Idle',
   lastAction: null,
 };
 
 const agentB: AgentStatus = {
   agentId: 'TeamB_FrontendDeveloper',
+  team: 'TeamB',
+  role: 'FrontendDeveloper',
   status: 'Working',
   lastAction: 'Analyzing issue-123',
 };

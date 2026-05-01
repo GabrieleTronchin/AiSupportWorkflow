@@ -5,9 +5,9 @@ import type { AgentStatus } from '../types';
 
 describe('AgentMonitor', () => {
   const mockAgents: AgentStatus[] = [
-    { agentId: 'TeamA_BackendDeveloper', status: 'Idle', lastAction: 'Resolved issue #42' },
-    { agentId: 'TeamB_FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause' },
-    { agentId: 'TeamA_QAEngineer', status: 'Idle', lastAction: null },
+    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: 'Resolved issue #42' },
+    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause' },
+    { agentId: 'TeamA_QAEngineer', team: 'TeamA', role: 'QAEngineer', status: 'Idle', lastAction: null },
   ];
 
   describe('Rendering', () => {
@@ -42,7 +42,7 @@ describe('AgentMonitor', () => {
   describe('Status badge colors', () => {
     it('"Idle" status has green badge classes', () => {
       const agents: AgentStatus[] = [
-        { agentId: 'agent-idle', status: 'Idle', lastAction: null },
+        { agentId: 'agent-idle', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null },
       ];
 
       render(<AgentMonitor agents={agents} isLoading={false} />);
@@ -54,7 +54,7 @@ describe('AgentMonitor', () => {
 
     it('"Working" status has yellow badge classes', () => {
       const agents: AgentStatus[] = [
-        { agentId: 'agent-working', status: 'Working', lastAction: null },
+        { agentId: 'agent-working', team: 'TeamA', role: 'BackendDeveloper', status: 'Working', lastAction: null },
       ];
 
       render(<AgentMonitor agents={agents} isLoading={false} />);
@@ -64,16 +64,8 @@ describe('AgentMonitor', () => {
       expect(badge).toHaveClass('bg-amber-400/10');
     });
 
-    it('unknown status has gray badge classes', () => {
-      const agents: AgentStatus[] = [
-        { agentId: 'agent-unknown', status: 'Offline', lastAction: null },
-      ];
-
-      render(<AgentMonitor agents={agents} isLoading={false} />);
-
-      const badge = screen.getByText('Offline');
-      expect(badge).toHaveClass('text-zinc-400');
-      expect(badge).toHaveClass('bg-zinc-400/10');
+    it('getStatusBadgeClasses returns gray for unknown status string', () => {
+      expect(getStatusBadgeClasses('Unknown')).toBe('text-zinc-400 bg-zinc-400/10');
     });
   });
 
