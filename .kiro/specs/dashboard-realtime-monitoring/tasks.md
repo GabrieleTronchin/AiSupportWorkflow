@@ -366,8 +366,8 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Verify that no file imports deleted modules (grep for `sse`, `useSSE`, `EmailsPage`)
     - Delete any tests related to removed modules (`useSSE.test.ts` if present)
 
-- [-] 15. Documentation and README
-  - [ ] 15.1 Update the main README.md
+- [x] 15. Documentation and README
+  - [x] 15.1 Update the main README.md
     - Add "Dashboard" section with brief description and link to `docs/dashboard.md`
     - Update the "API Endpoints" table: remove `/stream`, add `/events`, `/inbox`, update `/emails` (202) and `/agents` (configured)
     - Add mention of gRPC streaming in the API section
@@ -377,7 +377,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Update "Getting Started": add instructions to start the dashboard (`cd dashboard && npm install && npm run dev`)
     - Update "Configuration": `EnableVisualization` → "Enables gRPC streaming and visualization endpoints"; add `InboxPollingIntervalSeconds`
 
-  - [ ] 15.2 Create `docs/dashboard.md` — Dashboard documentation
+  - [x] 15.2 Create `docs/dashboard.md` — Dashboard documentation
     - Overview: purpose of the dashboard (real-time monitoring of the AI Support workflow)
     - Tech stack: React, TypeScript, Vite, Tailwind CSS, ReactFlow, gRPC-Web
     - Pages and features: Overview (graph + email form), Issues, Event Log, Agents, Inbox
@@ -386,7 +386,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Dashboard project folder structure
     - Link to main README (`[← Back to README](../README.md)`)
 
-  - [ ] 15.3 Create `docs/transactional-inbox.md` — Transactional Inbox pattern documentation
+  - [x] 15.3 Create `docs/transactional-inbox.md` — Transactional Inbox pattern documentation
     - What the Transactional Inbox pattern is and why it was adopted
     - Problem solved: decoupling reception/processing, failure resilience, immediate client response
     - Flow: POST email → save InboxMessage → HTTP 202 → InboxProcessor polling → workflow processing
@@ -397,7 +397,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Mermaid sequence diagram of the complete flow
     - Link to main README (`[← Back to README](../README.md)`)
 
-- [ ] 16. Final Checkpoint — Verify complete build and tests
+- [x] 16. Final Checkpoint — Verify complete build and tests
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
