@@ -30,6 +30,14 @@
   </ItemGroup>
 
   <!-- ═══════════════════════════════════════════════════════════════════
+       gRPC
+       ═══════════════════════════════════════════════════════════════════ -->
+  <ItemGroup Label="gRPC">
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.71.0" />
+    <PackageVersion Include="Grpc.AspNetCore.Web" Version="2.71.0" />
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
        Microsoft Extensions
        ═══════════════════════════════════════════════════════════════════ -->
   <ItemGroup Label="Microsoft.Extensions">

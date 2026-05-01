@@ -4,9 +4,10 @@ using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure.Persistence.Entities;
+using AiSupportWorkflow.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
-internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext) : IWorkflowStateTracker
+internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, WorkflowUpdateChannel? updateChannel = null) : IWorkflowStateTracker
 {
     public void Transition(Guid issueId, WorkflowStage stage, string? detail = null)
     {
@@ -43,6 +44,10 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext) : IWor
         });
 
         dbContext.SaveChanges();
+
+        // Notify subscribers (gRPC stream)
+        var state = new WorkflowState(issueId, stage, now, detail);
+        updateChannel?.Writer.TryWrite(state);
     }
 
     public WorkflowState GetState(Guid issueId)

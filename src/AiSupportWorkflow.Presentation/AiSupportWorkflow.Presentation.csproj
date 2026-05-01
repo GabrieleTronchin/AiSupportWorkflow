@@ -2,7 +2,13 @@
 
   <ItemGroup>
     <PackageReference Include="Akka.Hosting" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.AspNetCore.Web" />
     <PackageReference Include="Microsoft.Agents.AI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\workflow_monitor.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
