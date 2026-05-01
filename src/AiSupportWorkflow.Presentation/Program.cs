@@ -37,7 +37,7 @@ builder.Services.AddScoped<IEmailProcessor, EmailProcessor>();
 builder.Services.AddScoped<ITeamRouter, TeamRouter>();
 builder.Services.AddScoped<IAgentSelector, AgentSelector>();
 builder.Services.AddScoped<IOrchestrator, Orchestrator>();
-builder.Services.AddSingleton<ProcessSupportEmailUseCase>();
+builder.Services.AddScoped<ProcessSupportEmailUseCase>();
 
 // Build IAIAgent instances from configuration
 builder.Services.AddSingleton<IEnumerable<IAIAgent>>(sp =>

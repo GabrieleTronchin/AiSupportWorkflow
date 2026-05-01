@@ -1,8 +1,11 @@
 namespace AiSupportWorkflow.PropertyTests;
 
 using System.Text.Json;
+using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Entities;
+using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
+using AiSupportWorkflow.Domain.ValueObjects;
 using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.Infrastructure.Persistence.Entities;
 using AiSupportWorkflow.Infrastructure.Services;
@@ -162,5 +165,141 @@ public class InboxProperties
             && payloadMatchesSender
             && payloadMatchesSubject
             && payloadMatchesBody).ToProperty();
+    }
+
+    // Feature: dashboard-ui-polish, Property 8: Parallel mode processes all pending messages in one cycle
+    // For any inbox containing N ≥ 1 unprocessed messages, when SequentialProcessing is false,
+    // the InboxProcessor should process all N messages in a single cycle.
+    // **Validates: Requirements 5.4**
+    [Property(MaxTest = 100)]
+    public async Task<Property> ParallelMode_ProcessesAllPendingMessagesInOneCycle(PositiveInt count)
+    {
+        var n = Math.Clamp(count.Get, 1, 10);
+
+        var dbName = Guid.NewGuid().ToString();
+        var dbOptions = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(dbName)
+            .Options;
+
+        using var context = new WorkflowDbContext(dbOptions);
+        var orchestrator = Substitute.For<IOrchestrator>();
+
+        // Orchestrator processes messages successfully
+        orchestrator.ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>())
+            .Returns(WorkflowResult.OutOfScope(Guid.NewGuid()));
+
+        var services = new ServiceCollection();
+        services.AddDbContext<WorkflowDbContext>(opts => opts.UseInMemoryDatabase(dbName));
+        services.AddScoped<IOrchestrator>(_ => orchestrator);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+
+        var processorOptions = Options.Create(new InboxProcessorOptions { PollingIntervalSeconds = 60 });
+        var workflowConfig = Options.Create(new WorkflowConfiguration { SequentialProcessing = false });
+        var logger = NullLogger<InboxProcessor>.Instance;
+
+        var processor = new InboxProcessor(scopeFactory, processorOptions, workflowConfig, logger);
+
+        // Add N unprocessed messages
+        var baseTime = DateTimeOffset.UtcNow.AddMinutes(-n);
+        for (var i = 0; i < n; i++)
+        {
+            context.InboxMessages.Add(new InboxMessage
+            {
+                Id = Guid.NewGuid(),
+                MessageType = "SupportEmail",
+                Payload = JsonSerializer.Serialize(new IncomingEmail("test@test.com", $"Subject {i}", $"Body {i}")),
+                ReceivedAt = baseTime.AddMinutes(i),
+                ProcessedAt = null,
+                Error = null,
+            });
+        }
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        // Act — call ProcessPendingMessagesAsync directly (one cycle)
+        await processor.ProcessPendingMessagesAsync(CancellationToken.None);
+
+        // Assert — reload all messages from DB
+        var allMessages = await context.InboxMessages.AsNoTracking().ToListAsync();
+        var processedCount = allMessages.Count(m => m.ProcessedAt != null);
+
+        return (processedCount == n).ToProperty();
+    }
+
+    // Feature: dashboard-ui-polish, Property 7: Sequential mode processes exactly one message per cycle
+    // For any inbox containing N > 1 unprocessed messages, when SequentialProcessing is true
+    // and no previous issue is in-flight, the InboxProcessor should process exactly one message
+    // and leave the remaining N-1 messages unprocessed.
+    // **Validates: Requirements 5.2**
+    [Property(MaxTest = 100)]
+    public async Task<Property> SequentialMode_ProcessesExactlyOneMessagePerCycle(PositiveInt count)
+    {
+        var n = Math.Clamp(count.Get, 2, 10);
+
+        var dbName = Guid.NewGuid().ToString();
+        var dbOptions = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(dbName)
+            .Options;
+
+        using var context = new WorkflowDbContext(dbOptions);
+        var orchestrator = Substitute.For<IOrchestrator>();
+
+        // When the orchestrator processes a message, simulate creating a non-terminal issue
+        // This blocks subsequent messages in sequential mode
+        orchestrator.ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                using var innerContext = new WorkflowDbContext(dbOptions);
+                innerContext.Issues.Add(new IssueEntity
+                {
+                    Id = Guid.NewGuid(),
+                    CurrentStage = WorkflowStage.Resolving,
+                    LastUpdated = DateTimeOffset.UtcNow,
+                });
+                innerContext.SaveChanges();
+                return WorkflowResult.OutOfScope(Guid.NewGuid());
+            });
+
+        var services = new ServiceCollection();
+        services.AddDbContext<WorkflowDbContext>(opts => opts.UseInMemoryDatabase(dbName));
+        services.AddScoped<IOrchestrator>(_ => orchestrator);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+
+        var processorOptions = Options.Create(new InboxProcessorOptions { PollingIntervalSeconds = 60 });
+        var workflowConfig = Options.Create(new WorkflowConfiguration { SequentialProcessing = true });
+        var logger = NullLogger<InboxProcessor>.Instance;
+
+        var processor = new InboxProcessor(scopeFactory, processorOptions, workflowConfig, logger);
+
+        // Add N unprocessed messages
+        var baseTime = DateTimeOffset.UtcNow.AddMinutes(-n);
+        for (var i = 0; i < n; i++)
+        {
+            context.InboxMessages.Add(new InboxMessage
+            {
+                Id = Guid.NewGuid(),
+                MessageType = "SupportEmail",
+                Payload = JsonSerializer.Serialize(new IncomingEmail("test@test.com", $"Subject {i}", $"Body {i}")),
+                ReceivedAt = baseTime.AddMinutes(i),
+                ProcessedAt = null,
+                Error = null,
+            });
+        }
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        // Act — call ProcessPendingMessagesAsync directly (one cycle)
+        await processor.ProcessPendingMessagesAsync(CancellationToken.None);
+
+        // Assert — reload all messages from DB
+        var allMessages = await context.InboxMessages.AsNoTracking().ToListAsync();
+        var processedCount = allMessages.Count(m => m.ProcessedAt != null);
+        var unprocessedCount = allMessages.Count(m => m.ProcessedAt == null);
+
+        return (processedCount == 1 && unprocessedCount == n - 1).ToProperty();
     }
 }

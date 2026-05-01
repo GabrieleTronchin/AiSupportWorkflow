@@ -23,6 +23,9 @@ export interface AgentStatus {
   role: string;
   status: 'Idle' | 'Working';
   lastAction: string | null;
+  currentIssueId: string | null;
+  currentSubject: string | null;
+  currentStage: WorkflowStage | null;
 }
 
 export interface IncomingEmail {

@@ -198,6 +198,7 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `EnableVisualization` | `bool` | `false` | Enables gRPC streaming and agents endpoint |
+| `SequentialProcessing` | `bool` | `false` | When true, processes one inbox message per cycle and waits for the previous issue to reach a terminal state before processing the next |
 | `ActorAskTimeoutSeconds` | `int` | `120` | Timeout for the Akka.NET actor Ask. Values ≤ 0 fall back to 120s. |
 | `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
 | `Teams` | `array` | — | Team and agent configuration |

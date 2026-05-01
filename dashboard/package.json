@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate": "npx buf generate"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
@@ -23,6 +24,8 @@
     "recharts": "^2.15.3"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.50.0",
+    "@bufbuild/protoc-gen-es": "^2.2.3",
     "@eslint/js": "^9.25.0",
     "@tailwindcss/vite": "^4.1.4",
     "@testing-library/jest-dom": "^6.5.0",

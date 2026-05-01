@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { AgentStatus, ApiError } from '../types';
 import { fetchAgents } from '../api/client';
 
@@ -6,6 +6,7 @@ export function useAgents(pollInterval = 10000) {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +39,13 @@ export function useAgents(pollInterval = 10000) {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [pollInterval]);
+  }, [pollInterval, retryCount]);
 
-  return { agents, isLoading, error };
+  const retry = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  return { agents, isLoading, error, retry };
 }

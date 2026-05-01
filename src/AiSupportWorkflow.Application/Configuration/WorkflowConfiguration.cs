@@ -5,6 +5,7 @@ using AiSupportWorkflow.Domain.Enums;
 public class WorkflowConfiguration
 {
     public bool EnableVisualization { get; set; }
+    public bool SequentialProcessing { get; set; }
     public int ActorAskTimeoutSeconds { get; set; } = 120;
     public List<TeamConfiguration> Teams { get; set; } = [];
 }

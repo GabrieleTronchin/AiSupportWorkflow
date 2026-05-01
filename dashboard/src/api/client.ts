@@ -40,3 +40,8 @@ export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await fetch('/api/support/agents');
   return handleResponse<AgentStatus[]>(response);
 }
+
+export async function fetchConfig(): Promise<{ sequentialProcessing: boolean }> {
+  const response = await fetch('/api/support/config');
+  return handleResponse<{ sequentialProcessing: boolean }>(response);
+}

@@ -188,8 +188,8 @@ describe('fetchIssue', () => {
 
 describe('fetchAgents', () => {
   const mockAgents: AgentStatus[] = [
-    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null },
-    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause' },
+    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null, currentIssueId: null, currentSubject: null, currentStage: null },
+    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause', currentIssueId: null, currentSubject: null, currentStage: null },
   ];
 
   it('sends GET request to correct URL', async () => {

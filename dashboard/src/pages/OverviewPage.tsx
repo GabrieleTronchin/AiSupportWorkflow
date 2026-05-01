@@ -1,28 +1,33 @@
 import { useAgents } from '../hooks/useAgents';
+import { useConfig } from '../hooks/useConfig';
 import { useGrpcStream } from '../hooks/useGrpcStream';
 import { PipelineVisualizer } from '../components/PipelineVisualizer';
 import { EmailComposer } from '../components/EmailComposer';
-import type { WorkflowState } from '../types';
 
 export function OverviewPage() {
   const { agents } = useAgents();
   const { latestStates, isConnected } = useGrpcStream();
+  const { sequentialProcessing } = useConfig();
 
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
   const totalIssues = latestStates.length;
   const recentFailures = latestStates.filter((i) => i.stage === 'Failed').length;
 
-  // Auto-select the most recent issue for the PipelineVisualizer
-  const mostRecentIssue: WorkflowState | undefined = latestStates.length > 0
-    ? latestStates.reduce((latest, current) =>
-        new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest
-      )
-    : undefined;
+  // Filter to non-terminal issues for the PipelineVisualizer
+  const terminalStages: string[] = ['CodeChangeGenerated', 'ClassifiedOutOfScope', 'Failed'];
+  const activeIssues = latestStates.filter((s) => !terminalStages.includes(s.stage));
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-zinc-100">Overview</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-zinc-100">Overview</h1>
+          {sequentialProcessing && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-900/50 text-amber-300 border border-amber-700">
+              Sequential Mode
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span
             className={`inline-block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`}
@@ -50,7 +55,7 @@ export function OverviewPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <PipelineVisualizer selectedIssue={mostRecentIssue} />
+          <PipelineVisualizer activeIssues={activeIssues} />
         </div>
         <div>
           <EmailComposer />

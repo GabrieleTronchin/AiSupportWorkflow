@@ -1,7 +1,13 @@
-import type { WorkflowState } from '../types';
+import { createClient } from '@connectrpc/connect';
+import { createGrpcWebTransport } from '@connectrpc/connect-web';
+import { WorkflowMonitor } from '../gen/workflow_monitor_pb';
+import type { WorkflowState, WorkflowStage } from '../types';
 
-const BASE_URL = '/api/support';
-const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000];
+const transport = createGrpcWebTransport({ baseUrl: window.location.origin });
+const client = createClient(WorkflowMonitor, transport);
+
+const INITIAL_RECONNECT_DELAY = 2000;
+const MAX_RECONNECT_DELAY = 30000;
 
 export interface GrpcStreamClient {
   subscribe(onUpdate: (state: WorkflowState) => void): void;
@@ -10,55 +16,59 @@ export interface GrpcStreamClient {
 }
 
 /**
- * Creates a streaming client that polls the issues endpoint for real-time updates.
- * Uses polling as a gRPC-Web compatible fallback until full proto generation is configured.
- * Implements auto-reconnect with exponential backoff.
+ * Creates a streaming client that connects to the backend WorkflowMonitor gRPC-Web service.
+ * Receives real-time WorkflowStateUpdate messages via server streaming.
+ * Implements auto-reconnect with exponential backoff on stream errors.
  */
 export function createStreamClient(): GrpcStreamClient {
   let connected = false;
   let abortController: AbortController | null = null;
-  let reconnectAttempt = 0;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  let onUpdateCallback: ((state: WorkflowState) => void) | null = null;
-  let previousStates: Map<string, string> = new Map();
+  let reconnectDelay = INITIAL_RECONNECT_DELAY;
+  let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  async function poll() {
-    if (!onUpdateCallback) return;
+  async function startStream(onUpdate: (state: WorkflowState) => void) {
+    if (!abortController || abortController.signal.aborted) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/issues`, {
-        signal: abortController?.signal,
-      });
+      const stream = client.subscribeToUpdates(
+        {},
+        { signal: abortController.signal },
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const states = (await response.json()) as WorkflowState[];
       connected = true;
-      reconnectAttempt = 0;
+      reconnectDelay = INITIAL_RECONNECT_DELAY;
 
-      // Detect changes and emit updates
-      for (const state of states) {
-        const prevStage = previousStates.get(state.issueId);
-        if (prevStage !== state.stage) {
-          previousStates.set(state.issueId, state.stage);
-          onUpdateCallback(state);
-        }
+      for await (const update of stream) {
+        if (abortController?.signal.aborted) return;
+
+        onUpdate({
+          issueId: update.issueId,
+          stage: update.stage as WorkflowStage,
+          lastUpdated: update.lastUpdated,
+          detail: update.detail ?? null,
+        });
       }
 
-      // Schedule next poll
-      if (abortController && !abortController.signal.aborted) {
-        timeoutId = setTimeout(poll, 1000);
+      // Stream ended normally (server closed) — reconnect
+      if (!abortController?.signal.aborted) {
+        connected = false;
+        scheduleReconnect(onUpdate);
       }
-    } catch (error) {
+    } catch (err: unknown) {
       if (abortController?.signal.aborted) return;
 
       connected = false;
-      const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt, RECONNECT_DELAYS.length - 1)];
-      reconnectAttempt++;
-      timeoutId = setTimeout(poll, delay);
+      scheduleReconnect(onUpdate);
     }
+  }
+
+  function scheduleReconnect(onUpdate: (state: WorkflowState) => void) {
+    reconnectTimeoutId = setTimeout(() => {
+      reconnectTimeoutId = null;
+      startStream(onUpdate);
+    }, reconnectDelay);
+
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
   }
 
   return {
@@ -67,25 +77,21 @@ export function createStreamClient(): GrpcStreamClient {
     },
 
     subscribe(onUpdate: (state: WorkflowState) => void) {
-      onUpdateCallback = onUpdate;
       abortController = new AbortController();
-      previousStates = new Map();
-      reconnectAttempt = 0;
-      poll();
+      reconnectDelay = INITIAL_RECONNECT_DELAY;
+      startStream(onUpdate);
     },
 
     disconnect() {
-      onUpdateCallback = null;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+        reconnectTimeoutId = null;
       }
       if (abortController) {
         abortController.abort();
         abortController = null;
       }
       connected = false;
-      previousStates.clear();
     },
   };
 }

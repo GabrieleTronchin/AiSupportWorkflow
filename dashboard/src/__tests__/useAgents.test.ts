@@ -17,6 +17,9 @@ const agentA: AgentStatus = {
   role: 'BackendDeveloper',
   status: 'Idle',
   lastAction: null,
+  currentIssueId: null,
+  currentSubject: null,
+  currentStage: null,
 };
 
 const agentB: AgentStatus = {
@@ -25,6 +28,9 @@ const agentB: AgentStatus = {
   role: 'FrontendDeveloper',
   status: 'Working',
   lastAction: 'Analyzing issue-123',
+  currentIssueId: null,
+  currentSubject: null,
+  currentStage: null,
 };
 
 describe('useAgents', () => {
@@ -206,6 +212,90 @@ describe('useAgents', () => {
       });
 
       expect(result.current.isLoading).toBe(false);
+    });
+  });
+
+  describe('retry', () => {
+    it('exposes a retry function', async () => {
+      const { result } = renderHook(() => useAgents());
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(typeof result.current.retry).toBe('function');
+    });
+
+    it('re-triggers fetch when retry is called', async () => {
+      const apiError: ApiError = { statusCode: 503, message: 'Service unavailable' };
+      mockFetchAgents.mockRejectedValue(apiError);
+
+      const { result } = renderHook(() => useAgents());
+
+      // Flush initial fetch (which fails)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(result.current.error).toEqual(apiError);
+
+      // Now make the next fetch succeed
+      mockFetchAgents.mockResolvedValue([agentA, agentB]);
+
+      // Call retry
+      act(() => {
+        result.current.retry();
+      });
+
+      // After retry, isLoading should be true and error should be cleared
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.error).toBeNull();
+
+      // Flush the retry fetch
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.agents).toEqual([agentA, agentB]);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.error).toBeNull();
+    });
+
+    it('resets error state immediately on retry', async () => {
+      const apiError: ApiError = { statusCode: 500, message: 'Internal error' };
+      mockFetchAgents.mockRejectedValue(apiError);
+
+      const { result } = renderHook(() => useAgents());
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(result.current.error).toEqual(apiError);
+
+      // Make the next fetch hang so we can observe the intermediate state
+      let resolveRetryFetch: (value: AgentStatus[]) => void;
+      mockFetchAgents.mockImplementation(
+        () => new Promise<AgentStatus[]>((resolve) => { resolveRetryFetch = resolve; })
+      );
+
+      // Call retry
+      act(() => {
+        result.current.retry();
+      });
+
+      // Error should be cleared immediately, loading should be true
+      expect(result.current.error).toBeNull();
+      expect(result.current.isLoading).toBe(true);
+
+      // Resolve the retry fetch
+      await act(async () => {
+        resolveRetryFetch!([agentA]);
+        await Promise.resolve();
+      });
+
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.agents).toEqual([agentA]);
     });
   });
 });

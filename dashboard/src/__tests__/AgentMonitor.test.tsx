@@ -1,20 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { AgentMonitor, getStatusBadgeClasses } from '../components/AgentMonitor';
+import { AgentMonitor, getStatusBadgeClasses, renderAgentActivity } from '../components/AgentMonitor';
 import type { AgentStatus } from '../types';
 
 describe('AgentMonitor', () => {
   const mockAgents: AgentStatus[] = [
-    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: 'Resolved issue #42' },
-    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause' },
-    { agentId: 'TeamA_QAEngineer', team: 'TeamA', role: 'QAEngineer', status: 'Idle', lastAction: null },
+    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: 'Resolved issue #42', currentIssueId: null, currentSubject: null, currentStage: null },
+    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause', currentIssueId: 'issue-123', currentSubject: 'NullRef in OrderController', currentStage: 'Resolving' },
+    { agentId: 'TeamA_QAEngineer', team: 'TeamA', role: 'QAEngineer', status: 'Idle', lastAction: null, currentIssueId: null, currentSubject: null, currentStage: null },
   ];
 
   describe('Rendering', () => {
-    it('shows loading text when isLoading is true', () => {
-      render(<AgentMonitor agents={[]} isLoading={true} />);
+    it('shows skeleton loading cards when isLoading is true', () => {
+      const { container } = render(<AgentMonitor agents={[]} isLoading={true} />);
 
-      expect(screen.getByText('Loading agents...')).toBeInTheDocument();
+      const skeletonCards = container.querySelectorAll('.animate-pulse');
+      expect(skeletonCards.length).toBe(3);
     });
 
     it('renders agent cards with agent IDs', () => {
@@ -25,24 +26,26 @@ describe('AgentMonitor', () => {
       expect(screen.getByText('TeamA_QAEngineer')).toBeInTheDocument();
     });
 
-    it('shows last action text', () => {
+    it('shows current email info for Working agent with currentIssueId', () => {
       render(<AgentMonitor agents={mockAgents} isLoading={false} />);
 
-      expect(screen.getByText('Resolved issue #42')).toBeInTheDocument();
-      expect(screen.getByText('Analyzing root cause')).toBeInTheDocument();
+      expect(screen.getByText(/Issue: issue-123/)).toBeInTheDocument();
+      expect(screen.getByText(/Subject: NullRef in OrderController/)).toBeInTheDocument();
+      expect(screen.getByText(/Stage: Resolving/)).toBeInTheDocument();
     });
 
-    it('shows "No recent activity" when lastAction is null', () => {
+    it('shows "No recent activity" for Idle agents', () => {
       render(<AgentMonitor agents={mockAgents} isLoading={false} />);
 
-      expect(screen.getByText('No recent activity')).toBeInTheDocument();
+      const noActivityElements = screen.getAllByText('No recent activity');
+      expect(noActivityElements.length).toBe(2); // Two idle agents
     });
   });
 
   describe('Status badge colors', () => {
     it('"Idle" status has green badge classes', () => {
       const agents: AgentStatus[] = [
-        { agentId: 'agent-idle', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null },
+        { agentId: 'agent-idle', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null, currentIssueId: null, currentSubject: null, currentStage: null },
       ];
 
       render(<AgentMonitor agents={agents} isLoading={false} />);
@@ -54,7 +57,7 @@ describe('AgentMonitor', () => {
 
     it('"Working" status has yellow badge classes', () => {
       const agents: AgentStatus[] = [
-        { agentId: 'agent-working', team: 'TeamA', role: 'BackendDeveloper', status: 'Working', lastAction: null },
+        { agentId: 'agent-working', team: 'TeamA', role: 'BackendDeveloper', status: 'Working', lastAction: null, currentIssueId: null, currentSubject: null, currentStage: null },
       ];
 
       render(<AgentMonitor agents={agents} isLoading={false} />);
@@ -80,6 +83,44 @@ describe('AgentMonitor', () => {
 
     it('returns zinc classes for unknown status', () => {
       expect(getStatusBadgeClasses('SomethingElse')).toBe('text-zinc-400 bg-zinc-400/10');
+    });
+  });
+
+  describe('renderAgentActivity', () => {
+    it('returns full email info for Working agent with all fields', () => {
+      const agent: AgentStatus = {
+        agentId: 'agent-1', team: 'TeamA', role: 'BackendDeveloper',
+        status: 'Working', lastAction: null,
+        currentIssueId: 'abc-123', currentSubject: 'Bug report', currentStage: 'Resolving',
+      };
+      expect(renderAgentActivity(agent)).toBe('Issue: abc-123 | Subject: Bug report | Stage: Resolving');
+    });
+
+    it('returns "No recent activity" for Idle agent', () => {
+      const agent: AgentStatus = {
+        agentId: 'agent-1', team: 'TeamA', role: 'BackendDeveloper',
+        status: 'Idle', lastAction: null,
+        currentIssueId: null, currentSubject: null, currentStage: null,
+      };
+      expect(renderAgentActivity(agent)).toBe('No recent activity');
+    });
+
+    it('returns "No recent activity" for Working agent without currentIssueId', () => {
+      const agent: AgentStatus = {
+        agentId: 'agent-1', team: 'TeamA', role: 'BackendDeveloper',
+        status: 'Working', lastAction: null,
+        currentIssueId: null, currentSubject: null, currentStage: null,
+      };
+      expect(renderAgentActivity(agent)).toBe('No recent activity');
+    });
+
+    it('handles Working agent with issueId but no subject or stage', () => {
+      const agent: AgentStatus = {
+        agentId: 'agent-1', team: 'TeamA', role: 'BackendDeveloper',
+        status: 'Working', lastAction: null,
+        currentIssueId: 'xyz-789', currentSubject: null, currentStage: null,
+      };
+      expect(renderAgentActivity(agent)).toBe('Issue: xyz-789');
     });
   });
 });
