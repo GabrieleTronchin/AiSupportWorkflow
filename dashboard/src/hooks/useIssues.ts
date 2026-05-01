@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { WorkflowState, ApiError } from '../types';
 import { fetchIssues } from '../api/client';
-import { useSSE } from './useSSE';
+import { useGrpcStream } from './useGrpcStream';
 
 /**
- * Merges existing issues with SSE updates using upsert by issueId.
+ * Merges existing issues with stream updates using upsert by issueId.
  * Exported separately for independent testability (property-based tests).
  */
 export function mergeIssues(existing: WorkflowState[], updates: WorkflowState[]): WorkflowState[] {
@@ -19,7 +19,7 @@ export function useIssues() {
   const [issues, setIssues] = useState<WorkflowState[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
-  const { latestStates } = useSSE('/api/support/stream');
+  const { latestStates } = useGrpcStream();
 
   // Fetch initial issues on mount
   useEffect(() => {
@@ -51,7 +51,7 @@ export function useIssues() {
     };
   }, []);
 
-  // Merge SSE updates into local state (upsert by issueId)
+  // Merge gRPC stream updates into local state (upsert by issueId)
   useEffect(() => {
     if (latestStates.length === 0) return;
 

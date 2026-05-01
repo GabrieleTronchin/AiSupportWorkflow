@@ -3,7 +3,7 @@ import * as fc from 'fast-check';
 import { capEvents } from '../components/EventLog';
 import { mergeIssues } from '../hooks/useIssues';
 import { validateEmail } from '../components/EmailComposer';
-import type { WorkflowState, WorkflowStage } from '../types';
+import type { WorkflowState, WorkflowStage, StateTransitionEvent } from '../types';
 
 // Helper: arbitrary WorkflowStage
 const arbStage = fc.constantFrom<WorkflowStage>(
@@ -20,31 +20,41 @@ const arbWorkflowState = fc.record<WorkflowState>({
   detail: fc.option(fc.string({ minLength: 1, maxLength: 100 }), { nil: null }),
 });
 
+// Helper: arbitrary StateTransitionEvent
+const arbStateTransitionEvent = fc.record<StateTransitionEvent>({
+  id: fc.uuid(),
+  issueId: fc.uuid(),
+  previousStage: fc.option(arbStage, { nil: null }),
+  newStage: arbStage,
+  timestamp: fc.date().map(d => d.toISOString()),
+  detail: fc.option(fc.string({ minLength: 1, maxLength: 100 }), { nil: null }),
+});
+
 /**
- * **Validates: Requirements 8.4**
- * Event Log cap invariant: For all sequences of N events (N > 100),
- * the rendered list length equals exactly 100 and contains the most recent events.
+ * **Validates: Requirements 4.8**
+ * Event Log cap invariant: For all sequences of N events (N > 200),
+ * the rendered list length equals exactly 200 and contains the most recent events.
  */
 describe('Property: Event Log cap invariant', () => {
-  it('for any events array with length > 100, capEvents returns exactly 100 items', () => {
+  it('for any events array with length > 200, capEvents returns exactly 200 items', () => {
     fc.assert(
       fc.property(
-        fc.array(arbWorkflowState, { minLength: 101, maxLength: 500 }),
+        fc.array(arbStateTransitionEvent, { minLength: 201, maxLength: 500 }),
         (events) => {
           const capped = capEvents(events);
-          expect(capped).toHaveLength(100);
+          expect(capped).toHaveLength(200);
         }
       )
     );
   });
 
-  it('capEvents returns the first 100 (most recent) events', () => {
+  it('capEvents returns the first 200 (most recent) events', () => {
     fc.assert(
       fc.property(
-        fc.array(arbWorkflowState, { minLength: 101, maxLength: 500 }),
+        fc.array(arbStateTransitionEvent, { minLength: 201, maxLength: 500 }),
         (events) => {
           const capped = capEvents(events);
-          expect(capped).toEqual(events.slice(0, 100));
+          expect(capped).toEqual(events.slice(0, 200));
         }
       )
     );
@@ -53,7 +63,7 @@ describe('Property: Event Log cap invariant', () => {
 
 /**
  * **Validates: Requirements 6.3, 6.4**
- * Issues merge idempotence: merging the same SSE update array twice
+ * Issues merge idempotence: merging the same stream update array twice
  * produces identical state to merging once.
  */
 describe('Property: Issues merge idempotence', () => {

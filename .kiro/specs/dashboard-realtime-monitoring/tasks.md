@@ -186,12 +186,12 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - _Requirements: 6.5, 6.6_
 
 - [ ] 8. Frontend — PipelineVisualizer (Fixed Graph + Animations)
-  - [ ] 8.1 Disable interactions on PipelineVisualizer
+  - [x] 8.1 Disable interactions on PipelineVisualizer
     - Add props: `panOnDrag={false}`, `zoomOnScroll={false}`, `zoomOnPinch={false}`, `zoomOnDoubleClick={false}`, `elementsSelectable={false}`, `preventScrolling={false}`
     - Add `fitView` for automatic container fitting
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-  - [ ] 8.2 Implement pipeline graph animations
+  - [x] 8.2 Implement pipeline graph animations
     - Add CSS for pulsing effect on the Active_Stage node
     - Color completed stage nodes green
     - Add `animated: true` on edges between completed stages and current stage
@@ -215,7 +215,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 5.6_
 
 - [ ] 9. Frontend — Overview Page (Integrated Layout)
-  - [ ] 9.1 Restructure the Overview Page layout
+  - [x] 9.1 Restructure the Overview Page layout
     - Two-column grid layout: PipelineVisualizer (left) + EmailComposer (right)
     - Maintain summary statistics (Total Issues, Active Agents, Recent Failures) at the top
     - Both components visible simultaneously without scrolling
@@ -230,7 +230,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - _Requirements: 2.1, 2.2, 2.4_
 
 - [ ] 10. Frontend — Agents Page
-  - [ ] 10.1 Implement the Agents page with configured agents
+  - [x] 10.1 Implement the Agents page with configured agents
     - Display all configured agents with: agentId, team, role, status (Idle/Working)
     - Implement periodic polling for status updates
     - Display error message if the endpoint is not reachable
@@ -257,7 +257,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - **Validates: Requirements 3.1, 3.4**
 
 - [ ] 11. Frontend — Issues Page with Filters
-  - [ ] 11.1 Implement the Issues page with current state and filters
+  - [x] 11.1 Implement the Issues page with current state and filters
     - Display each issue as a single row: ID, current stage, detail, last update timestamp
     - Implement filter by current stage
     - Update hook `useIssues.ts` for the new data format
@@ -282,7 +282,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - **Validates: Requirements 4.3**
 
 - [ ] 12. Frontend — Event Log Page (Persistent)
-  - [ ] 12.1 Implement the Event Log page with persistent data
+  - [x] 12.1 Implement the Event Log page with persistent data
     - Read events from the new endpoint `GET /api/support/events`
     - Display for each event: issue ID, previous stage, new stage, timestamp, detail
     - Reverse chronological order (most recent at the top)
@@ -315,7 +315,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - **Validates: Requirements 4.8**
 
 - [ ] 13. Frontend — Inbox Page (Replaces Emails Page)
-  - [ ] 13.1 Implement the Inbox page
+  - [x] 13.1 Implement the Inbox page
     - Replace the `/emails` page with the new Inbox Page
     - Display table with: ID, sender, subject, status (colored badge), reception timestamp, processing timestamp
     - Badge: yellow/amber for "Queued", green for "Processed", red for "Failed" (with error message)
@@ -352,13 +352,13 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - **Validates: Requirements 8.8**
 
 - [ ] 14. Frontend — Navigation, Routing, and Dead Code Cleanup
-  - [ ] 14.1 Update navigation and routing
+  - [x] 14.1 Update navigation and routing
     - Update the router to replace `/emails` with `/inbox`
     - Update navigation links in the layout
     - Verify that all pages are reachable from the navigation
     - _Requirements: 8.1_
 
-  - [ ] 14.2 Remove dead frontend code
+  - [-] 14.2 Remove dead frontend code
     - Delete `dashboard/src/api/sse.ts` (SSE client, replaced by gRPC-Web)
     - Delete `dashboard/src/hooks/useSSE.ts` (SSE hook, replaced by `useGrpcStream.ts`)
     - Delete `dashboard/src/pages/EmailsPage.tsx` (replaced by InboxPage)

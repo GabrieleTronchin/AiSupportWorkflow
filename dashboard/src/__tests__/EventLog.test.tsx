@@ -1,27 +1,33 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { EventLog, capEvents } from '../components/EventLog';
-import type { WorkflowState } from '../types';
+import type { StateTransitionEvent } from '../types';
 
 describe('EventLog', () => {
-  const mockEvents: WorkflowState[] = [
+  const mockEvents: StateTransitionEvent[] = [
     {
+      id: 'evt-1',
       issueId: 'abcdef1234567890',
-      stage: 'Received',
+      previousStage: null,
+      newStage: 'Received',
       detail: 'Email received from user',
-      lastUpdated: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
     },
     {
+      id: 'evt-2',
       issueId: '1234567890abcdef',
-      stage: 'Failed',
+      previousStage: 'Resolving',
+      newStage: 'Failed',
       detail: null,
-      lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
+      id: 'evt-3',
       issueId: 'deadbeef12345678',
-      stage: 'CodeChangeGenerated',
+      previousStage: 'Resolved',
+      newStage: 'CodeChangeGenerated',
       detail: 'PR created successfully',
-      lastUpdated: new Date(Date.now() - 30 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 30 * 1000).toISOString(),
     },
   ];
 
@@ -39,12 +45,19 @@ describe('EventLog', () => {
       expect(screen.getByText('deadbeef')).toBeInTheDocument();
     });
 
-    it('shows stage badges', () => {
+    it('shows new stage badges', () => {
       render(<EventLog events={mockEvents} />);
 
       expect(screen.getByText('Received')).toBeInTheDocument();
       expect(screen.getByText('Failed')).toBeInTheDocument();
       expect(screen.getByText('CodeChangeGenerated')).toBeInTheDocument();
+    });
+
+    it('shows previous stage when present', () => {
+      render(<EventLog events={mockEvents} />);
+
+      expect(screen.getByText('Resolving')).toBeInTheDocument();
+      expect(screen.getByText('Resolved')).toBeInTheDocument();
     });
 
     it('shows detail text when present', () => {
@@ -69,21 +82,23 @@ describe('EventLog', () => {
   });
 
   describe('Event cap', () => {
-    it('displays at most 100 events when more are provided', () => {
-      const manyEvents: WorkflowState[] = Array.from({ length: 150 }, (_, i) => ({
+    it('displays at most 200 events when more are provided', () => {
+      const manyEvents: StateTransitionEvent[] = Array.from({ length: 250 }, (_, i) => ({
+        id: `evt-${i}`,
         issueId: `issue${String(i).padStart(12, '0')}`,
-        stage: 'Received' as const,
+        previousStage: null,
+        newStage: 'Received' as const,
         detail: `Event ${i}`,
-        lastUpdated: new Date(Date.now() - i * 1000).toISOString(),
+        timestamp: new Date(Date.now() - i * 1000).toISOString(),
       }));
 
       render(<EventLog events={manyEvents} />);
 
       const items = screen.getAllByRole('listitem');
-      expect(items).toHaveLength(100);
+      expect(items).toHaveLength(200);
     });
 
-    it('displays all events when fewer than 100', () => {
+    it('displays all events when fewer than 200', () => {
       render(<EventLog events={mockEvents} />);
 
       const items = screen.getAllByRole('listitem');
@@ -92,26 +107,30 @@ describe('EventLog', () => {
   });
 
   describe('capEvents utility', () => {
-    it('returns first 100 items from array longer than 100', () => {
-      const events: WorkflowState[] = Array.from({ length: 120 }, (_, i) => ({
+    it('returns first 200 items from array longer than 200', () => {
+      const events: StateTransitionEvent[] = Array.from({ length: 220 }, (_, i) => ({
+        id: `evt-${i}`,
         issueId: `issue${String(i).padStart(12, '0')}`,
-        stage: 'Received' as const,
+        previousStage: null,
+        newStage: 'Received' as const,
         detail: `Event ${i}`,
-        lastUpdated: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       }));
 
       const result = capEvents(events);
-      expect(result).toHaveLength(100);
+      expect(result).toHaveLength(200);
       expect(result[0].issueId).toBe('issue000000000000');
-      expect(result[99].issueId).toBe('issue000000000099');
+      expect(result[199].issueId).toBe('issue000000000199');
     });
 
-    it('returns all items when array is shorter than 100', () => {
-      const events: WorkflowState[] = Array.from({ length: 50 }, (_, i) => ({
+    it('returns all items when array is shorter than 200', () => {
+      const events: StateTransitionEvent[] = Array.from({ length: 50 }, (_, i) => ({
+        id: `evt-${i}`,
         issueId: `issue${String(i).padStart(12, '0')}`,
-        stage: 'Received' as const,
+        previousStage: null,
+        newStage: 'Received' as const,
         detail: `Event ${i}`,
-        lastUpdated: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       }));
 
       const result = capEvents(events);

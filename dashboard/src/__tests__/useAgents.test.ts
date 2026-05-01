@@ -102,7 +102,7 @@ describe('useAgents', () => {
       expect(mockFetchAgents).toHaveBeenCalledTimes(initialCallCount + 2);
     });
 
-    it('uses default 5000ms interval when not specified', async () => {
+    it('uses default 10000ms interval when not specified', async () => {
       renderHook(() => useAgents());
 
       // Flush initial fetch
@@ -112,15 +112,15 @@ describe('useAgents', () => {
 
       const callCountAfterInit = mockFetchAgents.mock.calls.length;
 
-      // Advance less than 5000ms - should not poll yet
+      // Advance less than 10000ms - should not poll yet
       await act(async () => {
-        vi.advanceTimersByTime(4999);
+        vi.advanceTimersByTime(9999);
         await Promise.resolve();
       });
 
       expect(mockFetchAgents).toHaveBeenCalledTimes(callCountAfterInit);
 
-      // Advance to 5000ms - should poll
+      // Advance to 10000ms - should poll
       await act(async () => {
         vi.advanceTimersByTime(1);
         await Promise.resolve();

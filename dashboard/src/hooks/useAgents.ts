@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AgentStatus, ApiError } from '../types';
 import { fetchAgents } from '../api/client';
 
-export function useAgents(pollInterval = 5000) {
+export function useAgents(pollInterval = 10000) {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Mail,
+  Inbox,
   ClipboardList,
   Bot,
   ScrollText,
@@ -12,7 +12,7 @@ import {
 
 const navItems = [
   { label: 'Overview', icon: LayoutDashboard, to: '/' },
-  { label: 'Emails', icon: Mail, to: '/emails' },
+  { label: 'Inbox', icon: Inbox, to: '/inbox' },
   { label: 'Issues', icon: ClipboardList, to: '/issues' },
   { label: 'Agents', icon: Bot, to: '/agents' },
   { label: 'Event Log', icon: ScrollText, to: '/events' },

@@ -1,21 +1,37 @@
-import { useState } from 'react';
-import { useIssues } from '../hooks/useIssues';
 import { useAgents } from '../hooks/useAgents';
+import { useGrpcStream } from '../hooks/useGrpcStream';
 import { PipelineVisualizer } from '../components/PipelineVisualizer';
+import { EmailComposer } from '../components/EmailComposer';
 import type { WorkflowState } from '../types';
 
 export function OverviewPage() {
-  const { issues } = useIssues();
   const { agents } = useAgents();
-  const [selectedIssue] = useState<WorkflowState | undefined>();
+  const { latestStates, isConnected } = useGrpcStream();
 
-  const totalIssues = issues.length;
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
-  const recentFailures = issues.filter((i) => i.stage === 'Failed').length;
+  const totalIssues = latestStates.length;
+  const recentFailures = latestStates.filter((i) => i.stage === 'Failed').length;
+
+  // Auto-select the most recent issue for the PipelineVisualizer
+  const mostRecentIssue: WorkflowState | undefined = latestStates.length > 0
+    ? latestStates.reduce((latest, current) =>
+        new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest
+      )
+    : undefined;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-zinc-100 mb-6">Overview</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-zinc-100">Overview</h1>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`}
+          />
+          <span className="text-xs text-zinc-400">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700">
@@ -32,7 +48,14 @@ export function OverviewPage() {
         </div>
       </div>
 
-      <PipelineVisualizer selectedIssue={selectedIssue} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <PipelineVisualizer selectedIssue={mostRecentIssue} />
+        </div>
+        <div>
+          <EmailComposer />
+        </div>
+      </div>
     </div>
   );
 }

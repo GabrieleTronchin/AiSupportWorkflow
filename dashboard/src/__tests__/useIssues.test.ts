@@ -7,15 +7,15 @@ vi.mock('../api/client', () => ({
   fetchIssues: vi.fn(),
 }));
 
-vi.mock('../hooks/useSSE', () => ({
-  useSSE: vi.fn(),
+vi.mock('../hooks/useGrpcStream', () => ({
+  useGrpcStream: vi.fn(),
 }));
 
 import { fetchIssues } from '../api/client';
-import { useSSE } from '../hooks/useSSE';
+import { useGrpcStream } from '../hooks/useGrpcStream';
 
 const mockFetchIssues = vi.mocked(fetchIssues);
-const mockUseSSE = vi.mocked(useSSE);
+const mockUseGrpcStream = vi.mocked(useGrpcStream);
 
 const issueA: WorkflowState = {
   issueId: 'issue-a',
@@ -40,7 +40,7 @@ const issueC: WorkflowState = {
 
 describe('useIssues', () => {
   beforeEach(() => {
-    mockUseSSE.mockReturnValue({ latestStates: [], isConnected: true });
+    mockUseGrpcStream.mockReturnValue({ latestStates: [], isConnected: true });
     mockFetchIssues.mockResolvedValue([issueA, issueB]);
   });
 
@@ -75,15 +75,15 @@ describe('useIssues', () => {
     });
   });
 
-  describe('SSE merge', () => {
-    it('merges new issues from SSE into existing state', async () => {
+  describe('gRPC stream merge', () => {
+    it('merges new issues from stream into existing state', async () => {
       const { result, rerender } = renderHook(() => useIssues());
 
       await waitFor(() => {
         expect(result.current.issues).toEqual([issueA, issueB]);
       });
 
-      mockUseSSE.mockReturnValue({ latestStates: [issueC], isConnected: true });
+      mockUseGrpcStream.mockReturnValue({ latestStates: [issueC], isConnected: true });
       rerender();
 
       await waitFor(() => {
@@ -92,7 +92,7 @@ describe('useIssues', () => {
       });
     });
 
-    it('updates existing issues when SSE provides updated state for same issueId', async () => {
+    it('updates existing issues when stream provides updated state for same issueId', async () => {
       const { result, rerender } = renderHook(() => useIssues());
 
       await waitFor(() => {
@@ -106,7 +106,7 @@ describe('useIssues', () => {
         detail: 'Fixed',
       };
 
-      mockUseSSE.mockReturnValue({ latestStates: [updatedA], isConnected: true });
+      mockUseGrpcStream.mockReturnValue({ latestStates: [updatedA], isConnected: true });
       rerender();
 
       await waitFor(() => {
@@ -129,7 +129,7 @@ describe('useIssues', () => {
         detail: null,
       };
 
-      mockUseSSE.mockReturnValue({ latestStates: [newIssue], isConnected: true });
+      mockUseGrpcStream.mockReturnValue({ latestStates: [newIssue], isConnected: true });
       rerender();
 
       await waitFor(() => {

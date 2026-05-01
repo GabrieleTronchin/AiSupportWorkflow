@@ -39,6 +39,9 @@ export function AgentMonitor({ agents, isLoading }: AgentMonitorProps) {
               {agent.status}
             </span>
           </div>
+          <p className="text-zinc-400 text-xs mb-1">
+            <span className="text-zinc-500">Team:</span> {agent.team} · <span className="text-zinc-500">Role:</span> {agent.role}
+          </p>
           <p className="text-zinc-400 text-sm">
             {agent.lastAction ?? 'No recent activity'}
           </p>

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import type { WorkflowState, WorkflowStage } from '../types';
+import type { StateTransitionEvent, WorkflowStage } from '../types';
 import { formatRelativeTime } from './IssuesList';
 
-const EVENT_CAP = 100;
+const EVENT_CAP = 200;
 
 /**
  * Caps the events array to the specified limit.
  * Events are assumed to be newest-first from the parent.
  * Exported for property-based testing.
  */
-export function capEvents(events: WorkflowState[], limit = EVENT_CAP): WorkflowState[] {
+export function capEvents(events: StateTransitionEvent[], limit = EVENT_CAP): StateTransitionEvent[] {
   return events.slice(0, limit);
 }
 
@@ -27,7 +27,7 @@ function getStageBadgeClasses(stage: WorkflowStage): string {
 }
 
 interface EventLogProps {
-  events: WorkflowState[];
+  events: StateTransitionEvent[];
 }
 
 export function EventLog({ events }: EventLogProps) {
@@ -66,22 +66,30 @@ export function EventLog({ events }: EventLogProps) {
           <ul>
             {cappedEvents.map((event, index) => (
               <li
-                key={`${event.issueId}-${event.lastUpdated}-${index}`}
+                key={`${event.id}-${index}`}
                 className="border-b border-zinc-800 py-2 px-3 flex items-center gap-3 text-sm"
               >
                 <span className="font-mono text-zinc-100 shrink-0">
                   {event.issueId.slice(0, 8)}
                 </span>
-                <span
-                  className={`inline-block px-2 py-0.5 rounded text-xs font-medium shrink-0 ${getStageBadgeClasses(event.stage)}`}
-                >
-                  {event.stage}
+                <span className="text-zinc-500 shrink-0">
+                  {event.previousStage ? (
+                    <>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${getStageBadgeClasses(event.previousStage)}`}>
+                        {event.previousStage}
+                      </span>
+                      <span className="mx-1">→</span>
+                    </>
+                  ) : null}
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${getStageBadgeClasses(event.newStage)}`}>
+                    {event.newStage}
+                  </span>
                 </span>
                 <span className="text-zinc-400 truncate flex-1">
                   {event.detail ?? '—'}
                 </span>
                 <span className="text-zinc-500 text-xs shrink-0">
-                  {formatRelativeTime(event.lastUpdated)}
+                  {formatRelativeTime(event.timestamp)}
                 </span>
               </li>
             ))}

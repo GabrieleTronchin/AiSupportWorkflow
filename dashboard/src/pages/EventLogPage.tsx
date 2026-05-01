@@ -1,18 +1,20 @@
-import { useIssues } from '../hooks/useIssues';
+import { useEvents } from '../hooks/useEvents';
 import { EventLog } from '../components/EventLog';
 
 export function EventLogPage() {
-  const { issues } = useIssues();
+  const { events, isLoading, error } = useEvents();
 
-  // Sort issues newest first by lastUpdated
-  const sortedEvents = [...issues].sort(
-    (a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-  );
-
+  // Events come from the backend already in reverse chronological order
   return (
     <div>
       <h1 className="text-2xl font-bold text-zinc-100 mb-6">Event Log</h1>
-      <EventLog events={sortedEvents} />
+      {isLoading && <p className="text-zinc-400 text-sm">Loading events...</p>}
+      {error && (
+        <p className="text-red-400 text-sm mb-4">
+          Failed to load events: {error.message}
+        </p>
+      )}
+      {!isLoading && <EventLog events={events} />}
     </div>
   );
 }
