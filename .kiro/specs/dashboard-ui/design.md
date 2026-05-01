@@ -2,37 +2,50 @@
 
 ## Overview
 
-The Dashboard UI is a standalone React 18 + TypeScript single-page application built with Vite, located in `dashboard/` at the repository root. It communicates with the existing .NET backend API via REST and SSE to provide real-time monitoring of the AI Support Workflow pipeline.
+The Dashboard UI is a standalone React 18 + TypeScript multi-page application built with Vite, located in `dashboard/` at the repository root. It communicates with the existing .NET backend API via REST and SSE to provide real-time monitoring of the AI Support Workflow pipeline.
 
-The architecture follows a strict separation: custom hooks encapsulate all business logic and data fetching, while components are purely presentational. This enables independent testability of logic and UI.
+The application uses a **dark theme** with a **fixed sidebar navigation** (React Router) and dedicated pages for each functional area. The architecture follows a strict separation: custom hooks encapsulate all business logic and data fetching, while components are purely presentational. This enables independent testability of logic and UI.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    App (Layout)                          │
-├─────────────────────────────────────────────────────────┤
-│  ┌──────────┐ ┌──────────┐ ┌────────┐ ┌─────────────┐  │
-│  │ Pipeline │ │  Email   │ │ Issues │ │    Agent    │  │
-│  │Visualizer│ │ Composer │ │  List  │ │   Monitor   │  │
-│  └────┬─────┘ └────┬─────┘ └───┬────┘ └──────┬──────┘  │
-│       │             │           │              │         │
-│  ┌────┴─────────────┴───────────┴──────────────┴──────┐  │
-│  │              Custom Hooks Layer                     │  │
-│  │  useIssues | useAgents | useSSE | useEmailSubmit   │  │
-│  └────────────────────────┬───────────────────────────┘  │
-│                           │                              │
-│  ┌────────────────────────┴───────────────────────────┐  │
-│  │              API Client + SSE Client               │  │
-│  └────────────────────────┬───────────────────────────┘  │
-└───────────────────────────┼──────────────────────────────┘
-                            │ HTTP / SSE
-                            ▼
-              ┌──────────────────────────┐
-              │   .NET Backend (5080)    │
-              │  /api/support/*          │
-              └──────────────────────────┘
+┌────────────────┬────────────────────────────────────────────┐
+│                │                                            │
+│   Sidebar      │         Page Content (Router Outlet)       │
+│   Navigation   │                                            │
+│                │  ┌──────────────────────────────────────┐  │
+│  ┌──────────┐  │  │  Page Component (per route)          │  │
+│  │ Overview │  │  │  - OverviewPage                      │  │
+│  │ Emails   │  │  │  - EmailsPage                        │  │
+│  │ Issues   │  │  │  - IssuesPage                        │  │
+│  │ Agents   │  │  │  - AgentsPage                        │  │
+│  │ EventLog │  │  │  - EventLogPage                      │  │
+│  └──────────┘  │  └───────────────┬──────────────────────┘  │
+│                │                  │                          │
+│                │  ┌───────────────┴──────────────────────┐  │
+│                │  │        Custom Hooks Layer             │  │
+│                │  │  useIssues | useAgents | useSSE |     │  │
+│                │  │  useEmailSubmit                       │  │
+│                │  └───────────────┬──────────────────────┘  │
+│                │                  │                          │
+│                │  ┌───────────────┴──────────────────────┐  │
+│                │  │      API Client + SSE Client          │  │
+│                │  └───────────────┬──────────────────────┘  │
+└────────────────┴──────────────────┼─────────────────────────┘
+                                    │ HTTP / SSE
+                                    ▼
+                      ┌──────────────────────────┐
+                      │   .NET Backend (5080)    │
+                      │  /api/support/*          │
+                      └──────────────────────────┘
 ```
+
+## UI Theme
+
+- **Dark theme**: Background `zinc-900`/`zinc-950`, surfaces `zinc-800`, text `zinc-100`/`zinc-300`
+- **Accent colors**: Blue (`blue-500`) for active/in-progress, Green (`emerald-500`) for completed/idle, Red (`red-500`) for errors/failures, Yellow (`amber-500`) for working/warning
+- **Sidebar**: Fixed left, `w-64` expanded / `w-16` collapsed, `zinc-900` background with `zinc-800` border
+- **shadcn/ui**: Configured in dark mode via CSS variables
 
 ## Project Structure
 
@@ -43,12 +56,20 @@ dashboard/
 │   │   ├── client.ts          # Typed fetch wrapper with error handling
 │   │   └── sse.ts             # EventSource wrapper
 │   ├── components/
-│   │   ├── Layout.tsx         # App shell with header and sections
+│   │   ├── layout/
+│   │   │   ├── Sidebar.tsx    # Fixed sidebar with navigation
+│   │   │   └── AppLayout.tsx  # Shell: sidebar + router outlet
 │   │   ├── PipelineVisualizer.tsx  # React Flow diagram
 │   │   ├── EmailComposer.tsx  # Email submission form
 │   │   ├── IssuesList.tsx     # Issues table
 │   │   ├── AgentMonitor.tsx   # Agent status cards
 │   │   └── EventLog.tsx       # Real-time event feed
+│   ├── pages/
+│   │   ├── OverviewPage.tsx   # Pipeline + summary cards
+│   │   ├── EmailsPage.tsx     # Email composer
+│   │   ├── IssuesPage.tsx     # Issues table + detail
+│   │   ├── AgentsPage.tsx     # Agent cards
+│   │   └── EventLogPage.tsx   # Real-time feed
 │   ├── hooks/
 │   │   ├── useIssues.ts       # Issues state + SSE updates
 │   │   ├── useAgents.ts       # Agent polling
@@ -66,7 +87,7 @@ dashboard/
 │   │   ├── IssuesList.test.tsx
 │   │   ├── AgentMonitor.test.tsx
 │   │   └── EventLog.test.tsx
-│   ├── App.tsx                # Root component composing all sections
+│   ├── App.tsx                # Router setup + AppLayout
 │   └── main.tsx               # Entry point
 ├── index.html
 ├── vite.config.ts
@@ -164,9 +185,28 @@ Parses each `data:` line as `JSON` into `WorkflowState[]`.
 
 All components are presentational — they receive data from hooks and render UI.
 
-#### `Layout`
-- Renders header with title "AI Support Workflow Dashboard"
-- Renders children in a responsive grid layout (CSS Grid / Tailwind)
+#### `Sidebar`
+- Fixed left sidebar with dark background (`zinc-900`)
+- Displays app title "AI Support Workflow" at top
+- Navigation items with icons: Overview (📊), Emails (✉️), Issues (📋), Agents (🤖), Event Log (📜)
+- Highlights active route via React Router's `NavLink`
+- Collapsible to icon-only mode (toggle button at bottom)
+- Uses `lucide-react` icons
+
+#### `AppLayout`
+- Shell component: Sidebar + main content area
+- Main content area renders `<Outlet />` from React Router
+- Full height layout (`h-screen`, `flex`)
+
+#### `Pages`
+
+| Page | Route | Content |
+|------|-------|---------|
+| OverviewPage | `/` | PipelineVisualizer + summary cards (total issues, active agents, failures) |
+| EmailsPage | `/emails` | EmailComposer form |
+| IssuesPage | `/issues` | IssuesList table with row selection |
+| AgentsPage | `/agents` | AgentMonitor cards |
+| EventLogPage | `/events` | EventLog feed (full page) |
 
 #### `PipelineVisualizer`
 - Props: `{ selectedIssue?: WorkflowState }`
@@ -284,8 +324,9 @@ jobs:
   "dependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-router-dom": "^6.28.0",
     "reactflow": "^11.11.0",
-    "@reactflow/core": "^11.11.0"
+    "lucide-react": "^0.460.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",

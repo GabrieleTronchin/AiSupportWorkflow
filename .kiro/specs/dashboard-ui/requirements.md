@@ -118,13 +118,22 @@ The Dashboard UI is a standalone internal React web application for monitoring a
 
 ### Requirement 9: Application Layout and Navigation
 
-**User Story:** As an operator, I want a clear, organized layout, so that I can access all dashboard features without confusion.
+**User Story:** As an operator, I want a multi-page layout with sidebar navigation and dark theme, so that each section has full screen space and the interface is comfortable for extended monitoring sessions.
 
 #### Acceptance Criteria
 
-1. THE Dashboard SHALL render a single-page layout with a header displaying the application title "AI Support Workflow Dashboard"
-2. THE Dashboard SHALL organize the main content into clearly labeled sections: Pipeline Visualizer, Email Composer, Issues List, Agent Monitor, and Event Log
-3. THE Dashboard SHALL be responsive and usable at viewport widths from 1024px to 1920px
+1. THE Dashboard SHALL render a fixed sidebar on the left with navigation links to: Overview, Emails, Issues, Agents, and Event Log pages
+2. THE Dashboard SHALL use React Router for client-side navigation between pages without full page reloads
+3. THE Dashboard SHALL apply a dark color theme (dark background, light text) globally using Tailwind CSS dark mode utilities
+4. THE Sidebar SHALL display the application title "AI Support Workflow" at the top and navigation items with icons below
+5. THE Sidebar SHALL visually highlight the currently active navigation item
+6. THE Sidebar SHALL be collapsible to icon-only mode to maximize content area
+7. THE Dashboard SHALL be responsive and usable at viewport widths from 1024px to 1920px
+8. THE Overview page SHALL display the Pipeline Visualizer and summary cards (total issues, active agents, recent failures)
+9. THE Emails page SHALL display the Email Composer form
+10. THE Issues page SHALL display the Issues List table with detail panel
+11. THE Agents page SHALL display the Agent Monitor cards
+12. THE Event Log page SHALL display the real-time event feed
 
 ### Requirement 10: CI/CD Pipeline
 

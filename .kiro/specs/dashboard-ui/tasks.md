@@ -2,12 +2,12 @@
 
 ## Task 1: Project Scaffolding and Configuration
 
-- [ ] 1.1 Initialize the `dashboard/` project with `package.json` containing all required dependencies (React 18, TypeScript, Vite, Tailwind CSS, Vitest, React Testing Library, React Flow, fast-check)
+- [ ] 1.1 Initialize the `dashboard/` project with `package.json` containing all required dependencies (React 18, TypeScript, Vite, Tailwind CSS, Vitest, React Testing Library, React Flow, React Router, lucide-react, fast-check)
 - [ ] 1.2 Create `vite.config.ts` with React plugin and dev proxy for `/api` to `http://localhost:5080`
 - [ ] 1.3 Create `tsconfig.json` with strict TypeScript configuration for React
-- [ ] 1.4 Create Tailwind CSS configuration (`tailwind.config.ts`, `postcss.config.js`, and base CSS file)
+- [ ] 1.4 Create Tailwind CSS configuration (`tailwind.config.ts`, `postcss.config.js`, and base CSS file with dark theme as default)
 - [ ] 1.5 Create `vitest.config.ts` with jsdom environment and setup file for testing-library
-- [ ] 1.6 Create `index.html` entry point and `src/main.tsx` with React root render
+- [ ] 1.6 Create `index.html` entry point and `src/main.tsx` with React root render and BrowserRouter
 - [ ] 1.7 Add npm scripts: `dev`, `build`, `preview`, `test`, `lint`, `typecheck`
 
 ## Task 2: TypeScript Types
@@ -69,11 +69,14 @@
 - [ ] 10.3 Implement auto-scroll to top on new events unless user has scrolled down
 - [ ] 10.4 Create `src/__tests__/EventLog.test.tsx` with tests for rendering, ordering, and event cap
 
-## Task 11: Application Layout and Root Component
+## Task 11: Application Layout, Sidebar, and Routing
 
-- [ ] 11.1 Create `src/components/Layout.tsx` with header ("AI Support Workflow Dashboard") and responsive grid sections
-- [ ] 11.2 Create `src/App.tsx` composing all components with hooks, wiring data flow between Pipeline Visualizer and Issues List (selected issue)
-- [ ] 11.3 Apply Tailwind responsive utilities for 1024px–1920px viewport support
+- [ ] 11.1 Create `src/components/layout/Sidebar.tsx` with fixed dark sidebar, navigation items (Overview, Emails, Issues, Agents, Event Log) with lucide-react icons, active route highlighting via NavLink, and collapse toggle
+- [ ] 11.2 Create `src/components/layout/AppLayout.tsx` as shell component with Sidebar + React Router `<Outlet />`
+- [ ] 11.3 Create page components: `src/pages/OverviewPage.tsx` (Pipeline Visualizer + summary cards), `src/pages/EmailsPage.tsx`, `src/pages/IssuesPage.tsx`, `src/pages/AgentsPage.tsx`, `src/pages/EventLogPage.tsx`
+- [ ] 11.4 Create `src/App.tsx` with React Router routes: `/` (Overview), `/emails`, `/issues`, `/agents`, `/events`, all wrapped in AppLayout
+- [ ] 11.5 Apply dark theme globally via Tailwind (zinc-900 background, zinc-100 text) and configure shadcn/ui dark mode CSS variables
+- [ ] 11.6 Apply Tailwind responsive utilities for 1024px–1920px viewport support
 
 ## Task 12: CI/CD Pipeline
 
