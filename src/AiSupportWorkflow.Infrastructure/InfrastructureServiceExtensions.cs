@@ -20,7 +20,6 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IIssueClassifier, IssueClassifierService>();
         services.AddSingleton<IBugResolver, BugResolverService>();
         services.AddSingleton<ICodeChangeGenerator, CodeChangeGeneratorService>();
-        services.AddSingleton<IWorkflowStateTracker, WorkflowStateTracker>();
 
         return services;
     }

@@ -2,32 +2,45 @@ namespace AiSupportWorkflow.PropertyTests;
 
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Enums;
-using AiSupportWorkflow.Infrastructure.Services;
+using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.PropertyTests.Generators;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 public class WorkflowProperties
 {
+    private static EfWorkflowStateTracker CreateTracker(out WorkflowDbContext context)
+    {
+        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        context = new WorkflowDbContext(options);
+        return new EfWorkflowStateTracker(context);
+    }
+
     // Feature: ai-support-workflow, Property 8: Workflow state transition ordering
     // **Validates: Requirements 5.3, 6.3, 8.2, 8.3**
     [Property(MaxTest = 100, Arbitrary = [typeof(WorkflowGenerators)])]
     public Property WorkflowTransitions_FollowValidPipelinePaths(WorkflowStage[] stages)
     {
-        var tracker = new WorkflowStateTracker();
-        var issueId = Guid.NewGuid();
-
-        foreach (var stage in stages)
+        var tracker = CreateTracker(out var context);
+        using (context)
         {
-            tracker.Transition(issueId, stage);
+            var issueId = Guid.NewGuid();
+
+            foreach (var stage in stages)
+            {
+                tracker.Transition(issueId, stage);
+            }
+
+            var finalState = tracker.GetState(issueId);
+            var lastStage = stages[^1];
+
+            return (finalState.Stage == lastStage).ToProperty();
         }
-
-        var finalState = tracker.GetState(issueId);
-        var lastStage = stages[^1];
-
-        return (finalState.Stage == lastStage).ToProperty();
     }
 
     [Property(MaxTest = 100, Arbitrary = [typeof(WorkflowGenerators)])]
@@ -43,30 +56,33 @@ public class WorkflowProperties
     public Property ConcurrentIssues_HaveUniqueIdsAndIndependentState(PositiveInt count)
     {
         var n = Math.Min(count.Get, 20);
-        var tracker = new WorkflowStateTracker();
-        var issueIds = Enumerable.Range(0, n).Select(_ => Guid.NewGuid()).ToList();
-
-        var stagesForIssues = new[] { WorkflowStage.Received, WorkflowStage.Classified, WorkflowStage.TeamAssigned };
-        for (var i = 0; i < n; i++)
+        var tracker = CreateTracker(out var context);
+        using (context)
         {
-            var stage = stagesForIssues[i % stagesForIssues.Length];
-            tracker.Transition(issueIds[i], stage);
-        }
+            var issueIds = Enumerable.Range(0, n).Select(_ => Guid.NewGuid()).ToList();
 
-        var uniqueIds = issueIds.Distinct().Count() == n;
-        var independentStates = true;
-        for (var i = 0; i < n; i++)
-        {
-            var expectedStage = stagesForIssues[i % stagesForIssues.Length];
-            var state = tracker.GetState(issueIds[i]);
-            if (state.Stage != expectedStage || state.IssueId != issueIds[i])
+            var stagesForIssues = new[] { WorkflowStage.Received, WorkflowStage.Classified, WorkflowStage.TeamAssigned };
+            for (var i = 0; i < n; i++)
             {
-                independentStates = false;
-                break;
+                var stage = stagesForIssues[i % stagesForIssues.Length];
+                tracker.Transition(issueIds[i], stage);
             }
-        }
 
-        return (uniqueIds && independentStates).ToProperty();
+            var uniqueIds = issueIds.Distinct().Count() == n;
+            var independentStates = true;
+            for (var i = 0; i < n; i++)
+            {
+                var expectedStage = stagesForIssues[i % stagesForIssues.Length];
+                var state = tracker.GetState(issueIds[i]);
+                if (state.Stage != expectedStage || state.IssueId != issueIds[i])
+                {
+                    independentStates = false;
+                    break;
+                }
+            }
+
+            return (uniqueIds && independentStates).ToProperty();
+        }
     }
 
     // Feature: ai-support-workflow, Property 11: Configuration-driven team instantiation

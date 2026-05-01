@@ -7,18 +7,36 @@ using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure;
 using AiSupportWorkflow.Infrastructure.Actors;
 using AiSupportWorkflow.Infrastructure.Agents;
+using AiSupportWorkflow.Infrastructure.Persistence;
+using AiSupportWorkflow.Infrastructure.Services;
 using AiSupportWorkflow.Presentation;
+using AiSupportWorkflow.Presentation.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Infrastructure services (Agent Framework, classifiers, resolvers, state tracker, config)
+// Infrastructure services (Agent Framework, classifiers, resolvers, config)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Persistence layer (EF Core InMemory, EfWorkflowStateTracker, WorkflowUpdateChannel)
+builder.Services.AddPersistence();
+
+// Inbox processor configuration and hosted service
+builder.Services.Configure<InboxProcessorOptions>(options =>
+{
+    var section = builder.Configuration.GetSection("Workflow:InboxPollingIntervalSeconds");
+    if (int.TryParse(section.Value, out var seconds))
+        options.PollingIntervalSeconds = seconds;
+});
+builder.Services.AddHostedService<InboxProcessor>();
+
+// gRPC services
+builder.Services.AddGrpc();
+
 // Application services
-builder.Services.AddSingleton<IEmailProcessor, EmailProcessor>();
-builder.Services.AddSingleton<ITeamRouter, TeamRouter>();
-builder.Services.AddSingleton<IAgentSelector, AgentSelector>();
-builder.Services.AddSingleton<IOrchestrator, Orchestrator>();
+builder.Services.AddScoped<IEmailProcessor, EmailProcessor>();
+builder.Services.AddScoped<ITeamRouter, TeamRouter>();
+builder.Services.AddScoped<IAgentSelector, AgentSelector>();
+builder.Services.AddScoped<IOrchestrator, Orchestrator>();
 builder.Services.AddSingleton<ProcessSupportEmailUseCase>();
 
 // Build IAIAgent instances from configuration
@@ -63,6 +81,12 @@ builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
 builder.Services.AddEndpoints(typeof(Program).Assembly);
 
 var app = builder.Build();
+
+// gRPC-Web middleware (must be before endpoint mapping)
+app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+
+// Map gRPC service
+app.MapGrpcService<WorkflowMonitorService>();
 
 // Map all Minimal API endpoints
 app.MapEndpoints();

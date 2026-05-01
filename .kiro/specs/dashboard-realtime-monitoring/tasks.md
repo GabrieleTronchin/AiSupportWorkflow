@@ -8,29 +8,29 @@ Incremental implementation of improvements to the AI Support workflow monitoring
 
 ## Tasks
 
-- [ ] 1. EF Core InMemory Persistence Layer
-  - [ ] 1.1 Create EF Core entities (IssueEntity, StateTransitionEvent, InboxMessage)
+- [x] 1. EF Core InMemory Persistence Layer
+  - [x] 1.1 Create EF Core entities (IssueEntity, StateTransitionEvent, InboxMessage)
     - Create `IssueEntity` with properties: Id (Guid), CurrentStage (WorkflowStage), LastUpdated (DateTimeOffset), Detail (string?)
     - Create `StateTransitionEvent` with properties: Id (Guid), IssueId (Guid), PreviousStage (WorkflowStage?), NewStage (WorkflowStage), Timestamp (DateTimeOffset), Detail (string?)
     - Create `InboxMessage` with properties: Id (Guid), MessageType (string), Payload (string), ReceivedAt (DateTimeOffset), ProcessedAt (DateTimeOffset?), Error (string?)
     - Place entities in `src/AiSupportWorkflow.Infrastructure/Persistence/Entities/`
     - _Requirements: 9.2, 9.3, 9.4, 7.2_
 
-  - [ ] 1.2 Create IEntityTypeConfiguration<T> configurations
+  - [x] 1.2 Create IEntityTypeConfiguration<T> configurations
     - Create `IssueEntityConfiguration`: primary key on Id, enum→string conversion for CurrentStage, index on CurrentStage
     - Create `StateTransitionEventConfiguration`: primary key on Id, indexes on IssueId and Timestamp, enum→string conversion for PreviousStage and NewStage
     - Create `InboxMessageConfiguration`: primary key on Id, indexes on ReceivedAt and ProcessedAt
     - Place in `src/AiSupportWorkflow.Infrastructure/Persistence/Configurations/`
     - _Requirements: 9.8_
 
-  - [ ] 1.3 Create WorkflowDbContext with DbSet and DI registration
+  - [x] 1.3 Create WorkflowDbContext with DbSet and DI registration
     - Create `WorkflowDbContext` with DbSet<IssueEntity>, DbSet<StateTransitionEvent>, DbSet<InboxMessage>
     - Apply configurations via `OnModelCreating`
     - Create `AddPersistence()` extension method that registers the DbContext with InMemory provider and `IWorkflowStateTracker`
     - Place in `src/AiSupportWorkflow.Infrastructure/Persistence/`
     - _Requirements: 9.1, 9.5_
 
-  - [ ] 1.4 Implement EfWorkflowStateTracker
+  - [x] 1.4 Implement EfWorkflowStateTracker
     - Create `EfWorkflowStateTracker` implementing `IWorkflowStateTracker`
     - Implement `TransitionAsync`: update/create IssueEntity + create StateTransitionEvent (dual-write)
     - Implement `GetStateAsync`, `GetAllStatesAsync`, `GetEventsAsync(limit=200)`
@@ -38,24 +38,24 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Place in `src/AiSupportWorkflow.Infrastructure/Persistence/`
     - _Requirements: 9.6, 9.7, 4.7_
 
-  - [ ] 1.5 Write property test for dual-write invariant (Property 8)
+  - [x] 1.5 Write property test for dual-write invariant (Property 8)
     - **Property 8: State transition dual-write invariant**
     - For any state transition, verify that both the IssueEntity record and the StateTransitionEvent record are created/updated correctly
     - Use FsCheck to generate random issueId and stage transitions
     - **Validates: Requirements 4.7, 9.6**
 
-  - [ ] 1.6 Write unit tests for EfWorkflowStateTracker
+  - [x] 1.6 Write unit tests for EfWorkflowStateTracker
     - Test: TransitionAsync creates IssueEntity if it does not exist
     - Test: TransitionAsync updates existing IssueEntity
     - Test: GetEventsAsync respects the limit of 200
     - Test: GetAllStatesAsync returns all issues
     - _Requirements: 9.6, 9.7_
 
-- [ ] 2. Checkpoint — Verify all tests pass
+- [x] 2. Checkpoint — Verify all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Transactional Inbox (Backend)
-  - [ ] 3.1 Implement InboxProcessor as IHostedService
+- [x] 3. Transactional Inbox (Backend)
+  - [x] 3.1 Implement InboxProcessor as IHostedService
     - Create `InboxProcessor` in `src/AiSupportWorkflow.Infrastructure/Services/`
     - Implement polling loop with configurable `Task.Delay`
     - Query unprocessed messages ordered by ReceivedAt (FIFO)
@@ -64,33 +64,33 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Register in DI as `IHostedService`
     - _Requirements: 7.3, 7.4, 7.5, 7.6, 7.7_
 
-  - [ ] 3.2 Write property test for FIFO processing order (Property 13)
+  - [x] 3.2 Write property test for FIFO processing order (Property 13)
     - **Property 13: Inbox FIFO processing order**
     - For any set of unprocessed InboxMessages with distinct timestamps, verify they are processed in ascending ReceivedAt order
     - Use FsCheck to generate messages with random timestamps
     - **Validates: Requirements 7.6**
 
-  - [ ] 3.3 Write property test for failure handling (Property 12)
+  - [x] 3.3 Write property test for failure handling (Property 12)
     - **Property 12: Inbox processing failure records error**
     - For any InboxMessage whose processing throws an exception, verify that Error is set and ProcessedAt is non-null
     - Use FsCheck to generate messages that cause exceptions
     - **Validates: Requirements 7.5**
 
-  - [ ] 3.4 Write unit tests for InboxProcessor
+  - [x] 3.4 Write unit tests for InboxProcessor
     - Test: polling interval configurable from appsettings
     - Test: successfully processed message → ProcessedAt set, Error null
     - Test: failed message → Error set, ProcessedAt set
     - Test: messages processed in FIFO order
     - _Requirements: 7.3, 7.4, 7.5, 7.6, 7.7_
 
-- [ ] 4. gRPC Service and REST Endpoints (Backend)
-  - [ ] 4.1 Define the Protobuf file and configure the project for gRPC
+- [x] 4. gRPC Service and REST Endpoints (Backend)
+  - [x] 4.1 Define the Protobuf file and configure the project for gRPC
     - Create `Protos/workflow_monitor.proto` with service `WorkflowMonitor`, RPC `SubscribeToUpdates`, messages `SubscribeRequest` and `WorkflowStateUpdate`
     - Add NuGet packages: `Grpc.AspNetCore`, `Grpc.AspNetCore.Web`
     - Configure the `.csproj` for Protobuf code generation
     - _Requirements: 6.1, 6.2_
 
-  - [ ] 4.2 Implement WorkflowMonitorService (gRPC server streaming)
+  - [x] 4.2 Implement WorkflowMonitorService (gRPC server streaming)
     - Create `WorkflowMonitorService` in `src/AiSupportWorkflow.Presentation/Services/`
     - Implement `SubscribeToUpdates` with server streaming
     - Support CancellationToken for client disconnection
@@ -99,26 +99,26 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Configure enable/disable via appsettings (`EnableVisualization` flag)
     - _Requirements: 6.1, 6.3, 6.7, 6.8_
 
-  - [ ] 4.3 Write property test for gRPC notification (Property 10)
+  - [x] 4.3 Write property test for gRPC notification (Property 10)
     - **Property 10: gRPC notification on state transition**
     - For any state transition, verify that the gRPC stream emits a WorkflowStateUpdate with correct issueId, stage, timestamp, and detail
     - Use FsCheck to generate random state transitions
     - **Validates: Requirements 6.3**
 
-  - [ ] 4.4 Implement new REST endpoints
+  - [x] 4.4 Implement new REST endpoints
     - Create endpoint `GET /api/support/events` that returns the last 200 events from the Events_Table
     - Create endpoint `GET /api/support/inbox` that returns inbox messages with optional status filter
     - Modify endpoint `POST /api/support/emails` to save to inbox and return HTTP 202 Accepted with messageId
     - Create endpoint `GET /api/support/agents` that returns configured agents with Idle/Working status
     - _Requirements: 4.5, 7.1, 8.1, 3.1_
 
-  - [ ] 4.5 Write property test for inbox creation round-trip (Property 11)
+  - [x] 4.5 Write property test for inbox creation round-trip (Property 11)
     - **Property 11: Inbox message creation round-trip**
     - For any valid email, verify that POST `/api/support/emails` creates an InboxMessage with all correct fields and returns HTTP 202
     - Use FsCheck to generate random valid emails
     - **Validates: Requirements 7.1, 7.2**
 
-  - [ ] 4.6 Write unit tests for REST endpoints and gRPC
+  - [x] 4.6 Write unit tests for REST endpoints and gRPC
     - Test: GET /api/support/events returns max 200 events in reverse chronological order
     - Test: GET /api/support/inbox with status filter
     - Test: POST /api/support/emails returns 202 Accepted
@@ -126,8 +126,8 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Test: WorkflowMonitorService handles CancellationToken
     - _Requirements: 4.5, 7.1, 8.1, 3.1, 6.7_
 
-- [ ] 5. DI Registration, Backend Wiring, and Dead Code Cleanup
-  - [ ] 5.1 Update Program.cs and DI registration
+- [x] 5. DI Registration, Backend Wiring, and Dead Code Cleanup
+  - [x] 5.1 Update Program.cs and DI registration
     - Call `AddPersistence()` in the service setup
     - Register `InboxProcessor` as `IHostedService`
     - Configure gRPC services and gRPC-Web middleware
@@ -135,7 +135,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
     - Update `IWorkflowStateTracker` interface in Domain (async methods)
     - _Requirements: 9.5, 6.8, 7.3_
 
-  - [ ] 5.2 Reorganize backend endpoint files
+  - [x] 5.2 Reorganize backend endpoint files
     - Rename/restructure `VisualizationEndpoints.cs` → extract `/agents` into a new `AgentsEndpoints.cs`
     - Create `InboxEndpoints.cs` for `GET /api/support/inbox`
     - Move `GET /api/support/events` to `WorkflowStatusEndpoints.cs` (consistent with issues)
@@ -146,7 +146,7 @@ Incremental implementation of improvements to the AI Support workflow monitoring
       - `InboxEndpoints.cs` → GET /inbox (with status filter)
     - _Requirements: 3.1, 4.5, 7.1, 8.1_
 
-  - [ ] 5.3 Remove dead backend code and update documentation
+  - [x] 5.3 Remove dead backend code and update documentation
     - Remove the SSE endpoint `GET /api/support/stream` from `VisualizationEndpoints.cs`
     - Delete the `VisualizationEndpoints.cs` file (after extracting /agents)
     - Delete the old `WorkflowStateTracker` (ConcurrentDictionary-based) in `src/AiSupportWorkflow.Infrastructure/Services/`

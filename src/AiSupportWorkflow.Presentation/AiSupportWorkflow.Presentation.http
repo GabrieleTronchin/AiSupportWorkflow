@@ -118,10 +118,18 @@ GET {{HostAddress}}/api/support/issues/00000000-0000-0000-0000-000000000000
 
 GET {{HostAddress}}/api/support/issues
 
-### Stream workflow updates (SSE)
+### List state transition events (persistent audit log, max 200)
 
-GET {{HostAddress}}/api/support/stream
+GET {{HostAddress}}/api/support/events
 
-### Get current state of all AI agents
+### Get current state of all configured AI agents
 
 GET {{HostAddress}}/api/support/agents
+
+### List all inbox messages
+
+GET {{HostAddress}}/api/support/inbox
+
+### List inbox messages filtered by status (queued, processed, failed)
+
+GET {{HostAddress}}/api/support/inbox?status=queued
