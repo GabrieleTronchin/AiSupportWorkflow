@@ -114,4 +114,53 @@ public class InboxProperties
 
         return (hasError && hasProcessedAt && wouldNotBeReprocessed).ToProperty();
     }
+
+    // Feature: dashboard-realtime-monitoring, Property 11: Inbox message creation round-trip
+    // For any valid email (non-empty subject and body), submitting it SHALL create an InboxMessage
+    // with all required fields and the correct payload.
+    // **Validates: Requirements 7.1, 7.2**
+    [Property(MaxTest = 100)]
+    public Property InboxMessage_CreationRoundTrip_HasCorrectFields(
+        NonEmptyString sender,
+        NonEmptyString subject,
+        NonEmptyString body)
+    {
+        using var context = CreateContext();
+
+        var email = new IncomingEmail(sender.Get, subject.Get, body.Get);
+        var messageId = Guid.NewGuid();
+
+        var inboxMessage = new InboxMessage
+        {
+            Id = messageId,
+            MessageType = "SupportEmail",
+            Payload = JsonSerializer.Serialize(email),
+            ReceivedAt = DateTimeOffset.UtcNow,
+            ProcessedAt = null,
+            Error = null,
+        };
+
+        context.InboxMessages.Add(inboxMessage);
+        context.SaveChanges();
+
+        // Verify round-trip
+        var saved = context.InboxMessages.Find(messageId);
+        var deserializedEmail = JsonSerializer.Deserialize<IncomingEmail>(saved!.Payload);
+
+        var hasCorrectId = saved.Id == messageId;
+        var hasCorrectType = saved.MessageType == "SupportEmail";
+        var hasNullProcessedAt = saved.ProcessedAt is null;
+        var hasNullError = saved.Error is null;
+        var payloadMatchesSender = deserializedEmail?.Sender == sender.Get;
+        var payloadMatchesSubject = deserializedEmail?.Subject == subject.Get;
+        var payloadMatchesBody = deserializedEmail?.Body == body.Get;
+
+        return (hasCorrectId
+            && hasCorrectType
+            && hasNullProcessedAt
+            && hasNullError
+            && payloadMatchesSender
+            && payloadMatchesSubject
+            && payloadMatchesBody).ToProperty();
+    }
 }

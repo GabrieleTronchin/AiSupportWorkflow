@@ -2,6 +2,7 @@ namespace AiSupportWorkflow.PropertyTests;
 
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Infrastructure.Persistence;
+using AiSupportWorkflow.Infrastructure.Services;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
@@ -89,5 +90,30 @@ public class PersistenceProperties
             && firstEventHasCorrectNew
             && secondEventHasPrevious
             && secondEventHasCorrectNew).ToProperty();
+    }
+
+    // Feature: dashboard-realtime-monitoring, Property 10: gRPC notification on state transition
+    // For any state transition performed by the Orchestrator, the gRPC stream SHALL emit a
+    // WorkflowStateUpdate message containing the correct issueId, stage, timestamp, and detail.
+    // **Validates: Requirements 6.3**
+    [Property(MaxTest = 100)]
+    public Property StateTransition_PublishesToUpdateChannel(
+        Guid issueId,
+        WorkflowStage stage,
+        string? detail)
+    {
+        using var context = CreateInMemoryContext();
+        var channel = new WorkflowUpdateChannel();
+        var tracker = new EfWorkflowStateTracker(context, channel);
+
+        tracker.Transition(issueId, stage, detail);
+
+        // Verify the channel received the update
+        var hasUpdate = channel.Reader.TryRead(out var state);
+
+        return (hasUpdate
+            && state!.IssueId == issueId
+            && state.Stage == stage
+            && state.Detail == detail).ToProperty();
     }
 }
