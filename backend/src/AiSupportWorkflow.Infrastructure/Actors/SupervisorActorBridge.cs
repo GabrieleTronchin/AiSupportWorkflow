@@ -11,14 +11,13 @@ using AiSupportWorkflow.Domain.ValueObjects;
 public class SupervisorActorBridge(IRequiredActor<SupervisorActor> supervisorActor)
     : ISupervisorActorBridge
 {
-    private readonly IActorRef _supervisor = supervisorActor.ActorRef;
-
     public async Task<ResolutionReport> AssignIssueAsync(
         string agentId, IssueRecord issue, IssueCategory category,
         TimeSpan timeout, CancellationToken ct)
     {
+        var supervisor = await supervisorActor.GetAsync(ct);
         var message = new AssignIssueMessage(agentId, issue, category);
-        var response = await _supervisor.Ask<ResolutionCompleteMessage>(message, timeout, ct);
+        var response = await supervisor.Ask<ResolutionCompleteMessage>(message, timeout, ct);
         return response.Report;
     }
 }

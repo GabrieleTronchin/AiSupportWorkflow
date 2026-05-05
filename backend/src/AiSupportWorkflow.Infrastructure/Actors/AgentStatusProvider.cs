@@ -7,11 +7,10 @@ using AiSupportWorkflow.Domain.Messages;
 
 public sealed class AgentStatusProvider(IRequiredActor<SupervisorActor> supervisorActor) : IAgentStatusProvider
 {
-    private readonly IActorRef _supervisor = supervisorActor.ActorRef;
-
     public async Task<IReadOnlyList<AgentStatusInfo>> GetAgentStatusesAsync(CancellationToken ct = default)
     {
-        var response = await _supervisor.Ask<AggregatedAgentStatusResponse>(
+        var supervisor = await supervisorActor.GetAsync(ct);
+        var response = await supervisor.Ask<AggregatedAgentStatusResponse>(
             new AgentStatusQuery(null),
             TimeSpan.FromSeconds(10),
             ct);
