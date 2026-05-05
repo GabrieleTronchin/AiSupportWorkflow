@@ -76,6 +76,12 @@ builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
 
 // Register the supervisor actor bridge for Application layer access
 builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
+builder.Services.AddSingleton<IAgentStatusProvider, AgentStatusProvider>();
+
+// Application query services
+builder.Services.AddScoped<AgentStatusService>();
+builder.Services.AddScoped<InboxService>();
+builder.Services.AddScoped<WorkflowQueryService>();
 
 // Discover and register all IEndpoint implementations
 builder.Services.AddEndpoints(typeof(Program).Assembly);

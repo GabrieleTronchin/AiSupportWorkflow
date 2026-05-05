@@ -14,6 +14,8 @@ public static class PersistenceServiceExtensions
 
         services.AddSingleton<WorkflowUpdateChannel>();
         services.AddScoped<IWorkflowStateTracker, EfWorkflowStateTracker>();
+        services.AddScoped<IInboxRepository, EfInboxRepository>();
+        services.AddScoped<IWorkflowEventRepository, EfWorkflowEventRepository>();
 
         return services;
     }

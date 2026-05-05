@@ -1,9 +1,8 @@
 namespace AiSupportWorkflow.Presentation.Endpoints;
 
+using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Interfaces;
-using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.Presentation.Endpoints.Primitives;
-using Microsoft.EntityFrameworkCore;
 
 public class WorkflowStatusEndpoints : IEndpoint
 {
@@ -23,24 +22,9 @@ public class WorkflowStatusEndpoints : IEndpoint
             return Results.Ok(states);
         });
 
-        group.MapGet("/events", async (WorkflowDbContext dbContext, int? limit) =>
+        group.MapGet("/events", async (WorkflowQueryService queryService, int? limit, CancellationToken ct) =>
         {
-            var maxLimit = Math.Min(limit ?? 200, 200);
-            var events = await dbContext.Events
-                .AsNoTracking()
-                .OrderByDescending(e => e.Timestamp)
-                .Take(maxLimit)
-                .Select(e => new
-                {
-                    e.Id,
-                    e.IssueId,
-                    PreviousStage = e.PreviousStage != null ? e.PreviousStage.ToString() : null,
-                    NewStage = e.NewStage.ToString(),
-                    e.Timestamp,
-                    e.Detail,
-                })
-                .ToListAsync();
-
+            var events = await queryService.GetEventsAsync(limit, ct);
             return Results.Ok(events);
         }).WithSummary("List persistent state transition events (max 200)");
     }
