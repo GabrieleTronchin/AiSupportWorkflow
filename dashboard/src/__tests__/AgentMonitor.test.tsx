@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { AgentMonitor, getStatusBadgeClasses, renderAgentActivity } from '../components/AgentMonitor';
+import { AgentMonitor, renderAgentActivity } from '../components/AgentMonitor';
+import { getAgentStatusBadgeClasses } from '../utils/badges';
 import type { AgentStatus } from '../types';
 
 describe('AgentMonitor', () => {
@@ -67,22 +68,22 @@ describe('AgentMonitor', () => {
       expect(badge).toHaveClass('bg-amber-400/10');
     });
 
-    it('getStatusBadgeClasses returns gray for unknown status string', () => {
-      expect(getStatusBadgeClasses('Unknown')).toBe('text-zinc-400 bg-zinc-400/10');
+    it('getAgentStatusBadgeClasses returns gray for unknown status string', () => {
+      expect(getAgentStatusBadgeClasses('Unknown')).toBe('text-zinc-400 bg-zinc-400/10');
     });
   });
 
-  describe('getStatusBadgeClasses', () => {
+  describe('getAgentStatusBadgeClasses', () => {
     it('returns emerald classes for Idle', () => {
-      expect(getStatusBadgeClasses('Idle')).toBe('text-emerald-400 bg-emerald-400/10');
+      expect(getAgentStatusBadgeClasses('Idle')).toBe('text-emerald-400 bg-emerald-400/10');
     });
 
     it('returns amber classes for Working', () => {
-      expect(getStatusBadgeClasses('Working')).toBe('text-amber-400 bg-amber-400/10');
+      expect(getAgentStatusBadgeClasses('Working')).toBe('text-amber-400 bg-amber-400/10');
     });
 
     it('returns zinc classes for unknown status', () => {
-      expect(getStatusBadgeClasses('SomethingElse')).toBe('text-zinc-400 bg-zinc-400/10');
+      expect(getAgentStatusBadgeClasses('SomethingElse')).toBe('text-zinc-400 bg-zinc-400/10');
     });
   });
 

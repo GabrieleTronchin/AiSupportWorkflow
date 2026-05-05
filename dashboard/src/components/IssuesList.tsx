@@ -1,4 +1,5 @@
-import type { WorkflowState, WorkflowStage } from '../types';
+import type { WorkflowState } from '../types';
+import { getStageBadgeClasses } from '../utils/badges';
 
 /**
  * Formats an ISO 8601 timestamp as a relative time string.
@@ -24,25 +25,9 @@ export function formatRelativeTime(isoTimestamp: string): string {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-const terminalStages: WorkflowStage[] = ['Failed', 'ClassifiedOutOfScope', 'ManualReviewRequired'];
-const completedStages: WorkflowStage[] = ['CodeChangeGenerated', 'Resolved'];
-
-/**
- * Returns Tailwind classes for a stage badge based on its category.
- */
-function getStageBadgeClasses(stage: WorkflowStage): string {
-  if (terminalStages.includes(stage)) {
-    return 'text-red-400 bg-red-400/10';
-  }
-  if (completedStages.includes(stage)) {
-    return 'text-emerald-400 bg-emerald-400/10';
-  }
-  return 'text-blue-400 bg-blue-400/10';
-}
-
 interface IssuesListProps {
   issues: WorkflowState[];
-  onSelectIssue: (issue: WorkflowState) => void;
+  onSelectIssue?: (issue: WorkflowState) => void;
 }
 
 export function IssuesList({ issues, onSelectIssue }: IssuesListProps) {
@@ -60,7 +45,7 @@ export function IssuesList({ issues, onSelectIssue }: IssuesListProps) {
         {issues.map((issue) => (
           <tr
             key={issue.issueId}
-            onClick={() => onSelectIssue(issue)}
+            onClick={() => onSelectIssue?.(issue)}
             className="border-b border-zinc-800 hover:bg-zinc-800/50 cursor-pointer"
           >
             <td className="py-2 px-3 font-mono truncate max-w-[8ch]">

@@ -1,16 +1,6 @@
 import { useInbox } from '../hooks/useInbox';
+import { getInboxStatusBadgeClasses } from '../utils/badges';
 import type { InboxStatus } from '../types';
-
-function getStatusBadgeClasses(status: InboxStatus): string {
-  switch (status) {
-    case 'queued':
-      return 'text-amber-400 bg-amber-400/10';
-    case 'processed':
-      return 'text-emerald-400 bg-emerald-400/10';
-    case 'failed':
-      return 'text-red-400 bg-red-400/10';
-  }
-}
 
 export function InboxPage() {
   const { messages, stats, isLoading, error, filter, setFilter } = useInbox();
@@ -72,7 +62,7 @@ export function InboxPage() {
                     {msg.id.slice(0, 8)}
                   </td>
                   <td className="py-2 px-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClasses(msg.status)}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getInboxStatusBadgeClasses(msg.status)}`}>
                       {msg.status}
                     </span>
                   </td>

@@ -1,18 +1,5 @@
 import type { AgentStatus } from '../types';
-
-/**
- * Returns Tailwind classes for an agent status badge based on its value.
- */
-export function getStatusBadgeClasses(status: string): string {
-  switch (status) {
-    case 'Idle':
-      return 'text-emerald-400 bg-emerald-400/10';
-    case 'Working':
-      return 'text-amber-400 bg-amber-400/10';
-    default:
-      return 'text-zinc-400 bg-zinc-400/10';
-  }
-}
+import { getAgentStatusBadgeClasses } from '../utils/badges';
 
 /**
  * Returns a description of the agent's current activity based on its status and email info.
@@ -72,7 +59,7 @@ export function AgentMonitor({ agents, isLoading }: AgentMonitorProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium text-zinc-100">{agent.agentId}</span>
             <span
-              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeClasses(agent.status)}`}
+              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getAgentStatusBadgeClasses(agent.status)}`}
             >
               {agent.status}
             </span>

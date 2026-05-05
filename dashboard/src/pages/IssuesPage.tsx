@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useIssues } from '../hooks/useIssues';
 import { IssuesList } from '../components/IssuesList';
-import type { WorkflowState, WorkflowStage } from '../types';
+import type { WorkflowStage } from '../types';
 
 const allStages: WorkflowStage[] = [
   'Received',
@@ -18,7 +18,6 @@ const allStages: WorkflowStage[] = [
 
 export function IssuesPage() {
   const { issues } = useIssues();
-  const [_selectedIssue, setSelectedIssue] = useState<WorkflowState | null>(null);
   const [stageFilter, setStageFilter] = useState<WorkflowStage | 'All'>('All');
 
   const filteredIssues = stageFilter === 'All'
@@ -40,7 +39,7 @@ export function IssuesPage() {
           ))}
         </select>
       </div>
-      <IssuesList issues={filteredIssues} onSelectIssue={setSelectedIssue} />
+      <IssuesList issues={filteredIssues} />
     </div>
   );
 }

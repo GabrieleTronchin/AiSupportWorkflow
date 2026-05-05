@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { StateTransitionEvent, WorkflowStage } from '../types';
+import type { StateTransitionEvent } from '../types';
 import { formatRelativeTime } from './IssuesList';
+import { getStageBadgeClasses } from '../utils/badges';
 
 const EVENT_CAP = 200;
 
@@ -11,19 +12,6 @@ const EVENT_CAP = 200;
  */
 export function capEvents(events: StateTransitionEvent[], limit = EVENT_CAP): StateTransitionEvent[] {
   return events.slice(0, limit);
-}
-
-const terminalStages: WorkflowStage[] = ['Failed', 'ClassifiedOutOfScope', 'ManualReviewRequired'];
-const completedStages: WorkflowStage[] = ['CodeChangeGenerated', 'Resolved'];
-
-function getStageBadgeClasses(stage: WorkflowStage): string {
-  if (terminalStages.includes(stage)) {
-    return 'text-red-400 bg-red-400/10';
-  }
-  if (completedStages.includes(stage)) {
-    return 'text-emerald-400 bg-emerald-400/10';
-  }
-  return 'text-blue-400 bg-blue-400/10';
 }
 
 interface EventLogProps {
