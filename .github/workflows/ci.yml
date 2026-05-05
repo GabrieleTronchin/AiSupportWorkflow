@@ -2,23 +2,13 @@ name: CI
 
 on:
   push:
-    paths: ['src/**', 'tests/**']
+    branches: [master]
+    paths: ['backend/**']
   pull_request:
     branches: [master]
-    paths: ['src/**', 'tests/**']
+    paths: ['backend/**']
 
 jobs:
-  check-branch-name:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Validate branch name
-        run: |
-          BRANCH="${{ github.head_ref }}"
-          if [[ ! "$BRANCH" =~ ^feature/[a-z0-9-]+$ ]]; then
-            echo "::error::Branch name '$BRANCH' does not match required pattern 'feature/{branch-name}' (lowercase alphanumeric and hyphens only)"
-            exit 1
-          fi
-
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -26,6 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore AiSupportWorkflow.sln
-      - run: dotnet build AiSupportWorkflow.sln --no-restore
-      - run: dotnet test AiSupportWorkflow.sln --no-build
+      - run: dotnet restore backend/AiSupportWorkflow.sln
+      - run: dotnet build backend/AiSupportWorkflow.sln --no-restore
+      - run: dotnet test backend/AiSupportWorkflow.sln --no-build

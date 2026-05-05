@@ -1,5 +1,13 @@
 # AI Support Workflow
 
+![CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/ci.yml/badge.svg)
+![Dashboard CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/dashboard-ci.yml/badge.svg)
+![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet)
+![React](https://img.shields.io/badge/React-18-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
+![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
+![Last Commit](https://img.shields.io/github/last-commit/GabrieleTronchin/AiSupportWorkflow)
+
 **A spec-driven AI experiment — built entirely by AI using [Kiro](https://kiro.dev).**
 
 An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through an actor-based architecture.
