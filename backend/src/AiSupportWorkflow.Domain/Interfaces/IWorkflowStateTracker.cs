@@ -5,7 +5,7 @@ using AiSupportWorkflow.Domain.Enums;
 
 public interface IWorkflowStateTracker
 {
-    void Transition(Guid issueId, WorkflowStage stage, string? detail = null);
+    Task TransitionAsync(Guid issueId, WorkflowStage stage, string? detail = null);
     WorkflowState GetState(Guid issueId);
     IReadOnlyList<WorkflowState> GetAllStates();
 }

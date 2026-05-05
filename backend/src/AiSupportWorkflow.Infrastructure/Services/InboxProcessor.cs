@@ -25,6 +25,7 @@ public sealed class InboxProcessor(
     ILogger<InboxProcessor> logger) : BackgroundService
 {
     private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(options.Value.PollingIntervalSeconds);
+    private readonly SemaphoreSlim _sequentialLock = new(1, 1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -69,19 +70,27 @@ public sealed class InboxProcessor(
 
     private async Task ProcessSequentiallyAsync(WorkflowDbContext dbContext, IOrchestrator orchestrator, CancellationToken ct)
     {
-        var message = await dbContext.InboxMessages
-            .Where(m => m.ProcessedAt == null)
-            .OrderBy(m => m.ReceivedAt)
-            .FirstOrDefaultAsync(ct);
+        await _sequentialLock.WaitAsync(ct);
+        try
+        {
+            var message = await dbContext.InboxMessages
+                .Where(m => m.ProcessedAt == null)
+                .OrderBy(m => m.ReceivedAt)
+                .FirstOrDefaultAsync(ct);
 
-        if (message is null) return;
+            if (message is null) return;
 
-        // Check if previous issue is still in-flight
-        var lastProcessedIssue = await GetLastProcessedIssueAsync(dbContext, ct);
-        if (lastProcessedIssue is not null && !IsTerminalStage(lastProcessedIssue.CurrentStage))
-            return; // Wait for it to complete
+            // Check if previous issue is still in-flight
+            var lastProcessedIssue = await GetLastProcessedIssueAsync(dbContext, ct);
+            if (lastProcessedIssue is not null && !IsTerminalStage(lastProcessedIssue.CurrentStage))
+                return; // Wait for it to complete
 
-        await ProcessMessageAsync(message, dbContext, orchestrator, ct);
+            await ProcessMessageAsync(message, dbContext, orchestrator, ct);
+        }
+        finally
+        {
+            _sequentialLock.Release();
+        }
     }
 
     private async Task ProcessAllPendingAsync(WorkflowDbContext dbContext, IOrchestrator orchestrator, CancellationToken ct)

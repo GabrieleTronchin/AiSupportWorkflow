@@ -26,123 +26,60 @@ public class Orchestrator(
             return WorkflowResult.Failed(Guid.Empty, issueResult.Error!);
 
         var issue = issueResult.Value!;
-        logger.LogDebug(
-            "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}, Sender={Sender}, Subject={Subject}",
-            issue.Id, "None", WorkflowStage.Received, (string?)null, email.Sender, email.Subject);
-        stateTracker.Transition(issue.Id, WorkflowStage.Received);
+        await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Received);
 
         try
         {
-            var classification = await ClassifyIssueAsync(issue, ct);
-            LogClassificationDecision(issue.Id, classification);
+            var classification = await issueClassifier.ClassifyAsync(issue, ct);
+            logger.LogInformation(
+                "Classification for issue {IssueId}: Category={Category}, Confidence={Confidence:F2}, IsCodeRelated={IsCodeRelated}",
+                issue.Id, classification.Category, classification.ConfidenceScore, classification.IsCodeRelated);
 
             if (!classification.IsCodeRelated)
             {
-                logger.LogDebug(
-                    "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                    issue.Id, WorkflowStage.Received, WorkflowStage.ClassifiedOutOfScope, classification.Reasoning);
-                stateTracker.Transition(issue.Id, WorkflowStage.ClassifiedOutOfScope, classification.Reasoning);
+                await stateTracker.TransitionAsync(issue.Id, WorkflowStage.ClassifiedOutOfScope, classification.Reasoning);
                 return WorkflowResult.OutOfScope(issue.Id);
             }
 
             var classifiedDetail = $"{classification.Category} ({classification.ConfidenceScore:P0})";
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.Received, WorkflowStage.Classified, classifiedDetail);
-            stateTracker.Transition(issue.Id, WorkflowStage.Classified, classifiedDetail);
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Classified, classifiedDetail);
 
-            var team = AssignTeam(issue, classification);
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.Classified, WorkflowStage.TeamAssigned, team.TeamName);
-            stateTracker.Transition(issue.Id, WorkflowStage.TeamAssigned, team.TeamName);
-            LogTeamAssignmentDecision(issue.Id, team);
+            var teamResult = teamRouter.Route(issue, classification);
+            if (!teamResult.IsSuccess)
+            {
+                await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Failed, teamResult.Error);
+                return WorkflowResult.Failed(issue.Id, teamResult.Error!);
+            }
 
-            var agent = SelectAgent(team, classification.Category);
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.TeamAssigned, WorkflowStage.AgentAssigned, agent.AgentId);
-            stateTracker.Transition(issue.Id, WorkflowStage.AgentAssigned, agent.AgentId);
-            LogAgentSelectionDecision(issue.Id, agent);
+            var team = teamResult.Value!;
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.TeamAssigned, team.TeamName);
+            logger.LogInformation("Team assigned for issue {IssueId}: {TeamName}", issue.Id, team.TeamName);
 
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.AgentAssigned, WorkflowStage.Resolving, (string?)null);
-            stateTracker.Transition(issue.Id, WorkflowStage.Resolving);
-            var resolution = await ResolveWithActorAsync(issue, classification.Category, agent, ct);
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.Resolving, WorkflowStage.Resolved, resolution.ProposedFixSummary);
-            stateTracker.Transition(issue.Id, WorkflowStage.Resolved, resolution.ProposedFixSummary);
+            var agent = agentSelector.Select(team, classification.Category);
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.AgentAssigned, agent.AgentId);
+            logger.LogInformation("Agent assigned for issue {IssueId}: {AgentId}", issue.Id, agent.AgentId);
+
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Resolving);
+            var resolution = await supervisorBridge.AssignIssueAsync(
+                agent.AgentId, issue, classification.Category, GetActorAskTimeout(), ct);
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Resolved, resolution.ProposedFixSummary);
 
             var pullRequest = await codeChangeGenerator.GenerateAsync(resolution, ct);
-            logger.LogDebug(
-                "Workflow stage transition for issue {IssueId}: {SourceStage} → {TargetStage}, Detail={Detail}",
-                issue.Id, WorkflowStage.Resolved, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
-            stateTracker.Transition(issue.Id, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
 
             return WorkflowResult.Completed(issue.Id, pullRequest);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Workflow failed for issue {IssueId}", issue.Id);
-            logger.LogWarning(
-                "Workflow stage transition FAILED for issue {IssueId}: {SourceStage} → {TargetStage}, FailureReason={FailureReason}",
-                issue.Id, WorkflowStage.Received, WorkflowStage.Failed, ex.Message);
-            stateTracker.Transition(issue.Id, WorkflowStage.Failed, ex.Message);
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Failed, ex.Message);
             return WorkflowResult.Failed(issue.Id, ex.Message);
         }
-    }
-
-    private Task<ClassificationResult> ClassifyIssueAsync(IssueRecord issue, CancellationToken ct) =>
-        issueClassifier.ClassifyAsync(issue, ct);
-
-    private TeamAssignment AssignTeam(IssueRecord issue, ClassificationResult classification)
-    {
-        var result = teamRouter.Route(issue, classification);
-        return result.IsSuccess
-            ? result.Value!
-            : throw new InvalidOperationException($"Team routing failed: {result.Error}");
-    }
-
-    private AgentAssignment SelectAgent(TeamAssignment team, IssueCategory category) =>
-        agentSelector.Select(team, category);
-
-    private Task<ResolutionReport> ResolveWithActorAsync(
-        IssueRecord issue,
-        IssueCategory category,
-        AgentAssignment agent,
-        CancellationToken ct)
-    {
-        return supervisorBridge.AssignIssueAsync(
-            agent.AgentId, issue, category,
-            GetActorAskTimeout(), ct);
     }
 
     private TimeSpan GetActorAskTimeout()
     {
         var seconds = workflowConfig.Value.ActorAskTimeoutSeconds;
         return TimeSpan.FromSeconds(seconds > 0 ? seconds : 120);
-    }
-
-    private void LogClassificationDecision(Guid issueId, ClassificationResult classification)
-    {
-        logger.LogInformation(
-            "[Visualization] Classification decision for issue {IssueId}: Category={Category}, ConfidenceScore={ConfidenceScore:F2}, IsCodeRelated={IsCodeRelated}, Reasoning={Reasoning}",
-            issueId, classification.Category, classification.ConfidenceScore, classification.IsCodeRelated, classification.Reasoning);
-    }
-
-    private void LogTeamAssignmentDecision(Guid issueId, TeamAssignment team)
-    {
-        logger.LogInformation(
-            "[Visualization] Team assignment decision for issue {IssueId}: TeamName={TeamName}, ApplicationName={ApplicationName}",
-            issueId, team.TeamName, team.ApplicationName);
-    }
-
-    private void LogAgentSelectionDecision(Guid issueId, AgentAssignment agent)
-    {
-        logger.LogInformation(
-            "[Visualization] Agent selection decision for issue {IssueId}: AgentId={AgentId}, Role={Role}",
-            issueId, agent.AgentId, agent.Role);
     }
 }

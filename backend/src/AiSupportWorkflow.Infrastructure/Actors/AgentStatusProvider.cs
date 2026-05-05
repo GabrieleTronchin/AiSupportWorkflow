@@ -9,13 +9,15 @@ public sealed class AgentStatusProvider(IRequiredActor<SupervisorActor> supervis
 {
     private readonly IActorRef _supervisor = supervisorActor.ActorRef;
 
-    public async Task<AggregatedAgentStatusResponse> GetAgentStatusesAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentStatusInfo>> GetAgentStatusesAsync(CancellationToken ct = default)
     {
         var response = await _supervisor.Ask<AggregatedAgentStatusResponse>(
             new AgentStatusQuery(null),
             TimeSpan.FromSeconds(10),
             ct);
 
-        return response;
+        return response.Statuses
+            .Select(s => new AgentStatusInfo(s.AgentId, s.Status, s.LastAction))
+            .ToList();
     }
 }

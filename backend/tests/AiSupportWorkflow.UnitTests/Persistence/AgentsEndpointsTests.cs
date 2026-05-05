@@ -4,7 +4,6 @@ using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
-using AiSupportWorkflow.Domain.Messages;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
@@ -40,10 +39,10 @@ public class AgentsEndpointsTests
 
         var agentStatusProvider = Substitute.For<IAgentStatusProvider>();
         agentStatusProvider.GetAgentStatusesAsync(Arg.Any<CancellationToken>())
-            .Returns(new AggregatedAgentStatusResponse(
-            [
-                new AgentStatusResponse(agentId, "Idle", null)
-            ]));
+            .Returns(new List<AgentStatusInfo>
+            {
+                new(agentId, "Idle", null)
+            });
 
         var eventRepository = Substitute.For<IWorkflowEventRepository>();
         eventRepository.GetAgentAssignmentsForNonTerminalIssuesAsync(Arg.Any<CancellationToken>())
@@ -76,10 +75,10 @@ public class AgentsEndpointsTests
 
         var agentStatusProvider = Substitute.For<IAgentStatusProvider>();
         agentStatusProvider.GetAgentStatusesAsync(Arg.Any<CancellationToken>())
-            .Returns(new AggregatedAgentStatusResponse(
-            [
-                new AgentStatusResponse(agentId, "Idle", null)
-            ]));
+            .Returns(new List<AgentStatusInfo>
+            {
+                new(agentId, "Idle", null)
+            });
 
         var eventRepository = Substitute.For<IWorkflowEventRepository>();
         eventRepository.GetAgentAssignmentsForNonTerminalIssuesAsync(Arg.Any<CancellationToken>())

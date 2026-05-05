@@ -11,8 +11,8 @@ public sealed class AgentStatusService(
 {
     public async Task<IReadOnlyList<AgentStatusDto>> GetAllAgentStatusesAsync(CancellationToken ct = default)
     {
-        var activeResponse = await agentStatusProvider.GetAgentStatusesAsync(ct);
-        var activeAgents = activeResponse.Statuses.ToDictionary(s => s.AgentId, s => s);
+        var activeStatuses = await agentStatusProvider.GetAgentStatusesAsync(ct);
+        var activeAgents = activeStatuses.ToDictionary(s => s.AgentId, s => s);
 
         var agentAssignments = await eventRepository.GetAgentAssignmentsForNonTerminalIssuesAsync(ct);
 

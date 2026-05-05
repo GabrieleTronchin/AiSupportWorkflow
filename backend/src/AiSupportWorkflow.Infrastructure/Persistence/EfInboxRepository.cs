@@ -1,10 +1,11 @@
 namespace AiSupportWorkflow.Infrastructure.Persistence;
 
+using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
-public sealed class EfInboxRepository(WorkflowDbContext dbContext) : IInboxRepository
+public sealed class EfInboxRepository(WorkflowDbContext dbContext) : IInboxRepository, IInboxQueryService
 {
     public async Task<Guid> SaveMessageAsync(string messageType, string payload, CancellationToken ct = default)
     {

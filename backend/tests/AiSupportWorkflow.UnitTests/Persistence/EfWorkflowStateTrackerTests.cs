@@ -16,7 +16,7 @@ public class EfWorkflowStateTrackerTests
     }
 
     [Fact]
-    public void TransitionAsync_CreatesIssueEntity_WhenNotExists()
+    public async Task TransitionAsync_CreatesIssueEntity_WhenNotExists()
     {
         // Arrange
         using var context = CreateContext();
@@ -24,7 +24,7 @@ public class EfWorkflowStateTrackerTests
         var issueId = Guid.NewGuid();
 
         // Act
-        tracker.Transition(issueId, WorkflowStage.Received, "New issue");
+        await tracker.TransitionAsync(issueId, WorkflowStage.Received, "New issue");
 
         // Assert
         var entity = context.Issues.Find(issueId);
@@ -34,17 +34,17 @@ public class EfWorkflowStateTrackerTests
     }
 
     [Fact]
-    public void TransitionAsync_UpdatesExistingIssueEntity()
+    public async Task TransitionAsync_UpdatesExistingIssueEntity()
     {
         // Arrange
         using var context = CreateContext();
         var tracker = new EfWorkflowStateTracker(context);
         var issueId = Guid.NewGuid();
 
-        tracker.Transition(issueId, WorkflowStage.Received, "Initial");
+        await tracker.TransitionAsync(issueId, WorkflowStage.Received, "Initial");
 
         // Act
-        tracker.Transition(issueId, WorkflowStage.Classified, "Classified as backend bug");
+        await tracker.TransitionAsync(issueId, WorkflowStage.Classified, "Classified as backend bug");
 
         // Assert
         var entity = context.Issues.Find(issueId);
@@ -54,27 +54,25 @@ public class EfWorkflowStateTrackerTests
     }
 
     [Fact]
-    public void GetEventsAsync_RespectsLimitOf200()
+    public async Task TransitionAsync_CreatesStateTransitionEvent()
     {
         // Arrange
         using var context = CreateContext();
         var tracker = new EfWorkflowStateTracker(context);
         var issueId = Guid.NewGuid();
 
-        for (var i = 0; i < 250; i++)
-        {
-            tracker.Transition(issueId, WorkflowStage.Received, $"Event {i}");
-        }
-
         // Act
-        var events = tracker.GetEvents(200);
+        await tracker.TransitionAsync(issueId, WorkflowStage.Received, "Event detail");
 
         // Assert
-        Assert.Equal(200, events.Count);
+        var events = await context.Events.Where(e => e.IssueId == issueId).ToListAsync();
+        Assert.Single(events);
+        Assert.Equal(WorkflowStage.Received, events[0].NewStage);
+        Assert.Equal("Event detail", events[0].Detail);
     }
 
     [Fact]
-    public void GetAllStatesAsync_ReturnsAllIssues()
+    public async Task GetAllStates_ReturnsAllIssues()
     {
         // Arrange
         using var context = CreateContext();
@@ -84,9 +82,9 @@ public class EfWorkflowStateTrackerTests
         var id2 = Guid.NewGuid();
         var id3 = Guid.NewGuid();
 
-        tracker.Transition(id1, WorkflowStage.Received);
-        tracker.Transition(id2, WorkflowStage.Classified);
-        tracker.Transition(id3, WorkflowStage.Failed, "Something went wrong");
+        await tracker.TransitionAsync(id1, WorkflowStage.Received);
+        await tracker.TransitionAsync(id2, WorkflowStage.Classified);
+        await tracker.TransitionAsync(id3, WorkflowStage.Failed, "Something went wrong");
 
         // Act
         var states = tracker.GetAllStates();

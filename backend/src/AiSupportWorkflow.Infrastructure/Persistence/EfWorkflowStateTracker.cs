@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, WorkflowUpdateChannel? updateChannel = null) : IWorkflowStateTracker
 {
-    public void Transition(Guid issueId, WorkflowStage stage, string? detail = null)
+    public async Task TransitionAsync(Guid issueId, WorkflowStage stage, string? detail = null)
     {
         var now = DateTimeOffset.UtcNow;
 
-        var existing = dbContext.Issues.Find(issueId);
+        var existing = await dbContext.Issues.FindAsync(issueId);
         WorkflowStage? previousStage = existing?.CurrentStage;
 
         if (existing is null)
@@ -43,7 +43,7 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
             Detail = detail,
         });
 
-        dbContext.SaveChanges();
+        await dbContext.SaveChangesAsync();
 
         // Notify subscribers (gRPC stream)
         var state = new WorkflowState(issueId, stage, now, detail);
@@ -63,15 +63,6 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
         return dbContext.Issues
             .AsNoTracking()
             .Select(e => new WorkflowState(e.Id, e.CurrentStage, e.LastUpdated, e.Detail))
-            .ToList();
-    }
-
-    public IReadOnlyList<StateTransitionEvent> GetEvents(int limit = 200)
-    {
-        return dbContext.Events
-            .AsNoTracking()
-            .OrderByDescending(e => e.Timestamp)
-            .Take(limit)
             .ToList();
     }
 }

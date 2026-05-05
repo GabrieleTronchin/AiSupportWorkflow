@@ -33,7 +33,7 @@ public class WorkflowProperties
 
             foreach (var stage in stages)
             {
-                tracker.Transition(issueId, stage);
+                tracker.TransitionAsync(issueId, stage).GetAwaiter().GetResult();
             }
 
             var finalState = tracker.GetState(issueId);
@@ -65,7 +65,7 @@ public class WorkflowProperties
             for (var i = 0; i < n; i++)
             {
                 var stage = stagesForIssues[i % stagesForIssues.Length];
-                tracker.Transition(issueIds[i], stage);
+                tracker.TransitionAsync(issueIds[i], stage).GetAwaiter().GetResult();
             }
 
             var uniqueIds = issueIds.Distinct().Count() == n;

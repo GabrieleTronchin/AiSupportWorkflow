@@ -33,7 +33,7 @@ public class PersistenceProperties
         using var context = CreateInMemoryContext();
         var tracker = new EfWorkflowStateTracker(context);
 
-        tracker.Transition(issueId, stage, detail);
+        tracker.TransitionAsync(issueId, stage, detail).GetAwaiter().GetResult();
 
         var issueEntity = context.Issues.Find(issueId);
         var events = context.Events.Where(e => e.IssueId == issueId).ToList();
@@ -68,8 +68,8 @@ public class PersistenceProperties
         using var context = CreateInMemoryContext();
         var tracker = new EfWorkflowStateTracker(context);
 
-        tracker.Transition(issueId, firstStage, "first");
-        tracker.Transition(issueId, secondStage, "second");
+        tracker.TransitionAsync(issueId, firstStage, "first").GetAwaiter().GetResult();
+        tracker.TransitionAsync(issueId, secondStage, "second").GetAwaiter().GetResult();
 
         var issueEntity = context.Issues.Find(issueId);
         var events = context.Events
@@ -106,7 +106,7 @@ public class PersistenceProperties
         var channel = new WorkflowUpdateChannel();
         var tracker = new EfWorkflowStateTracker(context, channel);
 
-        tracker.Transition(issueId, stage, detail);
+        tracker.TransitionAsync(issueId, stage, detail).GetAwaiter().GetResult();
 
         // Verify the channel received the update
         var hasUpdate = channel.Reader.TryRead(out var state);

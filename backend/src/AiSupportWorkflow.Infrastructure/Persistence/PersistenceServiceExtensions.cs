@@ -1,5 +1,6 @@
 namespace AiSupportWorkflow.Infrastructure.Persistence;
 
+using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ public static class PersistenceServiceExtensions
         services.AddSingleton<WorkflowUpdateChannel>();
         services.AddScoped<IWorkflowStateTracker, EfWorkflowStateTracker>();
         services.AddScoped<IInboxRepository, EfInboxRepository>();
+        services.AddScoped<IInboxQueryService, EfInboxRepository>();
         services.AddScoped<IWorkflowEventRepository, EfWorkflowEventRepository>();
 
         return services;

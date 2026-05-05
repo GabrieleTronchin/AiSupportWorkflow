@@ -117,7 +117,7 @@ public class OrchestratorTests
         var result = await sut.ProcessIssueAsync(ValidEmail());
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("routing failed", result.FailureReason!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Cannot determine application", result.FailureReason!, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -226,9 +226,9 @@ public class OrchestratorTests
 
         await sut.ProcessIssueAsync(ValidEmail());
 
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Classification decision"));
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Team assignment decision"));
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Agent selection decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Classification for issue"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Team assigned for issue"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Agent assigned for issue"));
     }
 
     [Fact]
@@ -241,9 +241,9 @@ public class OrchestratorTests
 
         await sut.ProcessIssueAsync(ValidEmail());
 
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Classification decision"));
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Team assignment decision"));
-        Assert.Contains(logger.Entries, e => e.Message.Contains("[Visualization] Agent selection decision"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Classification for issue"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Team assigned for issue"));
+        Assert.Contains(logger.Entries, e => e.Message.Contains("Agent assigned for issue"));
     }
 
     [Fact]
