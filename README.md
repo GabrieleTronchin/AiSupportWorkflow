@@ -6,7 +6,6 @@
 ![React](https://img.shields.io/badge/React-18-61dafb?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
-![Last Commit](https://img.shields.io/github/last-commit/GabrieleTronchin/AiSupportWorkflow)
 
 **A spec-driven AI experiment — built entirely by AI using [Kiro](https://kiro.dev).**
 
