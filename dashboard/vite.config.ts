@@ -10,6 +10,10 @@ export default defineConfig({
         target: 'http://localhost:5080',
         changeOrigin: true,
       },
+      '/workflow.WorkflowMonitor': {
+        target: 'http://localhost:5080',
+        changeOrigin: true,
+      },
     },
   },
   build: {
