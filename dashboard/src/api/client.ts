@@ -1,4 +1,4 @@
-import type { AgentStatus, ApiError, IncomingEmail, WorkflowState } from '../types';
+import type { AgentStatus, ApiError, InboxMessage, IncomingEmail, StateTransitionEvent, WorkflowState } from '../types';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -39,6 +39,16 @@ export async function fetchIssue(id: string): Promise<WorkflowState> {
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await fetch('/api/support/agents');
   return handleResponse<AgentStatus[]>(response);
+}
+
+export async function fetchEvents(): Promise<StateTransitionEvent[]> {
+  const response = await fetch('/api/support/events');
+  return handleResponse<StateTransitionEvent[]>(response);
+}
+
+export async function fetchInbox(): Promise<InboxMessage[]> {
+  const response = await fetch('/api/support/inbox');
+  return handleResponse<InboxMessage[]>(response);
 }
 
 export async function fetchConfig(): Promise<{ sequentialProcessing: boolean }> {

@@ -1,43 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { StateTransitionEvent, ApiError } from '../types';
+import { fetchEvents } from '../api/client';
+import { useGrpcStream } from './useGrpcStream';
 
 export function useEvents() {
   const [events, setEvents] = useState<StateTransitionEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const { latestStates } = useGrpcStream();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadEvents() {
-      try {
-        setIsLoading(true);
-        const response = await fetch('/api/support/events');
-        if (!response.ok) {
-          throw { statusCode: response.status, message: `Request failed with status ${response.status}` };
-        }
-        const data = (await response.json()) as StateTransitionEvent[];
-        if (!cancelled) {
-          setEvents(data);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err as ApiError);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
+  const loadEvents = useCallback(async () => {
+    try {
+      const data = await fetchEvents();
+      setEvents(data);
+      setError(null);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsLoading(false);
     }
-
-    loadEvents();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  // Fetch initial events on mount
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  // Re-fetch events when gRPC stream reports a new state transition
+  useEffect(() => {
+    if (latestStates.length === 0) return;
+    loadEvents();
+  }, [latestStates, loadEvents]);
 
   return { events, isLoading, error };
 }
