@@ -1,5 +1,13 @@
 # AI Support Workflow
 
+![CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/ci.yml/badge.svg)
+![Dashboard CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/dashboard-ci.yml/badge.svg)
+![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet)
+![React](https://img.shields.io/badge/React-18-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
+![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
+![Last Commit](https://img.shields.io/github/last-commit/GabrieleTronchin/AiSupportWorkflow)
+
 **A spec-driven AI experiment — built entirely by AI using [Kiro](https://kiro.dev).**
 
 An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through an actor-based architecture.
@@ -21,6 +29,8 @@ The system automates technical support by processing incoming emails through a m
 
 Each agent operates as an independent actor under a supervisor, and the full pipeline state is tracked and queryable through the API.
 
+The system includes a **real-time monitoring dashboard** (React + gRPC-Web) that visualizes the pipeline state, agent activity, and event history. Email processing is fully asynchronous via the **Transactional Inbox pattern** — submissions return immediately (HTTP 202) while a background processor handles the workflow pipeline.
+
 ---
 
 ## Architecture
@@ -34,10 +44,10 @@ Dependencies flow inward — each layer only depends on the layer closer to the 
 ```mermaid
 graph LR
     subgraph Presentation
-        P[Minimal API<br/>Endpoints<br/>Program.cs]
+        P[Minimal API<br/>Endpoints<br/>Program.cs<br/>gRPC Service]
     end
     subgraph Infrastructure
-        I[Akka.NET Actors<br/>Agent Framework Services<br/>WorkflowStateTracker]
+        I[Akka.NET Actors<br/>Agent Framework Services<br/>EF Core InMemory<br/>InboxProcessor<br/>WorkflowUpdateChannel]
     end
     subgraph Application
         A[Orchestrator<br/>EmailProcessor<br/>AgentSelector / TeamRouter<br/>UseCases]
@@ -91,11 +101,13 @@ All endpoints are served under the `/api/support` base path.
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| `POST` | `/api/support/emails` | Submit a support email for processing |
+| `POST` | `/api/support/emails` | Submit a support email (async — returns 202 Accepted) |
 | `GET` | `/api/support/issues/{id:guid}` | Get workflow state by issue ID |
 | `GET` | `/api/support/issues` | List all processed issues |
-| `GET` | `/api/support/stream` | SSE stream of real-time workflow updates |
-| `GET` | `/api/support/agents` | Current state of all AI agents |
+| `GET` | `/api/support/events` | List state transition events (persistent audit log, max 200) |
+| `GET` | `/api/support/agents` | All configured agents with current status (Idle/Working) |
+| `GET` | `/api/support/inbox` | Inbox queue messages with optional status filter |
+| gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
 
 📄 [Full API reference with request/response examples →](docs/api-endpoints.md)
 
@@ -105,23 +117,24 @@ All endpoints are served under the `/api/support` base path.
 
 ```
 AiSupportWorkflow/
-├── src/
-│   ├── AiSupportWorkflow.Domain/            # Pure domain layer — entities, enums, interfaces, value objects, messages
-│   ├── AiSupportWorkflow.Application/       # Business logic — orchestrator, services, use cases, configuration
-│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Agent Framework, services
-│   └── AiSupportWorkflow.Presentation/      # REST API & composition root — Minimal API endpoints, Program.cs
+├── backend/                                 # .NET backend (solution, source, tests)
+│   ├── AiSupportWorkflow.sln               # Solution file
+│   ├── src/
+│   │   ├── AiSupportWorkflow.Domain/       # Pure domain layer — entities, enums, interfaces, value objects, messages
+│   │   ├── AiSupportWorkflow.Application/  # Business logic — orchestrator, services, use cases, configuration
+│   │   ├── AiSupportWorkflow.Infrastructure/ # External integrations — Akka.NET actors, Agent Framework, services
+│   │   └── AiSupportWorkflow.Presentation/ # REST API & composition root — Minimal API endpoints, Program.cs
+│   └── tests/
+│       ├── AiSupportWorkflow.UnitTests/    # xUnit + NSubstitute unit tests
+│       └── AiSupportWorkflow.PropertyTests/ # FsCheck property-based tests
 │
-├── tests/
-│   ├── AiSupportWorkflow.UnitTests/         # xUnit + NSubstitute unit tests
-│   └── AiSupportWorkflow.PropertyTests/     # FsCheck property-based tests
+├── dashboard/                               # React monitoring dashboard (Vite + TypeScript + Tailwind)
 │
 ├── DummyApps/
 │   ├── ApplicationA/                        # Sample app with predefined bug scenarios
 │   └── ApplicationB/                        # Sample app with predefined bug scenarios
 │
 ├── docs/                                    # In-depth documentation
-├── scripts/                                 # PowerShell monitoring script
-├── AiSupportWorkflow.sln                    # Solution file
 └── README.md
 ```
 
@@ -136,6 +149,8 @@ AiSupportWorkflow/
 | [Agent Framework Integration](docs/agent-framework-integration.md) | LLM-backed services for classification, resolution, and code generation |
 | [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
 | [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
+| [Dashboard](docs/dashboard.md) | Real-time monitoring dashboard architecture and usage |
+| [Transactional Inbox](docs/transactional-inbox.md) | Async email processing pattern and implementation |
 
 
 ---
@@ -151,7 +166,7 @@ AiSupportWorkflow/
 
 2. **Configure your OpenAI API key:**
 
-   Create the file `src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
+   Create the file `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
 
    ```json
    {
@@ -168,10 +183,20 @@ AiSupportWorkflow/
 3. **Run the project:**
 
    ```bash
-   dotnet run --project src/AiSupportWorkflow.Presentation
+   dotnet run --project backend/src/AiSupportWorkflow.Presentation
    ```
 
    The API will be available at `http://localhost:5000` (or the port configured in `launchSettings.json`).
+
+4. **Start the dashboard (optional):**
+
+   ```bash
+   cd dashboard
+   npm install
+   npm run dev
+   ```
+
+   The dashboard will be available at `http://localhost:5173`.
 
 ### Configuration
 
@@ -179,8 +204,10 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `EnableVisualization` | `bool` | `false` | Enables the SSE stream and agents endpoints |
+| `EnableVisualization` | `bool` | `true` | Enables gRPC streaming and agents endpoint |
+| `SequentialProcessing` | `bool` | `false` | When true, processes one inbox message per cycle and waits for the previous issue to reach a terminal state before processing the next |
 | `ActorAskTimeoutSeconds` | `int` | `120` | Timeout for the Akka.NET actor Ask. Values ≤ 0 fall back to 120s. |
+| `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
 | `Teams` | `array` | — | Team and agent configuration |
 
 ### Verbose Logging

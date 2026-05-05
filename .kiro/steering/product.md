@@ -4,7 +4,7 @@ inclusion: always
 
 # Product Overview
 
-AI Support Workflow is a simulated AI-driven technical support system. It automates the full lifecycle of a support request: receiving emails, classifying issues via LLM, routing to the correct team and agent, performing root cause analysis, and generating code fixes as pull requests.
+AI Support Workflow is a simulated AI-driven technical support system. It automates the full lifecycle of a support request: receiving emails, classifying issues via LLM, routing to the correct team and agent, performing root cause analysis, and generating code fixes as pull requests. It includes a real-time monitoring dashboard and uses the Transactional Inbox pattern for asynchronous email processing.
 
 ## Workflow Pipeline
 
@@ -19,6 +19,14 @@ The `Orchestrator` drives a linear pipeline with these stages (mapped to `Workfl
 
 Terminal states: `Failed`, `CodeChangeGenerated`, `ClassifiedOutOfScope` (defined by `WorkflowState.IsTerminal`).
 
+## Email Processing (Transactional Inbox)
+
+Email submission is asynchronous:
+1. `POST /api/support/emails` saves the email as an `InboxMessage` and returns HTTP 202 Accepted immediately.
+2. The `InboxProcessor` (IHostedService) polls the inbox table for unprocessed messages in FIFO order.
+3. Each message is deserialized and passed to the `Orchestrator` for workflow processing.
+4. On success: `ProcessedAt` is set. On failure: `Error` is recorded and `ProcessedAt` is set (no infinite retries).
+
 ## Domain Model
 
 Entities (immutable records):
@@ -27,6 +35,11 @@ Entities (immutable records):
 - `WorkflowState(IssueId, Stage, LastUpdated, Detail)` — tracks pipeline progress
 - `BugScenario(ScenarioId, ApplicationName, Category, ...)` — test fixture definition
 - `PullRequest(Id, IssueId, Title, Description, AffectedFilePaths, SimulatedDiff)` — output artifact
+
+Persistence entities (EF Core):
+- `IssueEntity(Id, CurrentStage, LastUpdated, Detail)` — current state of each issue
+- `StateTransitionEvent(Id, IssueId, PreviousStage, NewStage, Timestamp, Detail)` — audit log entry
+- `InboxMessage(Id, MessageType, Payload, ReceivedAt, ProcessedAt, Error)` — email queue record
 
 Value objects:
 - `Result<T>` — generic success/failure wrapper (no exceptions for business logic)
@@ -52,11 +65,24 @@ Enums:
 
 | Method | Route | Purpose |
 |--------|-------|---------|
-| POST | `/api/support/emails` | Submit a support email |
+| POST | `/api/support/emails` | Submit a support email (async — returns 202 Accepted) |
 | GET | `/api/support/issues/{id}` | Get workflow state by issue ID |
 | GET | `/api/support/issues` | List all processed issues |
-| GET | `/api/support/stream` | SSE stream of workflow updates |
-| GET | `/api/support/agents` | Current state of all AI agents |
+| GET | `/api/support/events` | List state transition events (persistent audit log, max 200) |
+| GET | `/api/support/agents` | All configured agents with current status (Idle/Working) |
+| GET | `/api/support/inbox` | Inbox queue messages with optional status filter |
+| gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
+
+## Dashboard
+
+A React-based real-time monitoring dashboard at `dashboard/`:
+- **Overview**: Pipeline graph (fixed, animated) + email submission form + summary stats
+- **Issues**: Filterable table of all issues with current state
+- **Event Log**: Persistent audit log of all state transitions (from `/api/support/events`)
+- **Agents**: All configured agents with Idle/Working status
+- **Inbox**: Email queue monitoring (Queued/Processed/Failed)
+
+Connects to backend via gRPC-Web streaming (real-time) and REST polling (periodic).
 
 ## DummyApps Test Fixtures
 
@@ -67,5 +93,7 @@ Enums:
 - Email validation: both `Subject` and `Body` must be non-empty/non-whitespace.
 - Classification is async and LLM-backed; all other routing/selection is synchronous and deterministic.
 - The `Result<T>` pattern is used for expected failures (validation, routing). Exceptions are reserved for unexpected errors.
-- Actor resolution uses `ActorSelection` with path `/user/supervisor/{agentId}` and a 2-minute Ask timeout.
-- Visualization logging is gated by `WorkflowConfiguration.EnableVisualization`.
+- Actor resolution uses `IRequiredActor<SupervisorActor>` from Akka.Hosting with a configurable Ask timeout.
+- gRPC streaming and agents endpoint are gated by `WorkflowConfiguration.EnableVisualization`.
+- State transitions perform dual-write: update `IssueEntity` + create `StateTransitionEvent`.
+- `InboxProcessor` processes messages FIFO by `ReceivedAt`, records errors without retrying.

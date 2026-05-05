@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Akka.TestKit.Xunit2" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AiSupportWorkflow.Application\AiSupportWorkflow.Application.csproj" />
+    <ProjectReference Include="..\..\src\AiSupportWorkflow.Domain\AiSupportWorkflow.Domain.csproj" />
+    <ProjectReference Include="..\..\src\AiSupportWorkflow.Infrastructure\AiSupportWorkflow.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AiSupportWorkflow.Presentation\AiSupportWorkflow.Presentation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

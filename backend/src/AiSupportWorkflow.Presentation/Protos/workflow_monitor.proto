@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option csharp_namespace = "AiSupportWorkflow.Presentation.Grpc";
+
+package workflow;
+
+service WorkflowMonitor {
+  rpc SubscribeToUpdates (SubscribeRequest) returns (stream WorkflowStateUpdate);
+}
+
+message SubscribeRequest {
+  optional string issue_id = 1;
+}
+
+message WorkflowStateUpdate {
+  string issue_id = 1;
+  string stage = 2;
+  string last_updated = 3;
+  optional string detail = 4;
+}
