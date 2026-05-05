@@ -109,15 +109,16 @@ All endpoints are served under the `/api/support` base path.
 
 ```
 AiSupportWorkflow/
-├── src/
-│   ├── AiSupportWorkflow.Domain/            # Pure domain layer — entities, enums, interfaces, value objects, messages
-│   ├── AiSupportWorkflow.Application/       # Business logic — orchestrator, services, use cases, configuration
-│   ├── AiSupportWorkflow.Infrastructure/    # External integrations — Akka.NET actors, Agent Framework, services
-│   └── AiSupportWorkflow.Presentation/      # REST API & composition root — Minimal API endpoints, Program.cs
-│
-├── tests/
-│   ├── AiSupportWorkflow.UnitTests/         # xUnit + NSubstitute unit tests
-│   └── AiSupportWorkflow.PropertyTests/     # FsCheck property-based tests
+├── backend/                                 # .NET backend (solution, source, tests)
+│   ├── AiSupportWorkflow.sln               # Solution file
+│   ├── src/
+│   │   ├── AiSupportWorkflow.Domain/       # Pure domain layer — entities, enums, interfaces, value objects, messages
+│   │   ├── AiSupportWorkflow.Application/  # Business logic — orchestrator, services, use cases, configuration
+│   │   ├── AiSupportWorkflow.Infrastructure/ # External integrations — Akka.NET actors, Agent Framework, services
+│   │   └── AiSupportWorkflow.Presentation/ # REST API & composition root — Minimal API endpoints, Program.cs
+│   └── tests/
+│       ├── AiSupportWorkflow.UnitTests/    # xUnit + NSubstitute unit tests
+│       └── AiSupportWorkflow.PropertyTests/ # FsCheck property-based tests
 │
 ├── dashboard/                               # React monitoring dashboard (Vite + TypeScript + Tailwind)
 │
@@ -126,8 +127,6 @@ AiSupportWorkflow/
 │   └── ApplicationB/                        # Sample app with predefined bug scenarios
 │
 ├── docs/                                    # In-depth documentation
-├── scripts/                                 # PowerShell monitoring script
-├── AiSupportWorkflow.sln                    # Solution file
 └── README.md
 ```
 
@@ -159,7 +158,7 @@ AiSupportWorkflow/
 
 2. **Configure your OpenAI API key:**
 
-   Create the file `src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
+   Create the file `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
 
    ```json
    {
@@ -176,7 +175,7 @@ AiSupportWorkflow/
 3. **Run the project:**
 
    ```bash
-   dotnet run --project src/AiSupportWorkflow.Presentation
+   dotnet run --project backend/src/AiSupportWorkflow.Presentation
    ```
 
    The API will be available at `http://localhost:5000` (or the port configured in `launchSettings.json`).
