@@ -62,6 +62,8 @@ export function EmailComposer() {
         setSender(template.sender);
         setSubject(template.subject);
         setBody(template.body);
+        // Show validation errors immediately for invalid templates
+        setErrors(validateEmail(template.subject, template.body));
       }
     },
     []

@@ -10,7 +10,7 @@ const INITIAL_RECONNECT_DELAY = 2000;
 const MAX_RECONNECT_DELAY = 30000;
 
 export interface GrpcStreamClient {
-  subscribe(onUpdate: (state: WorkflowState) => void): void;
+  subscribe(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void): void;
   disconnect(): void;
   isConnected: boolean;
 }
@@ -19,14 +19,16 @@ export interface GrpcStreamClient {
  * Creates a streaming client that connects to the backend WorkflowMonitor gRPC-Web service.
  * Receives real-time WorkflowStateUpdate messages via server streaming.
  * Implements auto-reconnect with exponential backoff on stream errors.
+ * Calls onReconnect when the stream reconnects after a disconnection.
  */
 export function createStreamClient(): GrpcStreamClient {
   let connected = false;
   let abortController: AbortController | null = null;
   let reconnectDelay = INITIAL_RECONNECT_DELAY;
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let hasConnectedBefore = false;
 
-  async function startStream(onUpdate: (state: WorkflowState) => void) {
+  async function startStream(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
     if (!abortController || abortController.signal.aborted) return;
 
     try {
@@ -37,6 +39,12 @@ export function createStreamClient(): GrpcStreamClient {
 
       connected = true;
       reconnectDelay = INITIAL_RECONNECT_DELAY;
+
+      // If this is a reconnection (not the first connect), notify the caller
+      if (hasConnectedBefore && onReconnect) {
+        onReconnect();
+      }
+      hasConnectedBefore = true;
 
       for await (const update of stream) {
         if (abortController?.signal.aborted) return;
@@ -52,20 +60,20 @@ export function createStreamClient(): GrpcStreamClient {
       // Stream ended normally (server closed) — reconnect
       if (!abortController?.signal.aborted) {
         connected = false;
-        scheduleReconnect(onUpdate);
+        scheduleReconnect(onUpdate, onReconnect);
       }
     } catch (err: unknown) {
       if (abortController?.signal.aborted) return;
 
       connected = false;
-      scheduleReconnect(onUpdate);
+      scheduleReconnect(onUpdate, onReconnect);
     }
   }
 
-  function scheduleReconnect(onUpdate: (state: WorkflowState) => void) {
+  function scheduleReconnect(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
     reconnectTimeoutId = setTimeout(() => {
       reconnectTimeoutId = null;
-      startStream(onUpdate);
+      startStream(onUpdate, onReconnect);
     }, reconnectDelay);
 
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
@@ -76,10 +84,11 @@ export function createStreamClient(): GrpcStreamClient {
       return connected;
     },
 
-    subscribe(onUpdate: (state: WorkflowState) => void) {
+    subscribe(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
       abortController = new AbortController();
       reconnectDelay = INITIAL_RECONNECT_DELAY;
-      startStream(onUpdate);
+      hasConnectedBefore = false;
+      startStream(onUpdate, onReconnect);
     },
 
     disconnect() {

@@ -26,7 +26,7 @@ public class Orchestrator(
             return WorkflowResult.Failed(Guid.Empty, issueResult.Error!);
 
         var issue = issueResult.Value!;
-        await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Received);
+        await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Received, subject: issue.Subject);
 
         try
         {

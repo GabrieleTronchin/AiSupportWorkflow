@@ -11,8 +11,15 @@ using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.Infrastructure.Services;
 using AiSupportWorkflow.Presentation;
 using AiSupportWorkflow.Presentation.Services;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure JSON serialization to use string enum values
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // Infrastructure services (Agent Framework, classifiers, resolvers, config)
 builder.Services.AddInfrastructure(builder.Configuration);

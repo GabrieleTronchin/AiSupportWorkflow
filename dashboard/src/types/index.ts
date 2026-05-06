@@ -15,6 +15,7 @@ export interface WorkflowState {
   stage: WorkflowStage;
   lastUpdated: string; // ISO 8601
   detail: string | null;
+  subject?: string | null;
 }
 
 export interface AgentStatus {
@@ -52,6 +53,7 @@ export interface InboxMessage {
   processedAt: string | null;
   error: string | null;
   status: InboxStatus;
+  payload: string | null;
 }
 
 export interface InboxStats {
