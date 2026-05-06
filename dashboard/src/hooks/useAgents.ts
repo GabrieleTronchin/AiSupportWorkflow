@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AgentStatus, ApiError } from '../types';
 import { fetchAgents } from '../api/client';
-import { useGrpcStream } from './useGrpcStream';
+
+const POLLING_INTERVAL_MS = 3000;
 
 export function useAgents() {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const { latestStates } = useGrpcStream();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAgents = useCallback(async () => {
     try {
@@ -22,16 +23,18 @@ export function useAgents() {
     }
   }, []);
 
-  // Fetch initial agents on mount (and on retry)
+  // Fetch on mount and start polling
   useEffect(() => {
     loadAgents();
-  }, [loadAgents, retryCount]);
 
-  // Re-fetch agents when gRPC stream reports a stage change
-  useEffect(() => {
-    if (latestStates.length === 0) return;
-    loadAgents();
-  }, [latestStates, loadAgents]);
+    intervalRef.current = setInterval(loadAgents, POLLING_INTERVAL_MS);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [loadAgents, retryCount]);
 
   const retry = useCallback(() => {
     setError(null);

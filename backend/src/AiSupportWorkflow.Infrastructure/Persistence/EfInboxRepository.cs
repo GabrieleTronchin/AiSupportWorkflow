@@ -45,7 +45,8 @@ public sealed class EfInboxRepository(WorkflowDbContext dbContext) : IInboxRepos
                 m.Error,
                 m.ProcessedAt == null ? "queued"
                     : m.Error != null ? "failed"
-                    : "processed"))
+                    : "processed",
+                m.Payload))
             .ToListAsync(ct);
 
         return messages;

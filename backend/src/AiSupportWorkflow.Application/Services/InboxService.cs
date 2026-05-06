@@ -22,7 +22,8 @@ public record InboxMessageDto(
     DateTimeOffset ReceivedAt,
     DateTimeOffset? ProcessedAt,
     string? Error,
-    string Status);
+    string Status,
+    string? Payload);
 
 public interface IInboxQueryService
 {

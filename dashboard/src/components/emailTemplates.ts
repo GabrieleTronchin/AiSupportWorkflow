@@ -85,10 +85,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   },
   {
     id: 'edge-empty-input',
-    name: 'Empty Input Validation',
+    name: 'Empty Input (tests validation)',
     category: 'Edge Cases',
     sender: 'tester@company.com',
-    subject: '',
-    body: '',
+    subject: '   ',
+    body: '   ',
   },
 ];

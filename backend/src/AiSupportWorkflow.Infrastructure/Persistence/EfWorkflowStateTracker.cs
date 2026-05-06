@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, WorkflowUpdateChannel? updateChannel = null) : IWorkflowStateTracker
 {
-    public async Task TransitionAsync(Guid issueId, WorkflowStage stage, string? detail = null)
+    public async Task TransitionAsync(Guid issueId, WorkflowStage stage, string? detail = null, string? subject = null)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -24,6 +24,7 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
                 CurrentStage = stage,
                 LastUpdated = now,
                 Detail = detail,
+                Subject = subject,
             });
         }
         else
@@ -31,6 +32,8 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
             existing.CurrentStage = stage;
             existing.LastUpdated = now;
             existing.Detail = detail;
+            if (subject is not null)
+                existing.Subject = subject;
         }
 
         dbContext.Events.Add(new StateTransitionEvent
@@ -55,14 +58,14 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
         var entity = dbContext.Issues.Find(issueId);
         return entity is null
             ? new WorkflowState(issueId, WorkflowStage.Received, DateTimeOffset.MinValue, null)
-            : new WorkflowState(entity.Id, entity.CurrentStage, entity.LastUpdated, entity.Detail);
+            : new WorkflowState(entity.Id, entity.CurrentStage, entity.LastUpdated, entity.Detail, entity.Subject);
     }
 
     public IReadOnlyList<WorkflowState> GetAllStates()
     {
         return dbContext.Issues
             .AsNoTracking()
-            .Select(e => new WorkflowState(e.Id, e.CurrentStage, e.LastUpdated, e.Detail))
+            .Select(e => new WorkflowState(e.Id, e.CurrentStage, e.LastUpdated, e.Detail, e.Subject))
             .ToList();
     }
 }
