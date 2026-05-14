@@ -24,7 +24,8 @@ The system automates technical support by processing incoming emails through a m
 3. **Team Routing** — The email text is matched against known applications (Application A, Application B) to route the issue to the correct team.
 4. **Agent Assignment** — Based on the issue category, a specialized AI agent is selected (backend developer, frontend developer, or QA engineer).
 5. **Root Cause Analysis** — The assigned agent, running as an Akka.NET actor, performs LLM-powered analysis to identify the root cause and produce a resolution report.
-6. **Code Fix Generation** — A simulated pull request is generated with the proposed fix, including affected file paths and a diff.
+6. **Human Approval Gate** — The resolution report is held for human review. The workflow pauses in an `AwaitingApproval` state until a human approves or rejects the proposed fix. Rejected issues move to `ManualReviewRequired`.
+7. **Code Fix Generation** — Once approved, a simulated pull request is generated with the proposed fix, including affected file paths and a diff.
 
 Each agent operates as an independent actor under a supervisor, and the full pipeline state is tracked and queryable through the API.
 
@@ -69,7 +70,9 @@ flowchart LR
     C -->|Code-Related| TR[🔀 Team Routing]
     TR --> AS[👤 Agent Assignment]
     AS --> R[🧠 Root Cause Analysis]
-    R --> CG[💻 Code Fix Generation]
+    R --> HA[✋ Human Approval Gate]
+    HA -->|Approved| CG[💻 Code Fix Generation]
+    HA -->|Rejected| MR[📋 Manual Review]
 ```
 
 ---
@@ -205,7 +208,6 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 |---------|------|---------|-------------|
 | `EnableVisualization` | `bool` | `true` | Enables gRPC streaming and agents endpoint |
 | `SequentialProcessing` | `bool` | `false` | When true, processes one inbox message per cycle and waits for the previous issue to reach a terminal state before processing the next |
-| `ActorAskTimeoutSeconds` | `int` | `120` | Timeout for the Akka.NET actor Ask. Values ≤ 0 fall back to 120s. |
 | `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
 | `Teams` | `array` | — | Team and agent configuration |
 
