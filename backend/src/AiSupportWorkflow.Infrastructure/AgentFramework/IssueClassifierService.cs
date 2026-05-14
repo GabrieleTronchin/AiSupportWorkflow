@@ -3,12 +3,11 @@ namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 using System.Text.Json;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
-using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-public class IssueClassifierService(IChatClient chatClient, ILogger<IssueClassifierService> logger) : IIssueClassifier
+public class IssueClassifierService(IChatClient chatClient, ILogger<IssueClassifierService> logger)
 {
     private static readonly ChatOptions Options = new() { Temperature = 0.1f };
 
