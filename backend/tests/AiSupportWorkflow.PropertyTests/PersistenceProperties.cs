@@ -3,6 +3,7 @@ namespace AiSupportWorkflow.PropertyTests;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.Infrastructure.Services;
+using AiSupportWorkflow.PropertyTests.Helpers;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
@@ -31,7 +32,7 @@ public class PersistenceProperties
         string? detail)
     {
         using var context = CreateInMemoryContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
 
         tracker.TransitionAsync(issueId, stage, detail).GetAwaiter().GetResult();
 
@@ -66,7 +67,7 @@ public class PersistenceProperties
         WorkflowStage secondStage)
     {
         using var context = CreateInMemoryContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
 
         tracker.TransitionAsync(issueId, firstStage, "first").GetAwaiter().GetResult();
         tracker.TransitionAsync(issueId, secondStage, "second").GetAwaiter().GetResult();
@@ -104,7 +105,7 @@ public class PersistenceProperties
     {
         using var context = CreateInMemoryContext();
         var channel = new WorkflowUpdateChannel();
-        var tracker = new EfWorkflowStateTracker(context, channel);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context), channel);
 
         tracker.TransitionAsync(issueId, stage, detail).GetAwaiter().GetResult();
 

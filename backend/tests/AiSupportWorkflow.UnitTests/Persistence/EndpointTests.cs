@@ -127,7 +127,7 @@ public class EndpointTests
     public void GetAgents_ReturnsConfiguredAgents()
     {
         // This test validates the logic of merging configured agents with active status.
-        // The endpoint reads from config and merges with Akka actor status.
+        // The endpoint reads from config and merges with agent status provider data.
         var configuredAgents = new[]
         {
             new { TeamName = "TeamA", Role = "BackendDeveloper" },

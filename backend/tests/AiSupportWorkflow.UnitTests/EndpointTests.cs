@@ -1,12 +1,10 @@
 namespace AiSupportWorkflow.UnitTests;
 
-using Akka.Hosting;
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
-using AiSupportWorkflow.Infrastructure.Actors;
 using AiSupportWorkflow.Presentation.Endpoints;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Http.Metadata;

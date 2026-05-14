@@ -2,6 +2,7 @@ namespace AiSupportWorkflow.UnitTests.Persistence;
 
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Infrastructure.Persistence;
+using AiSupportWorkflow.UnitTests.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 public class EfWorkflowStateTrackerTests
@@ -20,7 +21,7 @@ public class EfWorkflowStateTrackerTests
     {
         // Arrange
         using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
         var issueId = Guid.NewGuid();
 
         // Act
@@ -38,7 +39,7 @@ public class EfWorkflowStateTrackerTests
     {
         // Arrange
         using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
         var issueId = Guid.NewGuid();
 
         await tracker.TransitionAsync(issueId, WorkflowStage.Received, "Initial");
@@ -58,7 +59,7 @@ public class EfWorkflowStateTrackerTests
     {
         // Arrange
         using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
         var issueId = Guid.NewGuid();
 
         // Act
@@ -76,7 +77,7 @@ public class EfWorkflowStateTrackerTests
     {
         // Arrange
         using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
 
         var id1 = Guid.NewGuid();
         var id2 = Guid.NewGuid();
@@ -101,7 +102,7 @@ public class EfWorkflowStateTrackerTests
     {
         // Arrange
         using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(context);
+        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
         var unknownId = Guid.NewGuid();
 
         // Act
