@@ -1,14 +1,12 @@
-using Akka.Actor;
-using Akka.Hosting;
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Application.UseCases;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure;
-using AiSupportWorkflow.Infrastructure.Actors;
 using AiSupportWorkflow.Infrastructure.Agents;
 using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.Infrastructure.Services;
+using AiSupportWorkflow.Infrastructure.WorkflowEngine;
 using AiSupportWorkflow.Presentation;
 using AiSupportWorkflow.Presentation.Services;
 using System.Text.Json.Serialization;
@@ -40,11 +38,13 @@ builder.Services.AddHostedService<InboxProcessor>();
 builder.Services.AddGrpc();
 
 // Application services
-builder.Services.AddScoped<IEmailProcessor, EmailProcessor>();
-builder.Services.AddScoped<ITeamRouter, TeamRouter>();
-builder.Services.AddScoped<IAgentSelector, AgentSelector>();
-builder.Services.AddScoped<IOrchestrator, Orchestrator>();
+builder.Services.AddSingleton<IEmailProcessor, EmailProcessor>();
+builder.Services.AddSingleton<ITeamRouter, TeamRouter>();
+builder.Services.AddSingleton<IAgentSelector, AgentSelector>();
 builder.Services.AddScoped<ProcessSupportEmailUseCase>();
+
+// Workflow Engine (replaces old Orchestrator with WorkflowOrchestrator)
+builder.Services.AddWorkflowEngine(builder.Configuration);
 
 // Build IAIAgent instances from configuration
 builder.Services.AddSingleton<IEnumerable<IAIAgent>>(sp =>
@@ -64,26 +64,6 @@ builder.Services.AddSingleton<IEnumerable<IAIAgent>>(sp =>
                 bugResolver)))
         .ToList();
 });
-
-// Configure Akka.NET actor system
-builder.Services.AddAkka("SupportWorkflowSystem", (akkaBuilder, sp) =>
-{
-    akkaBuilder.WithActors((system, registry, resolver) =>
-    {
-        var agents = resolver.GetService<IEnumerable<IAIAgent>>()
-            ?? Enumerable.Empty<IAIAgent>();
-
-        var logger = resolver.GetService<ILogger<SupervisorActor>>()!;
-
-        var supervisorProps = Props.Create(() => new SupervisorActor(agents, logger));
-        var supervisor = system.ActorOf(supervisorProps, "supervisor");
-        registry.Register<SupervisorActor>(supervisor);
-    });
-});
-
-// Register the supervisor actor bridge for Application layer access
-builder.Services.AddSingleton<ISupervisorActorBridge, SupervisorActorBridge>();
-builder.Services.AddSingleton<IAgentStatusProvider, AgentStatusProvider>();
 
 // Application query services
 builder.Services.AddScoped<AgentStatusService>();
