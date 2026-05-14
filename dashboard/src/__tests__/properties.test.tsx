@@ -235,12 +235,19 @@ describe('Property: Multi-issue activity indicators reflect all active issues', 
             detail: `Subject for issue ${index}`,
           }));
 
-          // For each active issue, verify that getNodeColor returns blue with boxShadow
+          // For each active issue, verify that getNodeColor returns active styling with boxShadow
           for (const issue of activeIssues) {
             const result = getNodeColor(issue.stage, activeIssues);
-            expect(result.background).toBe('#3b82f6');
-            expect(result.boxShadow).toBeDefined();
-            expect(result.boxShadow).toContain('rgba(59, 130, 246');
+            if (issue.stage === 'AwaitingApproval') {
+              // AwaitingApproval uses amber styling
+              expect(result.background).toBe('#f59e0b');
+              expect(result.boxShadow).toBeDefined();
+              expect(result.boxShadow).toContain('rgba(245, 158, 11');
+            } else {
+              expect(result.background).toBe('#3b82f6');
+              expect(result.boxShadow).toBeDefined();
+              expect(result.boxShadow).toContain('rgba(59, 130, 246');
+            }
           }
         }
       ),
@@ -283,10 +290,16 @@ describe('Property: Pipeline node color mapping is consistent with stage positio
               // Completed stages should be green
               expect(result.background).toBe('#10b981');
             } else if (i === activeIndex) {
-              // Active stage should be blue with boxShadow
-              expect(result.background).toBe('#3b82f6');
-              expect(result.boxShadow).toBeDefined();
-              expect(result.boxShadow).toContain('rgba(59, 130, 246');
+              // Active stage should have boxShadow and appropriate color
+              if (stage === 'AwaitingApproval') {
+                expect(result.background).toBe('#f59e0b');
+                expect(result.boxShadow).toBeDefined();
+                expect(result.boxShadow).toContain('rgba(245, 158, 11');
+              } else {
+                expect(result.background).toBe('#3b82f6');
+                expect(result.boxShadow).toBeDefined();
+                expect(result.boxShadow).toContain('rgba(59, 130, 246');
+              }
             } else {
               // Pending stages should be neutral gray
               expect(result.background).toBe('#3f3f46');
