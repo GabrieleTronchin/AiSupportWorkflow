@@ -1,4 +1,4 @@
-import type { AgentStatus, ApiError, InboxMessage, IncomingEmail, StateTransitionEvent, WorkflowState } from '../types';
+import type { AgentStatus, AgentTelemetry, ApiError, InboxMessage, IncomingEmail, PendingApproval, StateTransitionEvent, TelemetrySummary, WorkflowState } from '../types';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -54,4 +54,31 @@ export async function fetchInbox(): Promise<InboxMessage[]> {
 export async function fetchConfig(): Promise<{ sequentialProcessing: boolean }> {
   const response = await fetch('/api/support/config');
   return handleResponse<{ sequentialProcessing: boolean }>(response);
+}
+
+export async function fetchPendingApprovals(): Promise<PendingApproval[]> {
+  const response = await fetch('/api/support/approvals/pending');
+  return handleResponse<PendingApproval[]>(response);
+}
+
+export async function approveWorkflow(issueId: string): Promise<void> {
+  await fetch(`/api/support/approvals/${issueId}/approve`, { method: 'POST' });
+}
+
+export async function rejectWorkflow(issueId: string, reason?: string): Promise<void> {
+  await fetch(`/api/support/approvals/${issueId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function fetchAgentTelemetry(agentId: string): Promise<AgentTelemetry> {
+  const response = await fetch(`/api/support/agents/${agentId}/telemetry`);
+  return handleResponse<AgentTelemetry>(response);
+}
+
+export async function fetchTelemetrySummary(): Promise<TelemetrySummary> {
+  const response = await fetch('/api/support/telemetry/summary');
+  return handleResponse<TelemetrySummary>(response);
 }

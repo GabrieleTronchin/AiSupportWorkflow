@@ -13,6 +13,7 @@ export const mainFlow: WorkflowStage[] = [
   'AgentAssigned',
   'Resolving',
   'Resolved',
+  'AwaitingApproval',
   'CodeChangeGenerated',
 ];
 
@@ -38,6 +39,14 @@ export function getNodeColor(
 
   if (terminalStages.includes(stage) && isActiveStage) {
     return { background: '#ef4444', boxShadow: '0 0 12px 4px rgba(239, 68, 68, 0.5)' };
+  }
+
+  if (stage === 'AwaitingApproval' && isActiveStage) {
+    return {
+      background: '#f59e0b',
+      boxShadow: '0 0 12px 4px rgba(245, 158, 11, 0.5)',
+      animation: 'pulse 2s infinite',
+    };
   }
 
   if (isActiveStage) {

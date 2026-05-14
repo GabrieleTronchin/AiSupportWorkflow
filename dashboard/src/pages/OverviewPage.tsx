@@ -14,6 +14,7 @@ export function OverviewPage() {
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
   const totalIssues = latestStates.length;
   const recentFailures = latestStates.filter((i) => i.stage === 'Failed').length;
+  const awaitingApproval = latestStates.filter((i) => i.stage === 'AwaitingApproval').length;
 
   // Filter to non-terminal issues for the PipelineVisualizer
   const terminalStages: string[] = ['CodeChangeGenerated', 'ClassifiedOutOfScope', 'Failed', 'ManualReviewRequired'];
@@ -42,7 +43,7 @@ export function OverviewPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
           <p className="text-zinc-400 text-xs">Total Issues</p>
           <p className="text-xl font-bold text-zinc-100">{totalIssues}</p>
@@ -50,6 +51,10 @@ export function OverviewPage() {
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
           <p className="text-zinc-400 text-xs">Active Agents</p>
           <p className="text-xl font-bold text-zinc-100">{activeAgents}</p>
+        </div>
+        <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
+          <p className="text-zinc-400 text-xs">Awaiting Approval</p>
+          <p className="text-xl font-bold text-amber-400">{awaitingApproval}</p>
         </div>
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
           <p className="text-zinc-400 text-xs">Recent Failures</p>
