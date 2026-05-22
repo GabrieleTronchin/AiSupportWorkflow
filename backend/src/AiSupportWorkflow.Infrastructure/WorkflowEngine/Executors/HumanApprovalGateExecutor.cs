@@ -6,16 +6,18 @@ using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Agents.AI.Workflows;
 
-internal sealed partial class HumanApprovalGateExecutor(
+public sealed partial class HumanApprovalGateExecutor(
     IWorkflowStateTracker stateTracker) : Executor("HumanApprovalGateExecutor")
 {
     private readonly ConcurrentDictionary<Guid, PendingApproval> _pendingApprovals = new();
 
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
-        protocolBuilder.AddClassAttributeTypes(GetType()).YieldsOutput<WorkflowResult>();
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
+    {
+        protocolBuilder.RouteBuilder.AddHandler<ResolutionReport, ApprovalDecision>(HandleAsync);
+        return protocolBuilder;
+    }
 
-    [MessageHandler]
-    private async ValueTask<ApprovalDecision> HandleAsync(
+    public async ValueTask<ApprovalDecision> HandleAsync(
         ResolutionReport report, IWorkflowContext context, CancellationToken ct)
     {
         var issueId = report.IssueId;

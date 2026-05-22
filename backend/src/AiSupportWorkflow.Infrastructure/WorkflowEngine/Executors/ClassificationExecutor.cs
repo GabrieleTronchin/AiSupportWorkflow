@@ -7,17 +7,19 @@ using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
-internal sealed partial class ClassificationExecutor(
+public sealed partial class ClassificationExecutor(
     IChatClient chatClient,
     IWorkflowStateTracker stateTracker) : Executor("ClassificationExecutor")
 {
     private static readonly ChatOptions ChatOpts = new() { Temperature = 0.1f };
 
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
-        protocolBuilder.AddClassAttributeTypes(GetType()).YieldsOutput<WorkflowResult>();
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
+    {
+        protocolBuilder.RouteBuilder.AddHandler<IssueRecord, ClassificationResult>(HandleAsync);
+        return protocolBuilder;
+    }
 
-    [MessageHandler]
-    private async ValueTask<ClassificationResult> HandleAsync(
+    public async ValueTask<ClassificationResult> HandleAsync(
         IssueRecord issue, IWorkflowContext context, CancellationToken ct)
     {
         await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Received, subject: issue.Subject);
@@ -36,7 +38,9 @@ internal sealed partial class ClassificationExecutor(
         await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Classified,
             $"{result.Category} ({result.ConfidenceScore:P0})");
 
-        // Store issue in workflow state context for downstream executors
+        // Store issue and workflow context for downstream executors
+        await context.QueueStateUpdateAsync("CurrentIssueId", issue.Id, scopeName: "Workflow", ct);
+        await context.QueueStateUpdateAsync("LatestClassification", result, scopeName: "Workflow", ct);
         await context.QueueStateUpdateAsync(issue.Id.ToString(), issue, scopeName: "Issues", ct);
 
         return result;

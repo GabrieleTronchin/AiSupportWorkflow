@@ -17,12 +17,12 @@ internal sealed class SupportWorkflowFactory(
         WorkflowBuilder builder = new(classificationExecutor);
 
         builder.AddEdge<ClassificationResult>(classificationExecutor, teamAssignmentExecutor,
-            msg => msg is { IsCodeRelated: true });
+            condition: msg => msg is { IsCodeRelated: true });
         builder.AddEdge(teamAssignmentExecutor, agentAssignmentExecutor);
         builder.AddEdge(agentAssignmentExecutor, resolutionExecutor);
         builder.AddEdge(resolutionExecutor, humanApprovalGateExecutor);
         builder.AddEdge<ApprovalDecision>(humanApprovalGateExecutor, codeGenerationExecutor,
-            msg => msg is { Approved: true });
+            condition: msg => msg is { Approved: true });
 
         return builder.Build();
     }

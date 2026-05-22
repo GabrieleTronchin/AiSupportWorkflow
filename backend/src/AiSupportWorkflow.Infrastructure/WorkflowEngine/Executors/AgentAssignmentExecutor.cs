@@ -5,11 +5,17 @@ using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Agents.AI.Workflows;
 
-internal sealed class AgentAssignmentExecutor(
+public sealed partial class AgentAssignmentExecutor(
     IAgentSelector agentSelector,
-    IWorkflowStateTracker stateTracker) : Executor<TeamAssignment, AgentAssignment>("AgentAssignmentExecutor")
+    IWorkflowStateTracker stateTracker) : Executor("AgentAssignmentExecutor")
 {
-    public override async ValueTask<AgentAssignment> HandleAsync(
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
+    {
+        protocolBuilder.RouteBuilder.AddHandler<TeamAssignment, AgentAssignment>(HandleAsync);
+        return protocolBuilder;
+    }
+
+    public async ValueTask<AgentAssignment> HandleAsync(
         TeamAssignment team, IWorkflowContext context, CancellationToken ct)
     {
         var classification = await context.ReadStateAsync<ClassificationResult>(

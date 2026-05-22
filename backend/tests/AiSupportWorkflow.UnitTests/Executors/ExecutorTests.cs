@@ -62,7 +62,7 @@ public class ClassificationExecutorTests
     private static async ValueTask<TResult> InvokeHandlerAsync<TResult>(
         object executor, object message, IWorkflowContext context)
     {
-        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance);
         if (method is null)
             throw new InvalidOperationException("HandleAsync method not found");
 
@@ -145,7 +145,7 @@ public class TeamAssignmentExecutorTests
     private static async ValueTask<TResult> InvokeHandlerAsync<TResult>(
         object executor, object message, IWorkflowContext context)
     {
-        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance);
         if (method is null)
             throw new InvalidOperationException("HandleAsync method not found");
 
@@ -267,7 +267,7 @@ public class ResolutionExecutorTests
     private static async ValueTask<TResult> InvokeHandlerAsync<TResult>(
         object executor, object message, IWorkflowContext context)
     {
-        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance);
         if (method is null)
             throw new InvalidOperationException("HandleAsync method not found");
 
@@ -331,7 +331,7 @@ public class CodeGenerationExecutorTests
     private static async ValueTask InvokeVoidHandlerAsync(
         object executor, object message, IWorkflowContext context)
     {
-        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = executor.GetType().GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance);
         if (method is null)
             throw new InvalidOperationException("HandleAsync method not found");
 

@@ -31,7 +31,7 @@ internal sealed class WorkflowOrchestrator(
             var workflow = workflowFactory.Build();
             var sessionId = $"issue-{issue.Id}";
             logger.LogInformation("Starting workflow for issue {IssueId}, session {SessionId}", issue.Id, sessionId);
-            var run = await InProcessExecution.Default.RunStreamingAsync(workflow, issue, sessionId, ct);
+            var run = await InProcessExecution.RunStreamingAsync(workflow, issue, sessionId, ct);
             await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
             WorkflowResult? result = null;

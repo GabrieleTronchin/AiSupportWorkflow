@@ -7,17 +7,19 @@ using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
-internal sealed partial class ResolutionExecutor(
+public sealed partial class ResolutionExecutor(
     IChatClient chatClient,
     IWorkflowStateTracker stateTracker) : Executor("ResolutionExecutor")
 {
     private static readonly ChatOptions ChatOpts = new() { Temperature = 0.2f };
 
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
-        protocolBuilder.AddClassAttributeTypes(GetType());
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
+    {
+        protocolBuilder.RouteBuilder.AddHandler<AgentAssignment, ResolutionReport>(HandleAsync);
+        return protocolBuilder;
+    }
 
-    [MessageHandler]
-    private async ValueTask<ResolutionReport> HandleAsync(
+    public async ValueTask<ResolutionReport> HandleAsync(
         AgentAssignment agent, IWorkflowContext context, CancellationToken ct)
     {
         var issueId = await context.ReadStateAsync<Guid>("CurrentIssueId", scopeName: "Workflow", ct);
@@ -33,6 +35,9 @@ internal sealed partial class ResolutionExecutor(
         var report = response.Result;
 
         await stateTracker.TransitionAsync(issueId, WorkflowStage.Resolved, report.ProposedFixSummary);
+
+        // Store resolution for downstream CodeGenerationExecutor
+        await context.QueueStateUpdateAsync("LatestResolution", report, scopeName: "Workflow", ct);
 
         return report;
     }

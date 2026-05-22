@@ -7,17 +7,19 @@ using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
-internal sealed partial class CodeGenerationExecutor(
+public sealed partial class CodeGenerationExecutor(
     IChatClient chatClient,
     IWorkflowStateTracker stateTracker) : Executor("CodeGenerationExecutor")
 {
     private static readonly ChatOptions ChatOpts = new() { Temperature = 0.5f };
 
-    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder) =>
-        protocolBuilder.AddClassAttributeTypes(GetType()).YieldsOutput<WorkflowResult>();
+    protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
+    {
+        protocolBuilder.RouteBuilder.AddHandler<ApprovalDecision>((Func<ApprovalDecision, IWorkflowContext, CancellationToken, ValueTask>)HandleAsync);
+        return protocolBuilder;
+    }
 
-    [MessageHandler]
-    private async ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ApprovalDecision approval, IWorkflowContext context, CancellationToken ct)
     {
         var issueId = await context.ReadStateAsync<Guid>("CurrentIssueId", scopeName: "Workflow", ct);
