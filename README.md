@@ -7,11 +7,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
 
-**A spec-driven AI experiment — built entirely by AI using [Kiro](https://kiro.dev).**
+**A spec-driven AI experiment.**
 
 An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through **Microsoft Agent Framework Workflows** with a human-in-the-loop approval gate.
-
-> **Note:** This codebase was generated with AI.
 
 ---
 
