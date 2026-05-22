@@ -73,6 +73,14 @@ export async function rejectWorkflow(issueId: string, reason?: string): Promise<
   });
 }
 
+export async function abortWorkflow(issueId: string): Promise<void> {
+  const response = await fetch(`/api/support/issues/${issueId}/abort`, { method: 'POST' });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ?? `Failed to abort workflow ${issueId}`);
+  }
+}
+
 export async function fetchAgentTelemetry(agentId: string): Promise<AgentTelemetry> {
   const response = await fetch(`/api/support/agents/${agentId}/telemetry`);
   return handleResponse<AgentTelemetry>(response);

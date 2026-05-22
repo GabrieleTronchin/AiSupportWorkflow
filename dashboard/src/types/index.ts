@@ -95,11 +95,13 @@ export interface TelemetrySummary {
 
 export interface PendingApproval {
   issueId: string;
-  subject: string;
-  resolutionSummary: string;
-  rootCause: string;
-  affectedComponent: string;
-  severity: string;
-  proposedFix: string;
-  waitingSince: string;
+  report: {
+    issueId: string;
+    rootCauseDescription: string;
+    affectedComponent: string;
+    severityAssessment: string;
+    proposedFixSummary: string;
+    requiresEscalation: boolean;
+    escalationReason: string | null;
+  };
 }

@@ -51,15 +51,6 @@ export function ApprovalsPage() {
     }
   };
 
-  const formatWaitTime = (waitingSince: string): string => {
-    const diff = Date.now() - new Date(waitingSince).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ${minutes % 60}m`;
-    return `${Math.floor(hours / 24)}d ${hours % 24}h`;
-  };
-
   if (isLoading) {
     return (
       <div>
@@ -94,41 +85,40 @@ export function ApprovalsPage() {
               className="bg-zinc-800 border border-zinc-700 rounded-lg p-5"
             >
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs text-zinc-500">
-                      {approval.issueId.slice(0, 8)}
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-zinc-500">
+                    {approval.issueId.slice(0, 8)}
+                  </span>
+                  <span className="inline-block px-2 py-0.5 rounded text-xs font-medium text-amber-400 bg-amber-400/10">
+                    {approval.report.severityAssessment}
+                  </span>
+                  {approval.report.requiresEscalation && (
+                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium text-red-400 bg-red-400/10">
+                      Escalation Required
                     </span>
-                    <span className="inline-block px-2 py-0.5 rounded text-xs font-medium text-amber-400 bg-amber-400/10">
-                      {approval.severity}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-zinc-100">
-                    {approval.subject}
-                  </h3>
+                  )}
                 </div>
-                <span className="text-xs text-zinc-500 shrink-0">
-                  Waiting {formatWaitTime(approval.waitingSince)}
-                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-sm">
                 <div>
-                  <p className="text-zinc-500 text-xs mb-0.5">Resolution Summary</p>
-                  <p className="text-zinc-300">{approval.resolutionSummary}</p>
-                </div>
-                <div>
                   <p className="text-zinc-500 text-xs mb-0.5">Root Cause</p>
-                  <p className="text-zinc-300">{approval.rootCause}</p>
+                  <p className="text-zinc-300">{approval.report.rootCauseDescription}</p>
                 </div>
                 <div>
                   <p className="text-zinc-500 text-xs mb-0.5">Affected Component</p>
-                  <p className="text-zinc-300">{approval.affectedComponent}</p>
+                  <p className="text-zinc-300">{approval.report.affectedComponent}</p>
                 </div>
                 <div>
                   <p className="text-zinc-500 text-xs mb-0.5">Proposed Fix</p>
-                  <p className="text-zinc-300">{approval.proposedFix}</p>
+                  <p className="text-zinc-300">{approval.report.proposedFixSummary}</p>
                 </div>
+                {approval.report.escalationReason && (
+                  <div>
+                    <p className="text-zinc-500 text-xs mb-0.5">Escalation Reason</p>
+                    <p className="text-zinc-300">{approval.report.escalationReason}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">

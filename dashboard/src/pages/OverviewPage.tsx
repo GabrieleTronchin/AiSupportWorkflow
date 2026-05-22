@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAgents } from '../hooks/useAgents';
 import { useConfig } from '../hooks/useConfig';
@@ -5,11 +6,13 @@ import { useGrpcStream } from '../hooks/useGrpcStream';
 import { PipelineVisualizer } from '../components/PipelineVisualizer';
 import { EmailComposer } from '../components/EmailComposer';
 import { getStageBadgeClasses } from '../utils/badges';
+import { abortWorkflow } from '../api/client';
 
 export function OverviewPage() {
   const { agents } = useAgents();
   const { latestStates, isConnected } = useGrpcStream();
   const { sequentialProcessing } = useConfig();
+  const [abortingId, setAbortingId] = useState<string | null>(null);
 
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
   const totalIssues = latestStates.length;
@@ -19,6 +22,20 @@ export function OverviewPage() {
   // Filter to non-terminal issues for the PipelineVisualizer
   const terminalStages: string[] = ['CodeChangeGenerated', 'ClassifiedOutOfScope', 'Failed', 'ManualReviewRequired'];
   const activeIssues = latestStates.filter((s) => !terminalStages.includes(s.stage));
+
+  const handleAbort = async (issueId: string) => {
+    if (!window.confirm('Are you sure you want to abort this workflow? This cannot be undone.')) {
+      return;
+    }
+    setAbortingId(issueId);
+    try {
+      await abortWorkflow(issueId);
+    } catch {
+      // The state will update via gRPC stream
+    } finally {
+      setAbortingId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -41,6 +58,16 @@ export function OverviewPage() {
           </span>
         </div>
       </div>
+
+      {/* Approval notification banner */}
+      {awaitingApproval > 0 && (
+        <Link
+          to="/approvals"
+          className="block mb-4 px-4 py-3 rounded-lg bg-amber-900/30 border border-amber-700 text-amber-200 hover:bg-amber-900/50 transition-colors"
+        >
+          ⚠️ {awaitingApproval} workflow(s) awaiting your approval — Review now →
+        </Link>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-4 gap-4 mb-4">
@@ -103,6 +130,13 @@ export function OverviewPage() {
                     {issue.detail || '—'}
                   </span>
                 </div>
+                <button
+                  onClick={() => handleAbort(issue.issueId)}
+                  disabled={abortingId === issue.issueId}
+                  className="shrink-0 px-2 py-1 text-xs font-medium text-red-400 bg-red-900/30 border border-red-800 rounded hover:bg-red-900/60 disabled:opacity-50 transition-colors"
+                >
+                  {abortingId === issue.issueId ? 'Aborting…' : 'Abort'}
+                </button>
               </div>
             ))}
           </div>

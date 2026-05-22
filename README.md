@@ -109,6 +109,7 @@ All endpoints are served under the `/api/support` base path.
 | `GET` | `/api/support/events` | List state transition events (persistent audit log, max 200) |
 | `GET` | `/api/support/agents` | All configured agents with current status (Idle/Working) |
 | `GET` | `/api/support/inbox` | Inbox queue messages with optional status filter |
+| `POST` | `/api/support/issues/{id:guid}/abort` | Abort a workflow, forcing it into Failed state |
 | gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
 
 📄 [Full API reference with request/response examples →](docs/api-endpoints.md)

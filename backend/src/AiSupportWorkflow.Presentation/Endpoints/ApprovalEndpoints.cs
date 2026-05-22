@@ -1,6 +1,10 @@
 namespace AiSupportWorkflow.Presentation.Endpoints;
 
+using AiSupportWorkflow.Domain.Enums;
+using AiSupportWorkflow.Domain.Interfaces;
+using AiSupportWorkflow.Domain.ValueObjects;
 using AiSupportWorkflow.Infrastructure.Services;
+using AiSupportWorkflow.Infrastructure.WorkflowEngine.Executors;
 using AiSupportWorkflow.Presentation.Endpoints.Primitives;
 
 public class ApprovalEndpoints : IEndpoint
@@ -50,6 +54,29 @@ public class ApprovalEndpoints : IEndpoint
                 return Results.NotFound(new { Error = ex.Message });
             }
         }).WithSummary("Reject a workflow with optional reason");
+
+        app.MapPost("/api/support/issues/{issueId:guid}/abort", async (
+            Guid issueId,
+            IWorkflowStateTracker stateTracker,
+            HumanApprovalGateExecutor approvalGate) =>
+        {
+            try
+            {
+                // If the issue is awaiting approval, reject it to unblock the workflow thread
+                if (approvalGate.IsAwaitingApproval(issueId))
+                {
+                    var decision = new ApprovalDecision(Approved: false, Reason: "Aborted by user");
+                    approvalGate.TryCompleteApproval(issueId, decision);
+                }
+
+                await stateTracker.TransitionAsync(issueId, WorkflowStage.Failed, "Aborted by user");
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(detail: ex.Message, statusCode: 500);
+            }
+        }).WithTags("Workflow Control").WithSummary("Abort a workflow, forcing it into Failed state");
     }
 }
 
