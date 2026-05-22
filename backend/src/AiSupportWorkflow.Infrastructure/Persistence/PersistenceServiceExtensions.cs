@@ -4,17 +4,21 @@ using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 public static class PersistenceServiceExtensions
 {
+    private static readonly InMemoryDatabaseRoot DatabaseRoot = new();
+
     public static IServiceCollection AddPersistence(this IServiceCollection services)
     {
+        // Use shared InMemoryDatabaseRoot so all DbContext instances share the same data
         services.AddDbContextFactory<WorkflowDbContext>(options =>
-            options.UseInMemoryDatabase("WorkflowDb"));
-        // Also register DbContext itself for scoped consumers (InboxProcessor, etc.)
-        services.AddDbContext<WorkflowDbContext>(options =>
-            options.UseInMemoryDatabase("WorkflowDb"));
+            options.UseInMemoryDatabase("WorkflowDb", DatabaseRoot));
+        // Register DbContext for scoped resolution (InboxProcessor creates scopes)
+        services.AddScoped(sp =>
+            sp.GetRequiredService<IDbContextFactory<WorkflowDbContext>>().CreateDbContext());
 
         services.AddSingleton<WorkflowUpdateChannel>();
         services.AddSingleton<IWorkflowStateTracker, EfWorkflowStateTracker>();

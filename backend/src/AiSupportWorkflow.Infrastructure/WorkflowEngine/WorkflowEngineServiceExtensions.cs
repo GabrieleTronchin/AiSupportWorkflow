@@ -25,9 +25,8 @@ public static class WorkflowEngineServiceExtensions
         services.AddSingleton<HumanApprovalGateExecutor>();
         services.AddSingleton<CodeGenerationExecutor>();
 
-        // Workflow Factory and built Workflow
+        // Workflow Factory
         services.AddSingleton<SupportWorkflowFactory>();
-        services.AddSingleton(sp => sp.GetRequiredService<SupportWorkflowFactory>().Build());
 
         // Approval Service
         services.AddScoped<WorkflowApprovalService>();
