@@ -2,12 +2,11 @@ namespace AiSupportWorkflow.Infrastructure.AgentFramework;
 
 using System.Text.Json;
 using AiSupportWorkflow.Domain.Entities;
-using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-public class CodeChangeGeneratorService(IChatClient chatClient, ILogger<CodeChangeGeneratorService> logger) : ICodeChangeGenerator
+public class CodeChangeGeneratorService(IChatClient chatClient, ILogger<CodeChangeGeneratorService> logger)
 {
     private static readonly ChatOptions Options = new() { Temperature = 0.5f };
 

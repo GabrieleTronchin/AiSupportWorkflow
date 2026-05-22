@@ -7,11 +7,13 @@ using AiSupportWorkflow.Infrastructure.Persistence.Entities;
 using AiSupportWorkflow.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
-internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, WorkflowUpdateChannel? updateChannel = null) : IWorkflowStateTracker
+internal sealed class EfWorkflowStateTracker(IDbContextFactory<WorkflowDbContext> dbContextFactory, WorkflowUpdateChannel? updateChannel = null) : IWorkflowStateTracker
 {
     public async Task TransitionAsync(Guid issueId, WorkflowStage stage, string? detail = null, string? subject = null)
     {
         var now = DateTimeOffset.UtcNow;
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
 
         var existing = await dbContext.Issues.FindAsync(issueId);
         WorkflowStage? previousStage = existing?.CurrentStage;
@@ -55,6 +57,7 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
 
     public WorkflowState GetState(Guid issueId)
     {
+        using var dbContext = dbContextFactory.CreateDbContext();
         var entity = dbContext.Issues.Find(issueId);
         return entity is null
             ? new WorkflowState(issueId, WorkflowStage.Received, DateTimeOffset.MinValue, null)
@@ -63,6 +66,7 @@ internal sealed class EfWorkflowStateTracker(WorkflowDbContext dbContext, Workfl
 
     public IReadOnlyList<WorkflowState> GetAllStates()
     {
+        using var dbContext = dbContextFactory.CreateDbContext();
         return dbContext.Issues
             .AsNoTracking()
             .Select(e => new WorkflowState(e.Id, e.CurrentStage, e.LastUpdated, e.Detail, e.Subject))

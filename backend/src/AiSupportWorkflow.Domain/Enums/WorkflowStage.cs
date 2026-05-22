@@ -9,6 +9,7 @@ public enum WorkflowStage
     AgentAssigned,
     Resolving,
     Resolved,
+    AwaitingApproval,
     CodeChangeGenerated,
     Failed,
     ManualReviewRequired

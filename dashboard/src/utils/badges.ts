@@ -2,6 +2,7 @@ import type { WorkflowStage, InboxStatus } from '../types';
 
 const terminalStages: WorkflowStage[] = ['Failed', 'ClassifiedOutOfScope', 'ManualReviewRequired'];
 const completedStages: WorkflowStage[] = ['CodeChangeGenerated', 'Resolved'];
+const awaitingStages: WorkflowStage[] = ['AwaitingApproval'];
 
 /**
  * Returns Tailwind classes for a workflow stage badge.
@@ -12,6 +13,9 @@ export function getStageBadgeClasses(stage: WorkflowStage): string {
   }
   if (completedStages.includes(stage)) {
     return 'text-emerald-400 bg-emerald-400/10';
+  }
+  if (awaitingStages.includes(stage)) {
+    return 'text-amber-400 bg-amber-400/10';
   }
   return 'text-blue-400 bg-blue-400/10';
 }

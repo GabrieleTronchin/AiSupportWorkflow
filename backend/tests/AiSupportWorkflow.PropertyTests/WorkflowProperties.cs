@@ -4,6 +4,7 @@ using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Infrastructure.Persistence;
 using AiSupportWorkflow.PropertyTests.Generators;
+using AiSupportWorkflow.PropertyTests.Helpers;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
@@ -14,11 +15,9 @@ public class WorkflowProperties
 {
     private static EfWorkflowStateTracker CreateTracker(out WorkflowDbContext context)
     {
-        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        context = new WorkflowDbContext(options);
-        return new EfWorkflowStateTracker(context);
+        var factory = new TestDbContextFactory();
+        context = factory.CreateDbContext();
+        return new EfWorkflowStateTracker(factory);
     }
 
     // Feature: ai-support-workflow, Property 8: Workflow state transition ordering

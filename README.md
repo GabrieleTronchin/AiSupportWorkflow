@@ -7,11 +7,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
 
-**A spec-driven AI experiment — built entirely by AI using [Kiro](https://kiro.dev).**
+**A spec-driven AI experiment.**
 
-An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through an actor-based architecture.
-
-> **Note:** This codebase was generated with AI.
+An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through **Microsoft Agent Framework Workflows** with a human-in-the-loop approval gate.
 
 ---
 
@@ -23,10 +21,11 @@ The system automates technical support by processing incoming emails through a m
 2. **LLM Classification** — The email is analyzed by an LLM to determine whether it describes a code-related issue and to categorize it (backend bug, frontend bug, or quality/test issue). Out-of-scope emails are rejected here.
 3. **Team Routing** — The email text is matched against known applications (Application A, Application B) to route the issue to the correct team.
 4. **Agent Assignment** — Based on the issue category, a specialized AI agent is selected (backend developer, frontend developer, or QA engineer).
-5. **Root Cause Analysis** — The assigned agent, running as an Akka.NET actor, performs LLM-powered analysis to identify the root cause and produce a resolution report.
-6. **Code Fix Generation** — A simulated pull request is generated with the proposed fix, including affected file paths and a diff.
+5. **Root Cause Analysis** — The assigned agent performs LLM-powered analysis to identify the root cause and produce a resolution report.
+6. **Human Approval Gate** — The resolution report is held for human review. The workflow pauses in an `AwaitingApproval` state until a human approves or rejects the proposed fix via the dashboard. Rejected issues move to `ManualReviewRequired`.
+7. **Code Fix Generation** — Once approved, a simulated pull request is generated with the proposed fix, including affected file paths and a diff.
 
-Each agent operates as an independent actor under a supervisor, and the full pipeline state is tracked and queryable through the API.
+Each stage is implemented as a discrete **Executor** in the Microsoft Agent Framework Workflows graph. The pipeline is defined declaratively using `WorkflowBuilder` with typed edges and conditions, replacing the previous Akka.NET actor hierarchy.
 
 The system includes a **real-time monitoring dashboard** (React + gRPC-Web) that visualizes the pipeline state, agent activity, and event history. Email processing is fully asynchronous via the **Transactional Inbox pattern** — submissions return immediately (HTTP 202) while a background processor handles the workflow pipeline.
 
@@ -34,7 +33,7 @@ The system includes a **real-time monitoring dashboard** (React + gRPC-Web) that
 
 ## Architecture
 
-The project follows Clean Architecture with a strict inward dependency flow, combined with an actor-based workflow pipeline for processing support requests.
+The project follows Clean Architecture with a strict inward dependency flow, combined with a **declarative workflow graph** (Microsoft Agent Framework) for processing support requests.
 
 ### Clean Architecture Layers
 
@@ -46,31 +45,60 @@ graph LR
         P[Minimal API<br/>Endpoints<br/>Program.cs<br/>gRPC Service]
     end
     subgraph Infrastructure
-        I[Akka.NET Actors<br/>Agent Framework Services<br/>EF Core InMemory<br/>InboxProcessor<br/>WorkflowUpdateChannel]
+        I[Workflow Engine<br/>Executors<br/>Agent Framework Services<br/>EF Core InMemory<br/>InboxProcessor]
     end
     subgraph Application
-        A[Orchestrator<br/>EmailProcessor<br/>AgentSelector / TeamRouter<br/>UseCases]
+        A[EmailProcessor<br/>AgentSelector / TeamRouter<br/>UseCases]
     end
     subgraph Domain
-        D[Entities / Enums<br/>Interfaces / Messages<br/>Value Objects]
+        D[Entities / Enums<br/>Interfaces<br/>Value Objects]
     end
 
     P --> I --> A --> D
 ```
 
-### Workflow Pipeline
+### Workflow Pipeline (Microsoft Agent Framework)
 
-Each support email flows through a multi-stage AI pipeline. Out-of-scope emails are rejected at classification; code-related issues proceed through routing, assignment, analysis, and fix generation.
+The orchestration uses `WorkflowBuilder` to define a directed graph of **Executors** connected by typed **Edges**. Each executor handles a single stage, receives typed input, and returns typed output that the framework routes to the next executor.
 
 ```mermaid
 flowchart LR
-    E[📧 Email Received] --> C[🔍 LLM Classification]
+    E[📧 Email Received] --> C[🔍 Classification<br/>Executor]
     C -->|Out of Scope| OOS[⛔ Rejected]
-    C -->|Code-Related| TR[🔀 Team Routing]
-    TR --> AS[👤 Agent Assignment]
-    AS --> R[🧠 Root Cause Analysis]
-    R --> CG[💻 Code Fix Generation]
+    C -->|Code-Related| TR[🔀 TeamAssignment<br/>Executor]
+    TR --> AS[👤 AgentAssignment<br/>Executor]
+    AS --> R[🧠 Resolution<br/>Executor]
+    R --> HA[✋ HumanApproval<br/>Gate]
+    HA -->|Approved| CG[💻 CodeGeneration<br/>Executor]
+    HA -->|Rejected| MR[📋 Manual Review]
 ```
+
+### Human-in-the-Loop Approval
+
+The `HumanApprovalGateExecutor` pauses the workflow after resolution and waits for an external decision:
+
+1. The resolution report (root cause, severity, proposed fix) is exposed via `GET /api/support/approvals/pending`
+2. The dashboard shows a notification banner and the Approvals page with full details
+3. A human reviews and clicks **Approve** or **Reject**
+4. On approval → the workflow resumes and generates the code fix
+5. On rejection → the workflow transitions to `ManualReviewRequired` (terminal state)
+6. Stuck workflows can be force-aborted via the **Abort** button (`POST /api/support/issues/{id}/abort`)
+
+This gate ensures no automated code changes are generated without human oversight.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | .NET 10, C# latest |
+| Orchestration | Microsoft Agent Framework Workflows 1.3.0 (`WorkflowBuilder`, `Executor`, typed edges) |
+| LLM Integration | Microsoft.Extensions.AI structured output (`GetResponseAsync<T>`) |
+| Persistence | EF Core 10 InMemory (ready for SQL migration) |
+| Real-time | gRPC server streaming + gRPC-Web |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, ReactFlow |
+| Testing | xUnit, FsCheck (property-based), NSubstitute, Vitest, fast-check |
 
 ---
 
@@ -106,6 +134,12 @@ All endpoints are served under the `/api/support` base path.
 | `GET` | `/api/support/events` | List state transition events (persistent audit log, max 200) |
 | `GET` | `/api/support/agents` | All configured agents with current status (Idle/Working) |
 | `GET` | `/api/support/inbox` | Inbox queue messages with optional status filter |
+| `GET` | `/api/support/approvals/pending` | List workflows awaiting human approval |
+| `POST` | `/api/support/approvals/{id:guid}/approve` | Approve a workflow — resumes to code generation |
+| `POST` | `/api/support/approvals/{id:guid}/reject` | Reject a workflow — moves to ManualReviewRequired |
+| `POST` | `/api/support/issues/{id:guid}/abort` | Abort a workflow, forcing it into Failed state |
+| `GET` | `/api/support/agents/{agentId}/telemetry` | Agent-specific LLM telemetry (tokens, latency) |
+| `GET` | `/api/support/telemetry/summary` | Global LLM usage statistics |
 | gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
 
 📄 [Full API reference with request/response examples →](docs/api-endpoints.md)
@@ -119,9 +153,13 @@ AiSupportWorkflow/
 ├── backend/                                 # .NET backend (solution, source, tests)
 │   ├── AiSupportWorkflow.sln               # Solution file
 │   ├── src/
-│   │   ├── AiSupportWorkflow.Domain/       # Pure domain layer — entities, enums, interfaces, value objects, messages
-│   │   ├── AiSupportWorkflow.Application/  # Business logic — orchestrator, services, use cases, configuration
-│   │   ├── AiSupportWorkflow.Infrastructure/ # External integrations — Akka.NET actors, Agent Framework, services
+│   │   ├── AiSupportWorkflow.Domain/       # Pure domain layer — entities, enums, interfaces, value objects
+│   │   ├── AiSupportWorkflow.Application/  # Business logic — services, use cases, configuration
+│   │   ├── AiSupportWorkflow.Infrastructure/ # External integrations — Workflow Engine, Agent Framework, EF Core
+│   │   │   ├── WorkflowEngine/             # Executors, SupportWorkflowFactory, WorkflowOrchestrator
+│   │   │   ├── AgentFramework/             # ChatClientAgentFactory, LLM Telemetry Middleware
+│   │   │   ├── Persistence/               # EF Core InMemory, StateTracker, CheckpointStore
+│   │   │   └── Services/                  # InboxProcessor, WorkflowApprovalService
 │   │   └── AiSupportWorkflow.Presentation/ # REST API & composition root — Minimal API endpoints, Program.cs
 │   └── tests/
 │       ├── AiSupportWorkflow.UnitTests/    # xUnit + NSubstitute unit tests
@@ -144,12 +182,12 @@ AiSupportWorkflow/
 | Document | Description |
 |----------|-------------|
 | [Clean Architecture](docs/clean-architecture.md) | Four-layer structure, dependency rules, and compliance verification |
-| [Actor Architecture](docs/actor-architecture.md) | Akka.NET actor system, supervision strategy, and message routing |
-| [Agent Framework Integration](docs/agent-framework-integration.md) | LLM-backed services for classification, resolution, and code generation |
+| [Workflow Engine](docs/agent-framework-integration.md) | Microsoft Agent Framework Workflows — executors, edges, and structured output |
+| [Human Approval Gate](docs/human-approval-gate.md) | Human-in-the-loop design, approval API, and dashboard integration |
 | [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
-| [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
 | [Dashboard](docs/dashboard.md) | Real-time monitoring dashboard architecture and usage |
 | [Transactional Inbox](docs/transactional-inbox.md) | Async email processing pattern and implementation |
+| [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
 
 
 ---
@@ -205,7 +243,6 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 |---------|------|---------|-------------|
 | `EnableVisualization` | `bool` | `true` | Enables gRPC streaming and agents endpoint |
 | `SequentialProcessing` | `bool` | `false` | When true, processes one inbox message per cycle and waits for the previous issue to reach a terminal state before processing the next |
-| `ActorAskTimeoutSeconds` | `int` | `120` | Timeout for the Akka.NET actor Ask. Values ≤ 0 fall back to 120s. |
 | `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
 | `Teams` | `array` | — | Team and agent configuration |
 

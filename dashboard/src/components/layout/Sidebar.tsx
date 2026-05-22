@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Bot,
   ScrollText,
+  ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ const navItems = [
   { label: 'Overview', icon: LayoutDashboard, to: '/' },
   { label: 'Inbox', icon: Inbox, to: '/inbox' },
   { label: 'Issues', icon: ClipboardList, to: '/issues' },
+  { label: 'Approvals', icon: ShieldCheck, to: '/approvals' },
   { label: 'Agents', icon: Bot, to: '/agents' },
   { label: 'Event Log', icon: ScrollText, to: '/events' },
 ];

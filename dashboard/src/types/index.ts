@@ -6,6 +6,7 @@ export type WorkflowStage =
   | 'AgentAssigned'
   | 'Resolving'
   | 'Resolved'
+  | 'AwaitingApproval'
   | 'CodeChangeGenerated'
   | 'Failed'
   | 'ManualReviewRequired';
@@ -65,4 +66,42 @@ export interface InboxStats {
 export interface ApiError {
   statusCode: number;
   message: string;
+}
+
+export interface AgentTelemetry {
+  agentId: string;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalCalls: number;
+  averageLatencyMs: number;
+  lastCall: LlmCallDetail | null;
+}
+
+export interface LlmCallDetail {
+  modelName: string;
+  promptTokens: number;
+  completionTokens: number;
+  latencyMs: number;
+  success: boolean;
+  timestamp: string;
+}
+
+export interface TelemetrySummary {
+  totalTokens: number;
+  totalCalls: number;
+  averageLatencyMs: number;
+  errorRate: number;
+}
+
+export interface PendingApproval {
+  issueId: string;
+  report: {
+    issueId: string;
+    rootCauseDescription: string;
+    affectedComponent: string;
+    severityAssessment: string;
+    proposedFixSummary: string;
+    requiresEscalation: boolean;
+    escalationReason: string | null;
+  };
 }

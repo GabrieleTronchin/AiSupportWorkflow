@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { AgentStatus, ApiError, WorkflowState } from '../types';
+import type { AgentStatus, ApiError } from '../types';
 import { useAgents } from '../hooks/useAgents';
 
 vi.mock('../api/client', () => ({
@@ -12,10 +12,8 @@ vi.mock('../hooks/useGrpcStream', () => ({
 }));
 
 import { fetchAgents } from '../api/client';
-import { useGrpcStream } from '../hooks/useGrpcStream';
 
 const mockFetchAgents = vi.mocked(fetchAgents);
-const mockUseGrpcStream = vi.mocked(useGrpcStream);
 
 const agentA: AgentStatus = {
   agentId: 'TeamA_BackendDeveloper',
@@ -42,7 +40,6 @@ const agentB: AgentStatus = {
 describe('useAgents', () => {
   beforeEach(() => {
     mockFetchAgents.mockResolvedValue([agentA, agentB]);
-    mockUseGrpcStream.mockReturnValue({ latestStates: [], isConnected: false });
   });
 
   afterEach(() => {
@@ -84,8 +81,9 @@ describe('useAgents', () => {
   });
 
   describe('gRPC stream refresh', () => {
-    it('re-fetches agents when gRPC stream reports new states', async () => {
-      const { rerender } = renderHook(() => useAgents());
+    it('re-fetches agents via polling interval', async () => {
+      vi.useFakeTimers();
+      const { result } = renderHook(() => useAgents());
 
       await act(async () => {
         await Promise.resolve();
@@ -93,25 +91,18 @@ describe('useAgents', () => {
 
       const initialCallCount = mockFetchAgents.mock.calls.length;
 
-      // Simulate gRPC stream update
-      const streamUpdate: WorkflowState = {
-        issueId: 'issue-1',
-        stage: 'AgentAssigned',
-        lastUpdated: new Date().toISOString(),
-        detail: 'TeamA_BackendDeveloper',
-      };
-      mockUseGrpcStream.mockReturnValue({ latestStates: [streamUpdate], isConnected: true });
-
-      rerender();
-
+      // Advance past the polling interval (3000ms)
       await act(async () => {
+        vi.advanceTimersByTime(3100);
         await Promise.resolve();
       });
 
-      expect(mockFetchAgents).toHaveBeenCalledTimes(initialCallCount + 1);
+      expect(mockFetchAgents.mock.calls.length).toBeGreaterThan(initialCallCount);
+      vi.useRealTimers();
     });
 
-    it('does not re-fetch when latestStates is empty', async () => {
+    it('does not re-fetch before polling interval', async () => {
+      vi.useFakeTimers();
       renderHook(() => useAgents());
 
       await act(async () => {
@@ -120,8 +111,13 @@ describe('useAgents', () => {
 
       const callCount = mockFetchAgents.mock.calls.length;
 
-      // latestStates remains empty — no additional fetch
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        await Promise.resolve();
+      });
+
       expect(mockFetchAgents).toHaveBeenCalledTimes(callCount);
+      vi.useRealTimers();
     });
   });
 
