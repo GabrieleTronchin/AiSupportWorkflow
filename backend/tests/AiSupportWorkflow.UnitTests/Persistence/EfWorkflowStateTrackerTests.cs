@@ -7,27 +7,19 @@ using Microsoft.EntityFrameworkCore;
 
 public class EfWorkflowStateTrackerTests
 {
-    private static WorkflowDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new WorkflowDbContext(options);
-    }
-
     [Fact]
     public async Task TransitionAsync_CreatesIssueEntity_WhenNotExists()
     {
         // Arrange
-        using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
+        var factory = new TestDbContextFactory();
+        var tracker = new EfWorkflowStateTracker(factory);
         var issueId = Guid.NewGuid();
 
         // Act
         await tracker.TransitionAsync(issueId, WorkflowStage.Received, "New issue");
 
         // Assert
+        using var context = factory.CreateDbContext();
         var entity = context.Issues.Find(issueId);
         Assert.NotNull(entity);
         Assert.Equal(WorkflowStage.Received, entity.CurrentStage);
@@ -38,8 +30,8 @@ public class EfWorkflowStateTrackerTests
     public async Task TransitionAsync_UpdatesExistingIssueEntity()
     {
         // Arrange
-        using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
+        var factory = new TestDbContextFactory();
+        var tracker = new EfWorkflowStateTracker(factory);
         var issueId = Guid.NewGuid();
 
         await tracker.TransitionAsync(issueId, WorkflowStage.Received, "Initial");
@@ -48,6 +40,7 @@ public class EfWorkflowStateTrackerTests
         await tracker.TransitionAsync(issueId, WorkflowStage.Classified, "Classified as backend bug");
 
         // Assert
+        using var context = factory.CreateDbContext();
         var entity = context.Issues.Find(issueId);
         Assert.NotNull(entity);
         Assert.Equal(WorkflowStage.Classified, entity.CurrentStage);
@@ -58,14 +51,15 @@ public class EfWorkflowStateTrackerTests
     public async Task TransitionAsync_CreatesStateTransitionEvent()
     {
         // Arrange
-        using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
+        var factory = new TestDbContextFactory();
+        var tracker = new EfWorkflowStateTracker(factory);
         var issueId = Guid.NewGuid();
 
         // Act
         await tracker.TransitionAsync(issueId, WorkflowStage.Received, "Event detail");
 
         // Assert
+        using var context = factory.CreateDbContext();
         var events = await context.Events.Where(e => e.IssueId == issueId).ToListAsync();
         Assert.Single(events);
         Assert.Equal(WorkflowStage.Received, events[0].NewStage);
@@ -76,8 +70,8 @@ public class EfWorkflowStateTrackerTests
     public async Task GetAllStates_ReturnsAllIssues()
     {
         // Arrange
-        using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
+        var factory = new TestDbContextFactory();
+        var tracker = new EfWorkflowStateTracker(factory);
 
         var id1 = Guid.NewGuid();
         var id2 = Guid.NewGuid();
@@ -101,8 +95,8 @@ public class EfWorkflowStateTrackerTests
     public void GetState_ReturnsDefaultState_WhenIssueNotFound()
     {
         // Arrange
-        using var context = CreateContext();
-        var tracker = new EfWorkflowStateTracker(new TestDbContextFactory(context));
+        var factory = new TestDbContextFactory();
+        var tracker = new EfWorkflowStateTracker(factory);
         var unknownId = Guid.NewGuid();
 
         // Act

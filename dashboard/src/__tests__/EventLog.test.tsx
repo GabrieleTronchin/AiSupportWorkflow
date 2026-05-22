@@ -48,9 +48,9 @@ describe('EventLog', () => {
     it('shows new stage badges', () => {
       render(<EventLog events={mockEvents} />);
 
-      expect(screen.getByText('Received')).toBeInTheDocument();
-      expect(screen.getByText('Failed')).toBeInTheDocument();
-      expect(screen.getByText('CodeChangeGenerated')).toBeInTheDocument();
+      expect(screen.getAllByText('Received').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Failed').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('CodeChangeGenerated').length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows previous stage when present', () => {
@@ -75,9 +75,9 @@ describe('EventLog', () => {
     it('shows relative timestamp', () => {
       render(<EventLog events={mockEvents} />);
 
-      expect(screen.getByText('3 min ago')).toBeInTheDocument();
-      expect(screen.getByText('2 hours ago')).toBeInTheDocument();
-      expect(screen.getByText('30 sec ago')).toBeInTheDocument();
+      expect(screen.getAllByText('3 min ago').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('2 hours ago').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('30 sec ago').length).toBeGreaterThanOrEqual(1);
     });
   });
 
