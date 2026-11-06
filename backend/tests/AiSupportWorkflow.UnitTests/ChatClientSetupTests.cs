@@ -8,6 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 public class ChatClientSetupTests
 {
+    private static ServiceProvider BuildProvider(Dictionary<string, string?> settings)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        return new ServiceCollection().AddLogging().AddChatClient(configuration).BuildServiceProvider();
+    }
+
     [Fact]
     public void ResolveSettings_OpenAiWithoutEndpoint_UsesSdkDefaultEndpoint()
     {
@@ -27,27 +33,12 @@ public class ChatClientSetupTests
         var settings = ChatClientSetup.ResolveSettings(new LlmProviderConfiguration
         {
             Provider = "openai",
-            ModelName = "qwen2.5:7b",
-            Endpoint = "http://localhost:11434/v1",
+            ModelName = "openai/gpt-oss-20b",
+            Endpoint = "https://api.groq.com/openai/v1",
         });
 
-        Assert.Equal(new Uri("http://localhost:11434/v1"), settings.Endpoint);
-        Assert.Equal("qwen2.5:7b", settings.ModelName);
-    }
-
-    [Theory]
-    [InlineData("gpt-4o-mini", "openai/gpt-4o-mini")]
-    [InlineData("openai/gpt-4.1-mini", "openai/gpt-4.1-mini")]
-    public void ResolveSettings_GitHubModels_DefaultsEndpointAndQualifiesModel(string configured, string expected)
-    {
-        var settings = ChatClientSetup.ResolveSettings(new LlmProviderConfiguration
-        {
-            Provider = "GitHubModels",
-            ModelName = configured,
-        });
-
-        Assert.Equal(new Uri(ChatClientSetup.GitHubModelsEndpoint), settings.Endpoint);
-        Assert.Equal(expected, settings.ModelName);
+        Assert.Equal(new Uri("https://api.groq.com/openai/v1"), settings.Endpoint);
+        Assert.Equal("openai/gpt-oss-20b", settings.ModelName);
     }
 
     [Theory]
@@ -57,7 +48,7 @@ public class ChatClientSetupTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => ChatClientSetup.ResolveSettings(new LlmProviderConfiguration
         {
-            Provider = "GitHubModels",
+            Provider = "OpenAI",
             Endpoint = endpoint,
         }));
 
@@ -65,19 +56,37 @@ public class ChatClientSetupTests
     }
 
     [Fact]
-    public void AddChatClient_GitHubModels_RegistersChatClient()
+    public void AddChatClient_DemoProvider_DoesNotRequireApiKeyAndUsesDemoClient()
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["LlmProvider:Provider"] = "GitHubModels",
-                ["LlmProvider:ApiKey"] = "test-token",
-                ["LlmProvider:ModelName"] = "gpt-4o-mini",
-            })
-            .Build();
+        using var provider = BuildProvider(new() { ["LlmProvider:Provider"] = "Demo" });
 
-        using var provider = new ServiceCollection().AddChatClient(configuration).BuildServiceProvider();
+        var chatClient = provider.GetRequiredService<IChatClient>();
 
-        Assert.NotNull(provider.GetService<IChatClient>());
+        Assert.NotNull(chatClient.GetService<DemoChatClient>());
+    }
+
+    [Fact]
+    public void AddChatClient_OpenAiWithoutApiKey_ThrowsWithDemoHint()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => BuildProvider(new() { ["LlmProvider:Provider"] = "OpenAI" }));
+
+        Assert.Contains("Demo", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddChatClient_RecordsTelemetryForEveryCall()
+    {
+        using var provider = BuildProvider(new()
+        {
+            ["LlmProvider:Provider"] = "Demo",
+            ["LlmProvider:DemoLatencyMs"] = "0",
+        });
+        var chatClient = provider.GetRequiredService<IChatClient>();
+
+        await chatClient.GetResponseAsync("Subject: hello\n\nBody: world", cancellationToken: TestContext.Current.CancellationToken);
+
+        var summary = provider.GetRequiredService<LlmTelemetryStore>().GetGlobalSummary();
+        Assert.Equal(1, summary.TotalCalls);
+        Assert.True(summary.TotalTokens > 0);
     }
 }

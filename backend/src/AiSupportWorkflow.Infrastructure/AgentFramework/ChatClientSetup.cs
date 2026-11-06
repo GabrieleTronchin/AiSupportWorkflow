@@ -5,36 +5,26 @@ using AiSupportWorkflow.Infrastructure.Configuration;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 
 public static class ChatClientSetup
 {
-    /// <summary>OpenAI-compatible inference endpoint of GitHub Models.</summary>
-    internal const string GitHubModelsEndpoint = "https://models.github.ai/inference";
-
     public static IServiceCollection AddChatClient(this IServiceCollection services, IConfiguration configuration)
     {
         var config = configuration.GetSection("LlmProvider").Get<LlmProviderConfiguration>()
             ?? new LlmProviderConfiguration();
 
-        if (string.IsNullOrWhiteSpace(config.ApiKey))
-        {
-            throw new InvalidOperationException(
-                "LLM API key is not configured. Set 'LlmProvider:ApiKey' in appsettings.Development.json.");
-        }
+        var innerClient = config.IsDemo ? CreateDemoClient(config) : CreateOpenAiCompatibleClient(config);
 
-        var settings = ResolveSettings(config);
-        var options = new OpenAIClientOptions();
-        if (settings.Endpoint is not null)
-        {
-            options.Endpoint = settings.Endpoint;
-        }
-
-        IChatClient chatClient = new OpenAIClient(new ApiKeyCredential(config.ApiKey), options)
-            .GetChatClient(settings.ModelName)
-            .AsIChatClient();
-        services.AddSingleton(chatClient);
+        // Every LLM call goes through the telemetry middleware (Agents page: tokens, calls, latency).
+        services.TryAddSingleton<LlmTelemetryStore>();
+        services.AddSingleton<IChatClient>(sp => new LlmTelemetryMiddleware(
+            innerClient,
+            sp.GetRequiredService<ILogger<LlmTelemetryMiddleware>>(),
+            sp.GetRequiredService<LlmTelemetryStore>()));
 
         services.ConfigureHttpClientDefaults(builder =>
         {
@@ -55,16 +45,35 @@ public static class ChatClientSetup
     internal static ChatClientSettings ResolveSettings(LlmProviderConfiguration config) =>
         config.Provider.ToLowerInvariant() switch
         {
-            // Endpoint is optional: when set, any OpenAI-compatible server can be used.
+            // Endpoint is optional: when set, any OpenAI-compatible server (Groq, Ollama, ...) can be used.
             "openai" => new(ParseEndpoint(config.Endpoint), config.ModelName),
-
-            // GitHub Models expects publisher-qualified model ids, e.g. "openai/gpt-4o-mini".
-            "githubmodels" => new(
-                ParseEndpoint(config.Endpoint) ?? new Uri(GitHubModelsEndpoint),
-                config.ModelName.Contains('/') ? config.ModelName : $"openai/{config.ModelName}"),
-
             _ => throw new InvalidOperationException($"Unsupported LLM provider: {config.Provider}")
         };
+
+    private static IChatClient CreateDemoClient(LlmProviderConfiguration config) =>
+        new DemoChatClient(TimeSpan.FromMilliseconds(Math.Max(0, config.DemoLatencyMs)));
+
+    private static IChatClient CreateOpenAiCompatibleClient(LlmProviderConfiguration config)
+    {
+        var settings = ResolveSettings(config);
+
+        if (string.IsNullOrWhiteSpace(config.ApiKey))
+        {
+            throw new InvalidOperationException(
+                "LLM API key is not configured. Set 'LlmProvider:ApiKey' in appsettings.Development.json, " +
+                "or set 'LlmProvider:Provider' to 'Demo' to use simulated responses.");
+        }
+
+        var options = new OpenAIClientOptions();
+        if (settings.Endpoint is not null)
+        {
+            options.Endpoint = settings.Endpoint;
+        }
+
+        return new OpenAIClient(new ApiKeyCredential(config.ApiKey), options)
+            .GetChatClient(settings.ModelName)
+            .AsIChatClient();
+    }
 
     private static Uri? ParseEndpoint(string? endpoint)
     {

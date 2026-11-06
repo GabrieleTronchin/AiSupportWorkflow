@@ -5,6 +5,7 @@ using AiSupportWorkflow.Application.Services;
 using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
+using AiSupportWorkflow.Infrastructure.AgentFramework;
 using AiSupportWorkflow.Infrastructure.WorkflowEngine;
 using AiSupportWorkflow.Infrastructure.WorkflowEngine.Executors;
 using AiSupportWorkflow.UnitTests.Helpers;
@@ -106,6 +107,63 @@ public class WorkflowOrchestratorTests
         await _stateTracker.DidNotReceive().TransitionAsync(Guid.Empty, Arg.Any<WorkflowStage>(), Arg.Any<string?>());
         await _stateTracker.Received(1).TransitionAsync(result.IssueId, WorkflowStage.CodeChangeGenerated, Arg.Any<string?>());
         await _stateTracker.DidNotReceive().TransitionAsync(Arg.Any<Guid>(), WorkflowStage.Failed, Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task ProcessIssueAsync_DemoChatClient_CompletesFullPipeline()
+    {
+        // Arrange — the Demo provider must drive the real workflow end-to-end
+        var sut = CreateSut(new DemoChatClient(TimeSpan.Zero));
+        var email = new IncomingEmail(
+            "dev.team@company.com",
+            "NullReferenceException in OrderController - Application A",
+            "The API crashes at OrderController.cs line 27 because Items is null.");
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        // Act
+        var processing = sut.ProcessIssueAsync(email, cts.Token);
+        await ApproveWhenPendingAsync(approve: true, cts.Token);
+        var result = await processing;
+
+        // Assert
+        Assert.True(result.IsSuccess, result.FailureReason);
+        Assert.Equal(result.IssueId, result.PullRequest!.IssueId);
+        Assert.Contains("OrderController.cs", result.PullRequest.Title);
+        await _stateTracker.Received(1).TransitionAsync(result.IssueId, WorkflowStage.AgentAssigned, "TeamA_BackendDeveloper");
+        await _stateTracker.Received(1).TransitionAsync(result.IssueId, WorkflowStage.CodeChangeGenerated, Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task ProcessIssueAsync_ConcurrentRuns_AreIndependent()
+    {
+        // Arrange — two workflows paused on approval at the same time (shared singleton executors)
+        var sut = CreateSut(new DemoChatClient(TimeSpan.Zero));
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        var first = sut.ProcessIssueAsync(
+            new IncomingEmail("a@company.com", "Crash in OrderController - Application A", "Exception in OrderController.cs"), cts.Token);
+        var second = sut.ProcessIssueAsync(
+            new IncomingEmail("b@company.com", "API error in Application A", "Endpoint returns error 500"), cts.Token);
+
+        // Act — wait until both are awaiting approval, then approve both
+        while (_approvalGate.GetPendingApprovals().Count < 2)
+        {
+            await Task.Delay(20, cts.Token);
+        }
+
+        foreach (var pending in _approvalGate.GetPendingApprovals())
+        {
+            _approvalGate.TryCompleteApproval(pending.IssueId, new(true));
+        }
+
+        var results = await Task.WhenAll(first, second);
+
+        // Assert
+        Assert.All(results, r => Assert.True(r.IsSuccess, r.FailureReason));
+        Assert.NotEqual(results[0].IssueId, results[1].IssueId);
+        Assert.All(results, r => Assert.Equal(r.IssueId, r.PullRequest!.IssueId));
     }
 
     [Fact]
