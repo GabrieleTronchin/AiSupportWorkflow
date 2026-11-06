@@ -25,10 +25,11 @@ The `LlmProviderConfiguration` class (`src/AiSupportWorkflow.Infrastructure/Conf
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `Provider` | `"OpenAI"` | `OpenAI` or `GitHubModels` |
-| `ModelName` | `"gpt-4o-mini"` | Model to use for chat completions (`GitHubModels` prefixes unqualified ids with `openai/`) |
-| `ApiKey` | `""` | Required — must be set in `appsettings.Development.json` (OpenAI key or GitHub token with `models: read`) |
-| `Endpoint` | `null` | Optional OpenAI-compatible endpoint URL; `GitHubModels` defaults to `https://models.github.ai/inference` |
+| `Provider` | `"Demo"` | `Demo` (simulated responses via `DemoChatClient`, see [Demo Mode](demo-mode.md)) or `OpenAI` |
+| `ModelName` | `"gpt-4o-mini"` | Model to use for chat completions |
+| `ApiKey` | `""` | Required for `OpenAI` — set it in `appsettings.Development.json`; not used by `Demo` |
+| `Endpoint` | `null` | Optional OpenAI-compatible endpoint URL (Groq, Ollama, ...); defaults to OpenAI |
+| `DemoLatencyMs` | `1500` | Simulated latency per call in `Demo` mode |
 
 Configuration is bound from the `LlmProvider` section in `appsettings.json` / `appsettings.Development.json`.
 
@@ -38,12 +39,11 @@ The `ChatClientSetup.AddChatClient()` extension method (`src/AiSupportWorkflow.I
 
 1. Reads `LlmProvider` configuration from `IConfiguration`
 2. Validates the API key is present (throws `InvalidOperationException` if missing)
-3. Resolves endpoint and model name for the provider (`ResolveSettings`)
-4. Creates an `OpenAIClient` with the API key (and custom endpoint, if any), then obtains an `IChatClient` via `GetChatClient(modelName).AsIChatClient()`
-5. Registers the `IChatClient` as a singleton in the DI container
-6. Configures HTTP resilience with Polly: 3 retries, exponential backoff with jitter
+3. `Demo`: creates a `DemoChatClient` (deterministic structured responses, no network calls). `OpenAI`: resolves endpoint and model (`ResolveSettings`) and creates an `OpenAIClient` with the API key (and custom endpoint, if any), then obtains an `IChatClient` via `GetChatClient(modelName).AsIChatClient()`
+4. Wraps the client in `LlmTelemetryMiddleware` (tokens, latency and errors per agent, shown on the Agents page) and registers it as a singleton `IChatClient`
+5. Configures HTTP resilience with Polly: 3 retries, exponential backoff with jitter
 
-Both supported providers (`"openai"`, `"githubmodels"`, case-insensitive) use the OpenAI-compatible client. Unsupported providers and invalid endpoint URLs throw `InvalidOperationException`.
+Providers are matched case-insensitively. Unsupported providers, a missing API key for `OpenAI` and invalid endpoint URLs throw `InvalidOperationException` at startup.
 
 ## LLM-Backed Services
 

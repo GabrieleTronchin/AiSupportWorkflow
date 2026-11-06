@@ -75,7 +75,9 @@ cd dashboard && npm run typecheck
 
 ## Configuration
 
-- LLM settings under `LlmProvider` (`Provider`: `OpenAI` | `GitHubModels`, `ApiKey`, `ModelName`, optional `Endpoint`); the API key goes in the git-ignored `appsettings.Development.json`
+- LLM settings under `LlmProvider` (`Provider`: `Demo` | `OpenAI`, `ApiKey`, `ModelName`, optional `Endpoint` for any OpenAI-compatible server, `DemoLatencyMs`); the API key goes in the git-ignored `appsettings.Development.json`
+- `Provider` defaults to `Demo` (in code and `appsettings.json`): `DemoChatClient` simulates LLM responses, no API key needed. Override with `OpenAI` to use a real model. See `docs/demo-mode.md`
+- `GET /api/support/config` exposes `demoMode`, `llmProvider`, `llmModel` (never the API key/endpoint); the dashboard shows them as a badge
 - Model name configurable in `appsettings.json` (defaults to `gpt-4o-mini`)
 - Teams, agents, personas, and visualization toggle in `appsettings.json` under `Workflow` section
 - `InboxPollingIntervalSeconds` controls the inbox processor polling frequency (default: 5)
