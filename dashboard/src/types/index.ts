@@ -11,6 +11,27 @@ export type WorkflowStage =
   | 'Failed'
   | 'ManualReviewRequired';
 
+/**
+ * Every WorkflowStage in pipeline order. The Record keyed by WorkflowStage makes
+ * the compiler fail if a stage is added to the union but not listed here.
+ */
+const STAGE_ORDER: Record<WorkflowStage, number> = {
+  Received: 0,
+  Classified: 1,
+  ClassifiedOutOfScope: 2,
+  TeamAssigned: 3,
+  AgentAssigned: 4,
+  Resolving: 5,
+  Resolved: 6,
+  AwaitingApproval: 7,
+  CodeChangeGenerated: 8,
+  Failed: 9,
+  ManualReviewRequired: 10,
+};
+
+export const WORKFLOW_STAGES: readonly WorkflowStage[] = (Object.keys(STAGE_ORDER) as WorkflowStage[])
+  .sort((a, b) => STAGE_ORDER[a] - STAGE_ORDER[b]);
+
 export interface WorkflowState {
   issueId: string;
   stage: WorkflowStage;
