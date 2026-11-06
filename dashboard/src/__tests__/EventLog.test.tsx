@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { EventLog, capEvents } from '../components/EventLog';
 import type { StateTransitionEvent } from '../types';
 
@@ -90,6 +90,23 @@ describe('EventLog', () => {
       expect(screen.getAllByText('3 min ago').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('2 hours ago').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('30 sec ago').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Group toggle', () => {
+    it('exposes the expanded state of each issue group via aria-expanded', () => {
+      render(<EventLog events={mockEvents} />);
+
+      const header = screen.getByRole('button', { name: /abcdef12/ });
+      expect(header).toHaveAttribute('aria-expanded', 'true');
+
+      fireEvent.click(header);
+      expect(header).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Email received from user')).not.toBeInTheDocument();
+
+      fireEvent.click(header);
+      expect(header).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText('Email received from user')).toBeInTheDocument();
     });
   });
 

@@ -93,9 +93,10 @@ export function EventLog({ events }: EventLogProps) {
                   {/* Group header */}
                   <button
                     onClick={() => toggleGroup(issueId)}
+                    aria-expanded={!isCollapsed}
                     className="w-full flex items-center gap-3 py-2.5 px-3 text-sm hover:bg-zinc-800/50 transition-colors text-left"
                   >
-                    <span className="text-zinc-500 text-xs shrink-0">
+                    <span className="text-zinc-500 text-xs shrink-0" aria-hidden="true">
                       {isCollapsed ? '▶' : '▼'}
                     </span>
                     <span className="font-mono text-zinc-100 shrink-0">
