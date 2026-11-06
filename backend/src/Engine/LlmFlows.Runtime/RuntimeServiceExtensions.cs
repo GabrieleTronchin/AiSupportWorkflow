@@ -15,6 +15,7 @@ using LlmFlows.Runtime.Runs;
 using LlmFlows.Runtime.Steps;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 
@@ -34,7 +35,7 @@ public static class RuntimeServiceExtensions
 
         services.AddSingleton<ModuleCatalog>();
         services.AddSingleton<IModuleCatalog>(sp => sp.GetRequiredService<ModuleCatalog>());
-        services.AddSingleton<IModuleClient, ModuleClient>();
+        services.TryAddSingleton<IModuleClient, ModuleClient>();
         services.AddSingleton<ModuleCatalogService>();
         services.AddHostedService(sp => sp.GetRequiredService<ModuleCatalogService>());
 
@@ -54,7 +55,7 @@ public static class RuntimeServiceExtensions
         services.AddSingleton<WorkflowCompiler>();
 
         services.AddSingleton<RunOrchestrator>();
-        services.AddSingleton<IRunExecutor>(sp => sp.GetRequiredService<RunOrchestrator>());
+        services.TryAddSingleton<IRunExecutor>(sp => sp.GetRequiredService<RunOrchestrator>());
         services.AddSingleton<IntakeService>();
         services.AddSingleton<InboxProcessor>();
         services.AddHostedService(sp => sp.GetRequiredService<InboxProcessor>());

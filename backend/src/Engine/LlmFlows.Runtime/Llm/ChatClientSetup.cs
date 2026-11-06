@@ -22,7 +22,7 @@ public static class ChatClientSetup
         var innerClient = options.IsDemo ? CreateDemoClient(options) : new StripDemoResponseChatClient(CreateOpenAiCompatibleClient(options));
 
         services.TryAddSingleton<LlmTelemetryStore>();
-        services.AddSingleton<IChatClient>(sp => new LlmTelemetryMiddleware(
+        services.TryAddSingleton<IChatClient>(sp => new LlmTelemetryMiddleware(
             innerClient.AsBuilder().UseOpenTelemetry(sourceName: "LlmFlows.Llm").Build(sp),
             sp.GetRequiredService<ILogger<LlmTelemetryMiddleware>>(),
             sp.GetRequiredService<LlmTelemetryStore>()));

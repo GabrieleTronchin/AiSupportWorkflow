@@ -26,6 +26,15 @@ internal sealed class LlmStepHandler(IChatClient chatClient, IOptions<LlmOptions
         var templates = run.Templates;
         var scope = run.CreateScope();
 
+        // The agent of this call (step agent, else the run's assigned agent) is visible to prompts as `agent`.
+        var agentId = llm.Agent is null ? run.AssignedAgentId : templates.Render(llm.Agent, scope);
+        if (string.IsNullOrWhiteSpace(agentId))
+        {
+            agentId = null;
+        }
+
+        scope = scope.With("agent", AgentNode(run, agentId));
+
         var systemPrompt = llm.SystemPrompt is null ? null : templates.Render(run.Module.ResolveText(llm.SystemPrompt), scope);
         var prompt = templates.Render(run.Module.ResolveText(llm.Prompt), scope);
         var schemaNode = run.Module.GetSchemaNode(llm.Output.Schema);
@@ -38,7 +47,6 @@ internal sealed class LlmStepHandler(IChatClient chatClient, IOptions<LlmOptions
 
         messages.Add(new ChatMessage(ChatRole.User, prompt));
 
-        var agentId = llm.Agent is null ? run.AssignedAgentId : templates.Render(llm.Agent, scope);
         var options = LlmCallAttribution.ForAgent(
             new ChatOptions
             {
@@ -48,7 +56,7 @@ internal sealed class LlmStepHandler(IChatClient chatClient, IOptions<LlmOptions
                     schemaName: step.Id,
                     schemaDescription: step.Name),
             },
-            string.IsNullOrWhiteSpace(agentId) ? null : agentId,
+            agentId,
             run.Module.Id,
             run.Workflow.Id,
             run.RunId,
@@ -106,6 +114,18 @@ internal sealed class LlmStepHandler(IChatClient chatClient, IOptions<LlmOptions
 
         return templates.EvaluateValue(demo.Output, scope) ?? new JsonObject();
     }
+
+    private static JsonObject? AgentNode(RunContext run, string? agentId) =>
+        agentId is not null && run.Module.FindAgent(agentId) is { } agent
+            ? new JsonObject
+            {
+                ["id"] = agent.Id,
+                ["name"] = agent.Name,
+                ["group"] = agent.Group,
+                ["role"] = agent.Role,
+                ["persona"] = agent.Persona,
+            }
+            : null;
 
     /// <summary>Some providers wrap JSON in a markdown code fence even with structured output.</summary>
     private static string StripCodeFence(string text)
