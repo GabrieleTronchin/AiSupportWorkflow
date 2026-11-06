@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/backend/" />
+  <Folder Name="/backend/src/">
+    <Project Path="backend/src/AiSupportWorkflow.Application/AiSupportWorkflow.Application.csproj" />
+    <Project Path="backend/src/AiSupportWorkflow.Domain/AiSupportWorkflow.Domain.csproj" />
+    <Project Path="backend/src/AiSupportWorkflow.Infrastructure/AiSupportWorkflow.Infrastructure.csproj" />
+    <Project Path="backend/src/AiSupportWorkflow.Presentation/AiSupportWorkflow.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/backend/tests/">
+    <Project Path="backend/tests/AiSupportWorkflow.PropertyTests/AiSupportWorkflow.PropertyTests.csproj" />
+    <Project Path="backend/tests/AiSupportWorkflow.UnitTests/AiSupportWorkflow.UnitTests.csproj" />
+  </Folder>
+</Solution>
