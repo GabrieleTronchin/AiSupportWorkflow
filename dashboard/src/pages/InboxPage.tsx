@@ -35,6 +35,7 @@ export function InboxPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-zinc-100">Inbox</h1>
         <select
+          aria-label="Filter by status"
           value={filter}
           onChange={(e) => setFilter(e.target.value as InboxStatus | 'all')}
           className="rounded-md bg-zinc-800 border border-zinc-700 text-zinc-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
