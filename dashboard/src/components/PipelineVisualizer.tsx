@@ -22,7 +22,7 @@ export function getNodeStyle(state: NodeState, outcome: 'success' | 'failure' | 
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 600,
     lineHeight: 1.2,
     border: `1px solid ${outcome === 'success' ? '#10b981' : outcome === 'failure' ? '#ef4444' : '#52525b'}`,
@@ -118,7 +118,7 @@ export function PipelineVisualizer({ graph, activeRuns }: PipelineVisualizerProp
         nodes={nodes}
         edges={edges}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitViewOptions={{ padding: 0.08, maxZoom: 1.1 }}
         panOnDrag
         zoomOnScroll
         zoomOnPinch

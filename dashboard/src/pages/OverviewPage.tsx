@@ -132,11 +132,12 @@ export function OverviewPage() {
 
       {/* Graph + submission form */}
       {selectedWorkflow ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-          <div className="lg:col-span-2 bg-zinc-900/40 rounded-lg border border-zinc-700 overflow-hidden">
+        <div className="flex flex-col gap-4">
+          {/* Full width: workflows are long chains, labels must stay readable at the default zoom */}
+          <div className="h-[320px] shrink-0 bg-zinc-900/40 rounded-lg border border-zinc-700 overflow-hidden">
             <PipelineVisualizer graph={selectedWorkflow.graph} activeRuns={activeRuns} />
           </div>
-          <div className="overflow-y-auto">
+          <div className="bg-zinc-800/40 rounded-lg border border-zinc-700 p-4">
             <RunSubmitForm workflow={selectedWorkflow} />
           </div>
         </div>

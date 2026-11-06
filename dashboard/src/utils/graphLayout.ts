@@ -1,7 +1,7 @@
 import dagre from '@dagrejs/dagre';
 import type { RunStatus, RunSummary, WorkflowGraph } from '../types';
 
-export const NODE_WIDTH = 170;
+export const NODE_WIDTH = 140;
 export const NODE_HEIGHT = 46;
 
 export interface PositionedNode {
@@ -13,7 +13,7 @@ export interface PositionedNode {
 /** Left-to-right automatic layout of a workflow graph (top-left node positions). */
 export function layoutGraph(graph: WorkflowGraph): PositionedNode[] {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'LR', nodesep: 30, ranksep: 70, marginx: 10, marginy: 10 });
+  g.setGraph({ rankdir: 'LR', nodesep: 24, ranksep: 64, marginx: 10, marginy: 10 });
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const node of graph.nodes) {
