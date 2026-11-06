@@ -6,12 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class EfWorkflowEventRepository(WorkflowDbContext dbContext) : IWorkflowEventRepository
 {
-    private static readonly WorkflowStage[] TerminalStages =
-    [
-        WorkflowStage.Failed,
-        WorkflowStage.CodeChangeGenerated,
-        WorkflowStage.ClassifiedOutOfScope,
-    ];
+    private static readonly WorkflowStage[] TerminalStages = [.. WorkflowStageExtensions.TerminalStages];
 
     public async Task<IReadOnlyList<WorkflowEventDto>> GetEventsAsync(int limit, CancellationToken ct = default)
     {
