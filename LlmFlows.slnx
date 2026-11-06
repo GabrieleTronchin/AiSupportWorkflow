@@ -9,6 +9,10 @@
   <Folder Name="/backend/src/AppHost/">
     <Project Path="backend/src/AppHost/LlmFlows.ServiceDefaults/LlmFlows.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/backend/src/Engine/">
+    <Project Path="backend/src/Engine/LlmFlows.Contracts/LlmFlows.Contracts.csproj" />
+    <Project Path="backend/src/Engine/LlmFlows.Definitions/LlmFlows.Definitions.csproj" />
+  </Folder>
   <Folder Name="/backend/src/Sdk/">
     <Project Path="backend/src/Sdk/LlmFlows.Testing/LlmFlows.Testing.csproj" />
   </Folder>
@@ -18,6 +22,7 @@
   <Folder Name="/backend/tests/">
     <Project Path="backend/tests/AiSupportWorkflow.PropertyTests/AiSupportWorkflow.PropertyTests.csproj" />
     <Project Path="backend/tests/AiSupportWorkflow.UnitTests/AiSupportWorkflow.UnitTests.csproj" />
+    <Project Path="backend/tests/LlmFlows.Engine.Tests/LlmFlows.Engine.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Gateway.Tests/LlmFlows.Gateway.Tests.csproj" />
   </Folder>
 </Solution>
