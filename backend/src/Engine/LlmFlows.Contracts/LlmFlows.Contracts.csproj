@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>HTTP contracts shared by the LlmFlows engine, module services and clients.</Description>
+  </PropertyGroup>
+
+</Project>
