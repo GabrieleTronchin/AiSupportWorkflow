@@ -12,6 +12,12 @@ internal sealed class FakeChatClient : IChatClient
             new ChatResponse(new ChatMessage(ChatRole.Assistant, responseContent)));
     }
 
+    public FakeChatClient(Func<string, string> responder)
+    {
+        _handler = messages => Task.FromResult(
+            new ChatResponse(new ChatMessage(ChatRole.Assistant, responder(messages.Last().Text))));
+    }
+
     public FakeChatClient(Exception exception)
     {
         _handler = _ => throw exception;

@@ -16,7 +16,8 @@ public sealed partial class ClassificationExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
     {
         protocolBuilder.RouteBuilder.AddHandler<IssueRecord, ClassificationResult>(HandleAsync);
-        return protocolBuilder;
+        // Out-of-scope issues terminate here with a WorkflowResult output.
+        return protocolBuilder.YieldsOutput<WorkflowResult>();
     }
 
     public async ValueTask<ClassificationResult> HandleAsync(

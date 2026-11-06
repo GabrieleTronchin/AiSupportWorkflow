@@ -14,7 +14,8 @@ public sealed partial class HumanApprovalGateExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
     {
         protocolBuilder.RouteBuilder.AddHandler<ResolutionReport, ApprovalDecision>(HandleAsync);
-        return protocolBuilder;
+        // Rejected approvals terminate here with a WorkflowResult output.
+        return protocolBuilder.YieldsOutput<WorkflowResult>();
     }
 
     public async ValueTask<ApprovalDecision> HandleAsync(

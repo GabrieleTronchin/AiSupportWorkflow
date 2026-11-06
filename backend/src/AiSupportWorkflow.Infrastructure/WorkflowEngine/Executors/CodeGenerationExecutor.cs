@@ -16,7 +16,8 @@ public sealed partial class CodeGenerationExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
     {
         protocolBuilder.RouteBuilder.AddHandler<ApprovalDecision>((Func<ApprovalDecision, IWorkflowContext, CancellationToken, ValueTask>)HandleAsync);
-        return protocolBuilder;
+        // Successful runs terminate here with a WorkflowResult output.
+        return protocolBuilder.YieldsOutput<WorkflowResult>();
     }
 
     public async ValueTask HandleAsync(

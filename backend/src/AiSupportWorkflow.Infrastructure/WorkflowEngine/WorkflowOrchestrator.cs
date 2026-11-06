@@ -35,18 +35,39 @@ internal sealed class WorkflowOrchestrator(
             await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
             WorkflowResult? result = null;
+            string? failureReason = null;
 
             await foreach (var evt in run.WatchStreamAsync(ct))
             {
                 logger.LogDebug("Workflow event: {EventType} for issue {IssueId}", evt.GetType().Name, issue.Id);
-                if (evt is WorkflowOutputEvent outputEvent && outputEvent.Data is WorkflowResult workflowResult)
+                switch (evt)
                 {
-                    result = workflowResult;
+                    case WorkflowOutputEvent { Data: WorkflowResult workflowResult }:
+                        result = workflowResult;
+                        break;
+                    case ExecutorFailedEvent failed:
+                        failureReason ??= failed.Data?.Message ?? $"Executor {failed.ExecutorId} failed.";
+                        logger.LogError(failed.Data, "Executor {ExecutorId} failed for issue {IssueId}", failed.ExecutorId, issue.Id);
+                        break;
+                    case WorkflowErrorEvent error:
+                        var exception = error.Data as Exception;
+                        failureReason ??= exception?.Message ?? "Workflow error.";
+                        logger.LogError(exception, "Workflow error for issue {IssueId}", issue.Id);
+                        break;
                 }
             }
 
             logger.LogInformation("Workflow completed for issue {IssueId}, result: {Result}", issue.Id, result?.GetType().Name ?? "null");
-            return result ?? WorkflowResult.Failed(issue.Id, "Workflow completed without producing a result.");
+
+            if (result is not null)
+            {
+                return result;
+            }
+
+            // No output was produced: surface the failure instead of leaving the issue stuck in a non-terminal stage.
+            var reason = failureReason ?? "Workflow completed without producing a result.";
+            await stateTracker.TransitionAsync(issue.Id, WorkflowStage.Failed, reason);
+            return WorkflowResult.Failed(issue.Id, reason);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
