@@ -12,6 +12,8 @@
   <Folder Name="/backend/src/Engine/">
     <Project Path="backend/src/Engine/LlmFlows.Contracts/LlmFlows.Contracts.csproj" />
     <Project Path="backend/src/Engine/LlmFlows.Definitions/LlmFlows.Definitions.csproj" />
+    <Project Path="backend/src/Engine/LlmFlows.Persistence/LlmFlows.Persistence.csproj" />
+    <Project Path="backend/src/Engine/LlmFlows.Runtime/LlmFlows.Runtime.csproj" />
   </Folder>
   <Folder Name="/backend/src/Sdk/">
     <Project Path="backend/src/Sdk/LlmFlows.Testing/LlmFlows.Testing.csproj" />
