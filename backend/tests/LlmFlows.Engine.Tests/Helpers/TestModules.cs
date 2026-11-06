@@ -97,12 +97,102 @@ public static class TestModules
             expectInvalid: true
         """;
 
+    /// <summary>
+    /// A second workflow exercising rule, map, human-input and llm-with-rules demo:
+    /// route (rule) → assign (map, assigns the agent) → approval (human-input) → write (llm) → done | declined.
+    /// </summary>
+    public const string ReviewWorkflow = """
+        id: review
+        version: 1
+        name: Review
+        title: "{{ input.subject }}"
+        input:
+          schema:
+            type: object
+            required: [subject]
+            properties:
+              subject: { type: string, minLength: 1 }
+        start: route
+        steps:
+          - id: route
+            kind: rule
+            name: Route
+            value: "{{ input.subject }}"
+            rules:
+              - match: 'alpha'
+                output: { team: Alpha }
+              - match: 'beta'
+                output: { team: Beta }
+            onMultipleMatches: { fail: "Ambiguous: both alpha and beta." }
+            onNoMatch: { fail: "No team for '{{ input.subject }}'." }
+            detail: "{{ steps.route.team }}"
+            next: assign
+          - id: assign
+            kind: map
+            name: Assign
+            lookups:
+              roleByTeam: { Alpha: Writer, Beta: Reviewer }
+            outputs:
+              - name: role
+                lookup: roleByTeam
+                key: "{{ steps.route.team }}"
+                onMissing: "No role for team {{ steps.route.team }}."
+              - name: label
+                value: "{{ steps.route.team }}-{{ output.role }}"
+            assignAgent: demo_writer
+            detail: "{{ steps.assign.label }}"
+            next: approval
+          - id: approval
+            kind: human-input
+            name: Approval
+            review:
+              title: "Review {{ input.subject }}"
+              fields:
+                - { label: Team, value: "{{ steps.route.team }}" }
+                - { label: Role, value: "{{ steps.assign.role }}" }
+            detail: Waiting for review
+            transitions:
+              - when: steps.approval.decision == "approved"
+                to: write
+              - to: declined
+          - id: write
+            kind: llm
+            name: Write
+            prompt: "Write for {{ steps.route.team }}"
+            output:
+              schema: { file: schemas/summary.schema.json }
+            demo:
+              value: "{{ input.subject }}"
+              rules:
+                - match: 'urgent'
+                  output: { summary: "URGENT {{ steps.route.team }}" }
+              default: { summary: "normal {{ steps.route.team }}" }
+            next: done
+          - id: done
+            kind: terminal
+            name: Done
+            outcome: success
+            message: "{{ steps.write.summary }}"
+          - id: declined
+            kind: terminal
+            name: Declined
+            outcome: failure
+            message: "{{ steps.approval.reason | object.default 'Rejected' }}"
+        """;
+
+    /// <summary>Adds <see cref="ReviewWorkflow"/> to the module.</summary>
+    public static void AddReviewWorkflow(Dictionary<string, string> files)
+    {
+        files["workflows/review.yaml"] = ReviewWorkflow;
+        files.Replace("module.yaml", "  - workflows/hello.yaml", "  - workflows/hello.yaml\n  - workflows/review.yaml");
+    }
+
     public static Dictionary<string, string> Files() => new()
     {
         ["module.yaml"] = Manifest,
         ["workflows/hello.yaml"] = Workflow,
         ["schemas/summary.schema.json"] = SummarySchema,
-        ["prompts/summarize.md"] = "You are {{ run.agent.persona }}",
+        ["prompts/summarize.md"] = "You are {{ agent.persona }}",
         ["samples/hello.yaml"] = Samples,
     };
 

@@ -33,7 +33,7 @@ public class ModuleLoaderTests
         var module = TestModules.LoadValid();
         var llm = (LlmStep)module.Workflows[0].Steps[0];
 
-        Assert.Equal("You are {{ run.agent.persona }}", module.ResolveText(llm.SystemPrompt!));
+        Assert.Equal("You are {{ agent.persona }}", module.ResolveText(llm.SystemPrompt!));
         Assert.Equal("object", module.GetSchemaNode(llm.Output.Schema)["type"]!.GetValue<string>());
         Assert.NotNull(module.GetSchema(module.Workflows[0].Input.Schema));
         Assert.NotNull(module.GetSchema(module.FindTool("demo.count")!.Output!.Schema));
