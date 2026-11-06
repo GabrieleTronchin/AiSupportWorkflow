@@ -16,6 +16,7 @@
     <Project Path="backend/src/Engine/LlmFlows.Runtime/LlmFlows.Runtime.csproj" />
   </Folder>
   <Folder Name="/backend/src/Sdk/">
+    <Project Path="backend/src/Sdk/LlmFlows.Module.Sdk/LlmFlows.Module.Sdk.csproj" />
     <Project Path="backend/src/Sdk/LlmFlows.Testing/LlmFlows.Testing.csproj" />
   </Folder>
   <Folder Name="/backend/src/Services/">
