@@ -20,6 +20,7 @@ using NSubstitute;
 public class WorkflowOrchestratorTests
 {
     private readonly IWorkflowStateTracker _stateTracker = Substitute.For<IWorkflowStateTracker>();
+    private readonly WorkflowRunRegistry _runRegistry = new();
     private HumanApprovalGateExecutor _approvalGate = null!;
 
     private const string CodeRelatedClassification =
@@ -49,7 +50,7 @@ public class WorkflowOrchestratorTests
             _approvalGate,
             new CodeGenerationExecutor(chatClient, _stateTracker));
 
-        return new WorkflowOrchestrator(factory, new EmailProcessor(), _stateTracker, NullLogger<WorkflowOrchestrator>.Instance);
+        return new WorkflowOrchestrator(factory, new EmailProcessor(), _stateTracker, _runRegistry, NullLogger<WorkflowOrchestrator>.Instance);
     }
 
     /// <summary>Answers each pipeline LLM call based on the prompt shape used by the executors.</summary>
@@ -164,6 +165,38 @@ public class WorkflowOrchestratorTests
         Assert.All(results, r => Assert.True(r.IsSuccess, r.FailureReason));
         Assert.NotEqual(results[0].IssueId, results[1].IssueId);
         Assert.All(results, r => Assert.Equal(r.IssueId, r.PullRequest!.IssueId));
+    }
+
+    [Fact]
+    public async Task ProcessIssueAsync_AbortedWhileAwaitingApproval_EndsFailedWithSingleTransition()
+    {
+        // Arrange
+        var sut = CreateSut(new DemoChatClient(TimeSpan.Zero));
+        var email = new IncomingEmail("dev@company.com", "NullReferenceException - Application A", "Crash in OrderController");
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        var processing = sut.ProcessIssueAsync(email, cts.Token);
+        while (_approvalGate.GetPendingApprovals().Count == 0)
+        {
+            await Task.Delay(20, cts.Token);
+        }
+
+        var issueId = _approvalGate.GetPendingApprovals()[0].IssueId;
+        Assert.True(_runRegistry.IsRunning(issueId));
+
+        // Act
+        Assert.True(_runRegistry.TryAbort(issueId));
+        var result = await processing;
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkflowRunRegistry.AbortReason, result.FailureReason);
+        await _stateTracker.Received(1).TransitionAsync(issueId, WorkflowStage.Failed, WorkflowRunRegistry.AbortReason);
+        await _stateTracker.DidNotReceive().TransitionAsync(issueId, WorkflowStage.ManualReviewRequired, Arg.Any<string?>());
+        await _stateTracker.DidNotReceive().TransitionAsync(issueId, WorkflowStage.CodeChangeGenerated, Arg.Any<string?>());
+        Assert.False(_runRegistry.IsRunning(issueId));
+        Assert.Empty(_approvalGate.GetPendingApprovals());
     }
 
     [Fact]

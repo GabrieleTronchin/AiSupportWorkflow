@@ -2,9 +2,8 @@ namespace AiSupportWorkflow.Presentation.Endpoints;
 
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
-using AiSupportWorkflow.Domain.ValueObjects;
 using AiSupportWorkflow.Infrastructure.Services;
-using AiSupportWorkflow.Infrastructure.WorkflowEngine.Executors;
+using AiSupportWorkflow.Infrastructure.WorkflowEngine;
 using AiSupportWorkflow.Presentation.Endpoints.Primitives;
 
 public class ApprovalEndpoints : IEndpoint
@@ -58,25 +57,30 @@ public class ApprovalEndpoints : IEndpoint
         app.MapPost("/api/support/issues/{issueId:guid}/abort", async (
             Guid issueId,
             IWorkflowStateTracker stateTracker,
-            HumanApprovalGateExecutor approvalGate) =>
+            WorkflowRunRegistry runRegistry) =>
         {
-            try
+            // Running workflow: cancel it. The orchestrator records the single Failed transition
+            // (this also releases a pending approval gate without a ManualReviewRequired transition).
+            if (runRegistry.TryAbort(issueId))
             {
-                // If the issue is awaiting approval, reject it to unblock the workflow thread
-                if (approvalGate.IsAwaitingApproval(issueId))
-                {
-                    var decision = new ApprovalDecision(Approved: false, Reason: "Aborted by user");
-                    approvalGate.TryCompleteApproval(issueId, decision);
-                }
+                return Results.Accepted();
+            }
 
-                await stateTracker.TransitionAsync(issueId, WorkflowStage.Failed, "Aborted by user");
-                return Results.NoContent();
-            }
-            catch (Exception ex)
+            // Not running (e.g. after a restart): only non-terminal issues can be aborted.
+            var state = stateTracker.GetState(issueId);
+            if (state.LastUpdated == DateTimeOffset.MinValue)
             {
-                return Results.Problem(detail: ex.Message, statusCode: 500);
+                return Results.NotFound(new { Error = $"Issue {issueId} not found." });
             }
-        }).WithTags("Workflow Control").WithSummary("Abort a workflow, forcing it into Failed state");
+
+            if (state.IsTerminal)
+            {
+                return Results.Conflict(new { Error = $"Issue {issueId} has already completed ({state.Stage})." });
+            }
+
+            await stateTracker.TransitionAsync(issueId, WorkflowStage.Failed, WorkflowRunRegistry.AbortReason);
+            return Results.NoContent();
+        }).WithTags("Workflow Control").WithSummary("Abort a running workflow; the issue ends in Failed state");
     }
 }
 

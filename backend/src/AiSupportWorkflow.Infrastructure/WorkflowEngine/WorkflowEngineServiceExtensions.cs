@@ -33,7 +33,8 @@ public static class WorkflowEngineServiceExtensions
         // Workflow State Persistence
         services.AddSingleton<WorkflowCheckpointStore>();
 
-        // Orchestrator
+        // Orchestrator (+ registry of running workflows, used by the abort endpoint)
+        services.AddSingleton<WorkflowRunRegistry>();
         services.AddScoped<IOrchestrator, WorkflowOrchestrator>();
 
         // Agent status provider (replaces Akka-based provider)
