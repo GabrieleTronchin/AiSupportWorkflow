@@ -61,7 +61,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act — use StartAsync/StopAsync with a short cancellation
@@ -71,7 +71,7 @@ public class InboxProcessorTests
         await processor.StopAsync(CancellationToken.None);
 
         // Assert — reload from DB
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId);
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId, TestContext.Current.CancellationToken);
         Assert.NotNull(message.ProcessedAt);
         Assert.Null(message.Error);
     }
@@ -93,7 +93,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -103,7 +103,7 @@ public class InboxProcessorTests
         await processor.StopAsync(CancellationToken.None);
 
         // Assert — reload from DB
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId);
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId, TestContext.Current.CancellationToken);
         Assert.NotNull(message.ProcessedAt);
         Assert.Equal("Processing failed", message.Error);
     }
@@ -133,7 +133,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -177,7 +177,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -190,7 +190,7 @@ public class InboxProcessorTests
         await orchestrator.DidNotReceive().ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>());
 
         // Message should still be unprocessed
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync();
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(TestContext.Current.CancellationToken);
         Assert.Null(message.ProcessedAt);
     }
 
@@ -252,7 +252,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -292,7 +292,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act

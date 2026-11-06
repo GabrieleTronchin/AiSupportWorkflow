@@ -35,7 +35,7 @@ public class BugResolverTests
         """;
         var sut = CreateSut(new FakeChatClient(json));
 
-        var result = await sut.ResolveAsync(issue, MakeAgent());
+        var result = await sut.ResolveAsync(issue, MakeAgent(), TestContext.Current.CancellationToken);
 
         Assert.Equal(issue.Id, result.IssueId);
         Assert.Equal("Null reference in OrderService", result.RootCauseDescription);
@@ -50,7 +50,7 @@ public class BugResolverTests
         var issue = MakeIssue();
         var sut = CreateSut(new FakeChatClient(new HttpRequestException("API down")));
 
-        var result = await sut.ResolveAsync(issue, MakeAgent());
+        var result = await sut.ResolveAsync(issue, MakeAgent(), TestContext.Current.CancellationToken);
 
         Assert.Equal(issue.Id, result.IssueId);
         Assert.True(result.RequiresEscalation);

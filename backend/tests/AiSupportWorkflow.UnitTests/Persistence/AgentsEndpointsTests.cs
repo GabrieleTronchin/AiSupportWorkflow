@@ -54,7 +54,7 @@ public class AgentsEndpointsTests
         var service = new AgentStatusService(agentStatusProvider, eventRepository, config);
 
         // Act
-        var agents = await service.GetAllAgentStatusesAsync();
+        var agents = await service.GetAllAgentStatusesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(agents);
@@ -87,7 +87,7 @@ public class AgentsEndpointsTests
         var service = new AgentStatusService(agentStatusProvider, eventRepository, config);
 
         // Act
-        var agents = await service.GetAllAgentStatusesAsync();
+        var agents = await service.GetAllAgentStatusesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(agents);

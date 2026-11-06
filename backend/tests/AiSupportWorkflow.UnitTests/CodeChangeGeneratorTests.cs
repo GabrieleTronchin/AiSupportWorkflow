@@ -29,7 +29,7 @@ public class CodeChangeGeneratorTests
         """;
         var sut = CreateSut(new FakeChatClient(json));
 
-        var pr = await sut.GenerateAsync(resolution);
+        var pr = await sut.GenerateAsync(resolution, TestContext.Current.CancellationToken);
 
         Assert.Equal(issueId, pr.IssueId);
         Assert.Equal("Fix null reference in OrderController", pr.Title);
@@ -45,7 +45,7 @@ public class CodeChangeGeneratorTests
         var resolution = MakeResolution(issueId);
         var sut = CreateSut(new FakeChatClient(new HttpRequestException("API down")));
 
-        var pr = await sut.GenerateAsync(resolution);
+        var pr = await sut.GenerateAsync(resolution, TestContext.Current.CancellationToken);
 
         Assert.Equal(issueId, pr.IssueId);
         Assert.NotEmpty(pr.Title);

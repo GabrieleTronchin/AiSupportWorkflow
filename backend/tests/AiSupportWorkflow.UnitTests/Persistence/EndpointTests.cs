@@ -37,14 +37,14 @@ public class EndpointTests
                 Detail = $"Event {i}",
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var events = await context.Events
             .AsNoTracking()
             .OrderByDescending(e => e.Timestamp)
             .Take(200)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(200, events.Count);
@@ -82,12 +82,12 @@ public class EndpointTests
             ProcessedAt = DateTimeOffset.UtcNow,
             Error = "Failed", // failed
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act — filter queued
         var queued = await context.InboxMessages
             .Where(m => m.ProcessedAt == null)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(queued);
