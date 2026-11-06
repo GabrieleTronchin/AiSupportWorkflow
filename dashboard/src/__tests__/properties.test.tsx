@@ -37,7 +37,7 @@ const arbStage = fc.constantFrom<WorkflowStage>(
 const arbWorkflowState = fc.record<WorkflowState>({
   issueId: fc.uuid(),
   stage: arbStage,
-  lastUpdated: fc.date().map(d => d.toISOString()),
+  lastUpdated: fc.date({ noInvalidDate: true }).map(d => d.toISOString()),
   detail: fc.option(fc.string({ minLength: 1, maxLength: 100 }), { nil: null }),
 });
 
@@ -47,7 +47,7 @@ const arbStateTransitionEvent = fc.record<StateTransitionEvent>({
   issueId: fc.uuid(),
   previousStage: fc.option(arbStage, { nil: null }),
   newStage: arbStage,
-  timestamp: fc.date().map(d => d.toISOString()),
+  timestamp: fc.date({ noInvalidDate: true }).map(d => d.toISOString()),
   detail: fc.option(fc.string({ minLength: 1, maxLength: 100 }), { nil: null }),
 });
 
