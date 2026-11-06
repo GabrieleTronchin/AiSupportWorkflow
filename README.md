@@ -201,7 +201,7 @@ AiSupportWorkflow/
    cd AiSupportWorkflow
    ```
 
-2. **Configure your OpenAI API key:**
+2. **Configure your LLM provider API key:**
 
    Create the file `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
 
@@ -214,6 +214,29 @@ AiSupportWorkflow/
      }
    }
    ```
+
+   `LlmProvider` supports the following settings:
+
+   | Setting | Description |
+   |---------|-------------|
+   | `Provider` | `OpenAI` (default) or `GitHubModels`. |
+   | `ModelName` | Model id, e.g. `gpt-4o-mini`. For `GitHubModels`, an unqualified id is prefixed with `openai/` automatically. |
+   | `ApiKey` | API key for the selected provider. |
+   | `Endpoint` | Optional absolute `http(s)` URL of an OpenAI-compatible endpoint. Defaults to OpenAI; `GitHubModels` defaults to `https://models.github.ai/inference`. |
+
+   To use the free [GitHub Models](https://github.com/marketplace/models) tier instead of OpenAI, create a fine-grained personal access token with the `models: read` permission and use it as `ApiKey`:
+
+   ```json
+   {
+     "LlmProvider": {
+       "Provider": "GitHubModels",
+       "ApiKey": "YOUR_GITHUB_TOKEN",
+       "ModelName": "gpt-4o-mini"
+     }
+   }
+   ```
+
+   The free tier is rate-limited; each processed email makes three LLM calls.
 
    This file is git-ignored and will not be committed.
 

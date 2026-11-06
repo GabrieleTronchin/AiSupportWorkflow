@@ -135,7 +135,8 @@ public class MigrationCorrectnessTests
     public Property UnsupportedProvider_ThrowsInvalidOperationException(NonEmptyString provider)
     {
         var providerStr = provider.Get;
-        if (providerStr.Equals("openai", StringComparison.OrdinalIgnoreCase))
+        if (providerStr.Equals("openai", StringComparison.OrdinalIgnoreCase)
+            || providerStr.Equals("githubmodels", StringComparison.OrdinalIgnoreCase))
             return true.ToProperty();
 
         var config = new Dictionary<string, string?>

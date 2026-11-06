@@ -10,6 +10,9 @@ using OpenAI;
 
 public static class ChatClientSetup
 {
+    /// <summary>OpenAI-compatible inference endpoint of GitHub Models.</summary>
+    internal const string GitHubModelsEndpoint = "https://models.github.ai/inference";
+
     public static IServiceCollection AddChatClient(this IServiceCollection services, IConfiguration configuration)
     {
         var config = configuration.GetSection("LlmProvider").Get<LlmProviderConfiguration>()
@@ -21,18 +24,17 @@ public static class ChatClientSetup
                 "LLM API key is not configured. Set 'LlmProvider:ApiKey' in appsettings.Development.json.");
         }
 
-        switch (config.Provider.ToLowerInvariant())
+        var settings = ResolveSettings(config);
+        var options = new OpenAIClientOptions();
+        if (settings.Endpoint is not null)
         {
-            case "openai":
-                var openAiClient = new OpenAIClient(new ApiKeyCredential(config.ApiKey));
-                IChatClient chatClient = openAiClient
-                    .GetChatClient(config.ModelName)
-                    .AsIChatClient();
-                services.AddSingleton(chatClient);
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported LLM provider: {config.Provider}");
+            options.Endpoint = settings.Endpoint;
         }
+
+        IChatClient chatClient = new OpenAIClient(new ApiKeyCredential(config.ApiKey), options)
+            .GetChatClient(settings.ModelName)
+            .AsIChatClient();
+        services.AddSingleton(chatClient);
 
         services.ConfigureHttpClientDefaults(builder =>
         {
@@ -46,4 +48,36 @@ public static class ChatClientSetup
 
         return services;
     }
+
+    /// <summary>
+    /// Maps the configured provider to the endpoint and model name used by the OpenAI-compatible client.
+    /// </summary>
+    internal static ChatClientSettings ResolveSettings(LlmProviderConfiguration config) =>
+        config.Provider.ToLowerInvariant() switch
+        {
+            // Endpoint is optional: when set, any OpenAI-compatible server can be used.
+            "openai" => new(ParseEndpoint(config.Endpoint), config.ModelName),
+
+            // GitHub Models expects publisher-qualified model ids, e.g. "openai/gpt-4o-mini".
+            "githubmodels" => new(
+                ParseEndpoint(config.Endpoint) ?? new Uri(GitHubModelsEndpoint),
+                config.ModelName.Contains('/') ? config.ModelName : $"openai/{config.ModelName}"),
+
+            _ => throw new InvalidOperationException($"Unsupported LLM provider: {config.Provider}")
+        };
+
+    private static Uri? ParseEndpoint(string? endpoint)
+    {
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+            ? uri
+            : throw new InvalidOperationException($"Invalid LLM endpoint: '{endpoint}'. Expected an absolute http(s) URL.");
+    }
 }
+
+internal sealed record ChatClientSettings(Uri? Endpoint, string ModelName);

@@ -75,7 +75,7 @@ cd dashboard && npm run typecheck
 
 ## Configuration
 
-- `OPENAI_API_KEY` environment variable required at runtime
+- LLM settings under `LlmProvider` (`Provider`: `OpenAI` | `GitHubModels`, `ApiKey`, `ModelName`, optional `Endpoint`); the API key goes in the git-ignored `appsettings.Development.json`
 - Model name configurable in `appsettings.json` (defaults to `gpt-4o-mini`)
 - Teams, agents, personas, and visualization toggle in `appsettings.json` under `Workflow` section
 - `InboxPollingIntervalSeconds` controls the inbox processor polling frequency (default: 5)
