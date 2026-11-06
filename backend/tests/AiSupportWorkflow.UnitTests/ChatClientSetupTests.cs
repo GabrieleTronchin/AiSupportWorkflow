@@ -56,6 +56,26 @@ public class ChatClientSetupTests
     }
 
     [Fact]
+    public void AddChatClient_NoLlmProviderSection_DefaultsToDemo()
+    {
+        Assert.True(new LlmProviderConfiguration().IsDemo);
+
+        using var provider = BuildProvider([]);
+
+        Assert.NotNull(provider.GetRequiredService<IChatClient>().GetService<DemoChatClient>());
+    }
+
+    [Fact]
+    public void AppSettings_DefaultProviderIsDemo()
+    {
+        // Demo unless overridden (e.g. "Provider": "OpenAI" in appsettings.Development.json)
+        var appSettings = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        var configuration = new ConfigurationBuilder().AddJsonFile(appSettings, optional: false).Build();
+
+        Assert.Equal("Demo", configuration["LlmProvider:Provider"]);
+    }
+
+    [Fact]
     public void AddChatClient_DemoProvider_DoesNotRequireApiKeyAndUsesDemoClient()
     {
         using var provider = BuildProvider(new() { ["LlmProvider:Provider"] = "Demo" });
