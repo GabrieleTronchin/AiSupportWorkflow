@@ -1,9 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { EventLog, capEvents } from '../components/EventLog';
 import type { StateTransitionEvent } from '../types';
 
 describe('EventLog', () => {
+  // Fixed clock so relative-time assertions don't drift on slow test runs.
+  const NOW = new Date('2026-01-01T12:00:00.000Z').getTime();
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const mockEvents: StateTransitionEvent[] = [
     {
       id: 'evt-1',
@@ -11,7 +23,7 @@ describe('EventLog', () => {
       previousStage: null,
       newStage: 'Received',
       detail: 'Email received from user',
-      timestamp: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+      timestamp: new Date(NOW - 3 * 60 * 1000).toISOString(),
     },
     {
       id: 'evt-2',
@@ -19,7 +31,7 @@ describe('EventLog', () => {
       previousStage: 'Resolving',
       newStage: 'Failed',
       detail: null,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'evt-3',
@@ -27,7 +39,7 @@ describe('EventLog', () => {
       previousStage: 'Resolved',
       newStage: 'CodeChangeGenerated',
       detail: 'PR created successfully',
-      timestamp: new Date(Date.now() - 30 * 1000).toISOString(),
+      timestamp: new Date(NOW - 30 * 1000).toISOString(),
     },
   ];
 
@@ -78,6 +90,23 @@ describe('EventLog', () => {
       expect(screen.getAllByText('3 min ago').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('2 hours ago').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('30 sec ago').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Group toggle', () => {
+    it('exposes the expanded state of each issue group via aria-expanded', () => {
+      render(<EventLog events={mockEvents} />);
+
+      const header = screen.getByRole('button', { name: /abcdef12/ });
+      expect(header).toHaveAttribute('aria-expanded', 'true');
+
+      fireEvent.click(header);
+      expect(header).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Email received from user')).not.toBeInTheDocument();
+
+      fireEvent.click(header);
+      expect(header).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText('Email received from user')).toBeInTheDocument();
     });
   });
 

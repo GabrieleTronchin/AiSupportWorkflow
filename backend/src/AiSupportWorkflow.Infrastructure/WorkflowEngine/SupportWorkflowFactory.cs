@@ -24,6 +24,11 @@ internal sealed class SupportWorkflowFactory(
         builder.AddEdge<ApprovalDecision>(humanApprovalGateExecutor, codeGenerationExecutor,
             condition: msg => msg is { Approved: true });
 
+        // Executors that terminate the run by yielding a WorkflowResult
+        // (out-of-scope, rejected approval, generated code change).
+        // Since Agent Framework 1.x outputs are only surfaced from registered output executors.
+        builder.WithOutputFrom(classificationExecutor, humanApprovalGateExecutor, codeGenerationExecutor);
+
         return builder.Build();
     }
 }

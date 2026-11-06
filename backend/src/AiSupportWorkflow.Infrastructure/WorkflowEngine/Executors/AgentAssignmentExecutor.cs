@@ -9,6 +9,9 @@ public sealed partial class AgentAssignmentExecutor(
     IAgentSelector agentSelector,
     IWorkflowStateTracker stateTracker) : Executor("AgentAssignmentExecutor")
 {
+    /// <summary>Workflow-scoped state key holding the id of the agent assigned to the issue.</summary>
+    public const string AssignedAgentIdKey = "AssignedAgentId";
+
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
     {
         protocolBuilder.RouteBuilder.AddHandler<TeamAssignment, AgentAssignment>(HandleAsync);
@@ -27,6 +30,9 @@ public sealed partial class AgentAssignmentExecutor(
         var issueId = await context.ReadStateAsync<Guid>("CurrentIssueId", scopeName: "Workflow", ct);
 
         await stateTracker.TransitionAsync(issueId, WorkflowStage.AgentAssigned, agent.AgentId);
+
+        // Downstream executors attribute their LLM calls (telemetry) to the assigned agent.
+        await context.QueueStateUpdateAsync(AssignedAgentIdKey, agent.AgentId, scopeName: "Workflow", ct);
 
         return agent;
     }

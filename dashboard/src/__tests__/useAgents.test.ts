@@ -83,7 +83,7 @@ describe('useAgents', () => {
   describe('gRPC stream refresh', () => {
     it('re-fetches agents via polling interval', async () => {
       vi.useFakeTimers();
-      const { result } = renderHook(() => useAgents());
+      renderHook(() => useAgents());
 
       await act(async () => {
         await Promise.resolve();

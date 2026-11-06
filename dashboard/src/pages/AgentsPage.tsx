@@ -44,8 +44,9 @@ export function AgentsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-zinc-100">Agents</h1>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-400">Cost rate ($/1K tokens):</label>
+          <label htmlFor="cost-rate" className="text-xs text-zinc-400">Cost rate ($/1K tokens):</label>
           <input
+            id="cost-rate"
             type="number"
             min="0"
             step="0.001"

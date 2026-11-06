@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -20,9 +19,12 @@ const navItems = [
   { label: 'Event Log', icon: ScrollText, to: '/events' },
 ];
 
-export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={`fixed left-0 top-0 h-screen flex flex-col bg-zinc-900 border-r border-zinc-800 transition-all duration-200 ${
@@ -43,6 +45,9 @@ export function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.to === '/'}
+            // Keep an accessible name (and a tooltip) when only the icon is visible.
+            aria-label={collapsed ? item.label : undefined}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
@@ -51,7 +56,7 @@ export function Sidebar() {
               }`
             }
           >
-            <item.icon className="h-5 w-5 shrink-0" />
+            <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
             {!collapsed && <span className="truncate">{item.label}</span>}
           </NavLink>
         ))}
@@ -59,7 +64,8 @@ export function Sidebar() {
 
       <div className="px-2 py-2 border-t border-zinc-800">
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={onToggle}
+          aria-expanded={!collapsed}
           className="flex items-center justify-center w-full px-3 py-2 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 transition-colors"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >

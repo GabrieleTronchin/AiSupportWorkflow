@@ -93,12 +93,12 @@ This gate ensures no automated code changes are generated without human oversigh
 | Layer | Technology |
 |-------|-----------|
 | Runtime | .NET 10, C# latest |
-| Orchestration | Microsoft Agent Framework Workflows 1.3.0 (`WorkflowBuilder`, `Executor`, typed edges) |
+| Orchestration | Microsoft Agent Framework Workflows 1.27.0 (`WorkflowBuilder`, `Executor`, typed edges) |
 | LLM Integration | Microsoft.Extensions.AI structured output (`GetResponseAsync<T>`) |
 | Persistence | EF Core 10 InMemory (ready for SQL migration) |
 | Real-time | gRPC server streaming + gRPC-Web |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, ReactFlow |
-| Testing | xUnit, FsCheck (property-based), NSubstitute, Vitest, fast-check |
+| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, ReactFlow |
+| Testing | xUnit v3 (Microsoft.Testing.Platform), FsCheck (property-based), NSubstitute, Vitest 4, fast-check 4 |
 
 ---
 
@@ -140,6 +140,7 @@ All endpoints are served under the `/api/support` base path.
 | `POST` | `/api/support/issues/{id:guid}/abort` | Abort a workflow, forcing it into Failed state |
 | `GET` | `/api/support/agents/{agentId}/telemetry` | Agent-specific LLM telemetry (tokens, latency) |
 | `GET` | `/api/support/telemetry/summary` | Global LLM usage statistics |
+| `GET` | `/api/support/config` | Runtime flags for the dashboard (sequential mode, demo mode, LLM provider and model) |
 | gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
 
 📄 [Full API reference with request/response examples →](docs/api-endpoints.md)
@@ -183,6 +184,7 @@ AiSupportWorkflow/
 |----------|-------------|
 | [Clean Architecture](docs/clean-architecture.md) | Four-layer structure, dependency rules, and compliance verification |
 | [Workflow Engine](docs/agent-framework-integration.md) | Microsoft Agent Framework Workflows — executors, edges, and structured output |
+| [Demo Mode](docs/demo-mode.md) | Default offline mode with simulated LLM responses — configuration and behaviour |
 | [Human Approval Gate](docs/human-approval-gate.md) | Human-in-the-loop design, approval API, and dashboard integration |
 | [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
 | [Dashboard](docs/dashboard.md) | Real-time monitoring dashboard architecture and usage |
@@ -201,21 +203,33 @@ AiSupportWorkflow/
    cd AiSupportWorkflow
    ```
 
-2. **Configure your OpenAI API key:**
+2. **Choose the LLM provider (optional):**
 
-   Create the file `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json`:
+   The backend starts in **Demo mode** by default: LLM responses are simulated, no API key is needed, and the whole pipeline and dashboard work offline. See [Demo Mode](docs/demo-mode.md) for how it works.
+
+   To use a real model, override the provider in `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json` (git-ignored, never committed):
 
    ```json
    {
      "LlmProvider": {
-       "ApiKey": "YOUR_API_KEY_HERE",
        "Provider": "OpenAI",
+       "ApiKey": "YOUR_API_KEY_HERE",
        "ModelName": "gpt-4o-mini"
      }
    }
    ```
 
-   This file is git-ignored and will not be committed.
+   `LlmProvider` supports the following settings:
+
+   | Setting | Default | Description |
+   |---------|---------|-------------|
+   | `Provider` | `Demo` | `Demo` (simulated responses, no API key) or `OpenAI` (real model). |
+   | `ModelName` | `gpt-4o-mini` | Model id used with `OpenAI`. |
+   | `ApiKey` | — | API key, required with `OpenAI`, ignored in `Demo` mode. |
+   | `Endpoint` | OpenAI | Optional absolute `http(s)` URL of any OpenAI-compatible endpoint (e.g. Groq `https://api.groq.com/openai/v1`, Ollama `http://localhost:11434/v1`). |
+   | `DemoLatencyMs` | `1500` | Simulated latency per LLM call in `Demo` mode, so pipeline progress is visible in the UI. |
+
+   Each processed email makes three LLM calls (classification, root cause analysis, code change). The dashboard shows the active mode in the Overview header: **Demo Mode**, or the provider and model in use (e.g. **OpenAI · gpt-4o-mini**).
 
 3. **Run the project:**
 
@@ -242,7 +256,7 @@ The `Workflow` section in `appsettings.json` controls runtime behavior:
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `EnableVisualization` | `bool` | `true` | Enables gRPC streaming and agents endpoint |
-| `SequentialProcessing` | `bool` | `false` | When true, processes one inbox message per cycle and waits for the previous issue to reach a terminal state before processing the next |
+| `SequentialProcessing` | `bool` | `false` | When `false` (default), pending messages are dispatched concurrently — each workflow runs in its own task so the poller never blocks on a long-running workflow. When `true`, one message is processed at a time and the next waits for the previous issue to reach a terminal state |
 | `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
 | `Teams` | `array` | — | Team and agent configuration |
 

@@ -60,7 +60,7 @@ public class EfWorkflowStateTrackerTests
 
         // Assert
         using var context = factory.CreateDbContext();
-        var events = await context.Events.Where(e => e.IssueId == issueId).ToListAsync();
+        var events = await context.Events.Where(e => e.IssueId == issueId).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Single(events);
         Assert.Equal(WorkflowStage.Received, events[0].NewStage);
         Assert.Equal("Event detail", events[0].Detail);

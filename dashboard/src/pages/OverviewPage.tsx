@@ -5,13 +5,14 @@ import { useConfig } from '../hooks/useConfig';
 import { useGrpcStream } from '../hooks/useGrpcStream';
 import { PipelineVisualizer } from '../components/PipelineVisualizer';
 import { EmailComposer } from '../components/EmailComposer';
+import { LlmModeBadge } from '../components/LlmModeBadge';
 import { getStageBadgeClasses } from '../utils/badges';
 import { abortWorkflow } from '../api/client';
 
 export function OverviewPage() {
   const { agents } = useAgents();
   const { latestStates, isConnected } = useGrpcStream();
-  const { sequentialProcessing } = useConfig();
+  const { sequentialProcessing, demoMode, llmProvider, llmModel } = useConfig();
   const [abortingId, setAbortingId] = useState<string | null>(null);
 
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
@@ -48,6 +49,7 @@ export function OverviewPage() {
               Sequential Mode
             </span>
           )}
+          <LlmModeBadge demoMode={demoMode} llmProvider={llmProvider} llmModel={llmModel} />
         </div>
         <div className="flex items-center gap-2">
           <span

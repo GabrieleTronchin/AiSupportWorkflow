@@ -19,6 +19,9 @@ vi.mock('../hooks/useEmailSubmit', () => ({
 
 describe('EmailComposer', () => {
   beforeEach(() => {
+    // vi.restoreAllMocks() no longer resets vi.fn() call history (Vitest 3+),
+    // so clear explicitly to keep tests isolated.
+    vi.clearAllMocks();
     mockSubmit.mockResolvedValue(undefined);
     mockReset.mockImplementation(() => {});
     mockHookReturn = {

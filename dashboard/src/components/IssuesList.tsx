@@ -46,7 +46,7 @@ export function IssuesList({ issues, onSelectIssue }: IssuesListProps) {
           <tr
             key={issue.issueId}
             onClick={() => onSelectIssue?.(issue)}
-            className="border-b border-zinc-800 hover:bg-zinc-800/50 cursor-pointer"
+            className={`border-b border-zinc-800 hover:bg-zinc-800/50 ${onSelectIssue ? 'cursor-pointer' : ''}`}
           >
             <td className="py-2 px-3 font-mono truncate max-w-[8ch]">
               {issue.issueId.slice(0, 8)}

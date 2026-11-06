@@ -6,32 +6,38 @@ import type { WorkflowState } from '../types';
 describe('IssuesList', () => {
   const mockOnSelectIssue = vi.fn();
 
+  // Fixed clock so relative-time assertions don't drift on slow test runs.
+  const NOW = new Date('2026-01-01T12:00:00.000Z').getTime();
+
   const mockIssues: WorkflowState[] = [
     {
       issueId: 'abcdef1234567890',
       stage: 'Received',
       detail: 'Email received from user',
-      lastUpdated: new Date(Date.now() - 3 * 60 * 1000).toISOString(), // 3 min ago
+      lastUpdated: new Date(NOW - 3 * 60 * 1000).toISOString(), // 3 min ago
     },
     {
       issueId: '1234567890abcdef',
       stage: 'Failed',
       detail: null,
-      lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+      lastUpdated: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     },
     {
       issueId: 'deadbeef12345678',
       stage: 'CodeChangeGenerated',
       detail: 'PR created successfully',
-      lastUpdated: new Date(Date.now() - 30 * 1000).toISOString(), // 30 sec ago
+      lastUpdated: new Date(NOW - 30 * 1000).toISOString(), // 30 sec ago
     },
   ];
 
   beforeEach(() => {
     mockOnSelectIssue.mockClear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 

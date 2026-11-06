@@ -21,7 +21,7 @@ public class IssueClassifierTests
         var json = """{"category":"BackendBug","confidence":0.95,"reasoning":"API error detected"}""";
         var sut = CreateSut(new FakeChatClient(json));
 
-        var result = await sut.ClassifyAsync(MakeIssue());
+        var result = await sut.ClassifyAsync(MakeIssue(), TestContext.Current.CancellationToken);
 
         Assert.True(result.IsCodeRelated);
         Assert.Equal(IssueCategory.BackendBug, result.Category);
@@ -34,7 +34,7 @@ public class IssueClassifierTests
         var json = """{"category":"OutOfScope","confidence":0.8,"reasoning":"Billing question"}""";
         var sut = CreateSut(new FakeChatClient(json));
 
-        var result = await sut.ClassifyAsync(MakeIssue());
+        var result = await sut.ClassifyAsync(MakeIssue(), TestContext.Current.CancellationToken);
 
         Assert.False(result.IsCodeRelated);
         Assert.Equal(IssueCategory.OutOfScope, result.Category);
@@ -45,7 +45,7 @@ public class IssueClassifierTests
     {
         var sut = CreateSut(new FakeChatClient(new HttpRequestException("API unreachable")));
 
-        var result = await sut.ClassifyAsync(MakeIssue());
+        var result = await sut.ClassifyAsync(MakeIssue(), TestContext.Current.CancellationToken);
 
         Assert.False(result.IsCodeRelated);
         Assert.Equal(IssueCategory.OutOfScope, result.Category);

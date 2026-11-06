@@ -7,15 +7,14 @@ using AiSupportWorkflow.Infrastructure.Services;
 using AiSupportWorkflow.Infrastructure.WorkflowEngine.Executors;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 public static class WorkflowEngineServiceExtensions
 {
     public static IServiceCollection AddWorkflowEngine(this IServiceCollection services, IConfiguration configuration)
     {
-        // LLM Telemetry
-        services.AddSingleton<LlmTelemetryStore>();
-        // Note: LlmTelemetryMiddleware wraps IChatClient - register as decorator if possible,
-        // or register it in the pipeline
+        // LLM Telemetry (fed by LlmTelemetryMiddleware, registered in ChatClientSetup)
+        services.TryAddSingleton<LlmTelemetryStore>();
 
         // Executors (singletons since they hold state for approval gate)
         services.AddSingleton<ClassificationExecutor>();
@@ -34,7 +33,8 @@ public static class WorkflowEngineServiceExtensions
         // Workflow State Persistence
         services.AddSingleton<WorkflowCheckpointStore>();
 
-        // Orchestrator
+        // Orchestrator (+ registry of running workflows, used by the abort endpoint)
+        services.AddSingleton<WorkflowRunRegistry>();
         services.AddScoped<IOrchestrator, WorkflowOrchestrator>();
 
         // Agent status provider (replaces Akka-based provider)

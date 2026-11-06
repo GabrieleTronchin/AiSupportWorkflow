@@ -18,4 +18,4 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet restore backend/AiSupportWorkflow.sln
       - run: dotnet build backend/AiSupportWorkflow.sln --no-restore
-      - run: dotnet test backend/AiSupportWorkflow.sln --no-build
+      - run: dotnet test --solution backend/AiSupportWorkflow.sln --no-build

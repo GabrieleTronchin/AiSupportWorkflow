@@ -1,5 +1,6 @@
 namespace AiSupportWorkflow.Infrastructure.Services;
 
+using System.Collections.Concurrent;
 using System.Text.Json;
 using AiSupportWorkflow.Application.Configuration;
 using AiSupportWorkflow.Domain.Entities;
@@ -18,6 +19,12 @@ public sealed class InboxProcessorOptions
     public int PollingIntervalSeconds { get; set; } = 5;
 }
 
+/// <summary>
+/// Polls the inbox and starts a workflow for each pending message, in FIFO order (ReceivedAt).
+/// Workflows can run for a long time (e.g. waiting for human approval), so the polling loop
+/// only starts them and never waits for their completion: one paused workflow cannot block the inbox.
+/// Each message gets its own DI scope, kept alive until its workflow ends.
+/// </summary>
 public sealed class InboxProcessor(
     IServiceScopeFactory scopeFactory,
     IOptions<InboxProcessorOptions> options,
@@ -25,7 +32,8 @@ public sealed class InboxProcessor(
     ILogger<InboxProcessor> logger) : BackgroundService
 {
     private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(options.Value.PollingIntervalSeconds);
-    private readonly SemaphoreSlim _sequentialLock = new(1, 1);
+    private readonly SemaphoreSlim _dispatchLock = new(1, 1);
+    private readonly ConcurrentDictionary<Guid, Task> _inFlight = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -35,7 +43,7 @@ public sealed class InboxProcessor(
         {
             try
             {
-                await ProcessPendingMessagesAsync(stoppingToken);
+                await DispatchPendingMessagesAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -46,101 +54,133 @@ public sealed class InboxProcessor(
                 logger.LogError(ex, "InboxProcessor cycle failed");
             }
 
-            await Task.Delay(_pollingInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(_pollingInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
 
+        // Let in-flight workflows observe cancellation and record their outcome before shutdown.
+        await Task.WhenAll(_inFlight.Values);
         logger.LogInformation("InboxProcessor stopped");
     }
 
-    internal async Task ProcessPendingMessagesAsync(CancellationToken ct)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
-        var orchestrator = scope.ServiceProvider.GetRequiredService<IOrchestrator>();
+    /// <summary>Runs one polling cycle and waits for the workflows it started.</summary>
+    internal async Task ProcessPendingMessagesAsync(CancellationToken ct) =>
+        await Task.WhenAll(await DispatchPendingMessagesAsync(ct));
 
-        if (workflowConfig.Value.SequentialProcessing)
-        {
-            await ProcessSequentiallyAsync(dbContext, orchestrator, ct);
-        }
-        else
-        {
-            await ProcessAllPendingAsync(dbContext, orchestrator, ct);
-        }
-    }
-
-    private async Task ProcessSequentiallyAsync(WorkflowDbContext dbContext, IOrchestrator orchestrator, CancellationToken ct)
+    private async Task<IReadOnlyList<Task>> DispatchPendingMessagesAsync(CancellationToken ct)
     {
-        await _sequentialLock.WaitAsync(ct);
+        await _dispatchLock.WaitAsync(ct);
         try
         {
-            var message = await dbContext.InboxMessages
-                .Where(m => m.ProcessedAt == null)
-                .OrderBy(m => m.ReceivedAt)
-                .FirstOrDefaultAsync(ct);
+            var toStart = await SelectMessagesToStartAsync(ct);
 
-            if (message is null) return;
+            var started = new List<Task>(toStart.Count);
+            foreach (var messageId in toStart)
+            {
+                // Started one after the other, so workflows are invoked in FIFO order;
+                // they then run concurrently.
+                var task = StartMessageAsync(messageId, ct);
+                _inFlight[messageId] = task;
+                started.Add(task);
+                _ = task.ContinueWith(_ => _inFlight.TryRemove(messageId, out Task? _), TaskScheduler.Default);
+            }
 
-            // Check if previous issue is still in-flight
-            var lastProcessedIssue = await GetLastProcessedIssueAsync(dbContext, ct);
-            if (lastProcessedIssue is not null && !IsTerminalStage(lastProcessedIssue.CurrentStage))
-                return; // Wait for it to complete
-
-            await ProcessMessageAsync(message, dbContext, orchestrator, ct);
+            return started;
         }
         finally
         {
-            _sequentialLock.Release();
+            _dispatchLock.Release();
         }
     }
 
-    private async Task ProcessAllPendingAsync(WorkflowDbContext dbContext, IOrchestrator orchestrator, CancellationToken ct)
+    private async Task<List<Guid>> SelectMessagesToStartAsync(CancellationToken ct)
     {
-        var messages = await dbContext.InboxMessages
+        using var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
+
+        var pending = await dbContext.InboxMessages
+            .AsNoTracking()
             .Where(m => m.ProcessedAt == null)
             .OrderBy(m => m.ReceivedAt)
+            .Select(m => m.Id)
             .ToListAsync(ct);
 
-        foreach (var message in messages)
+        var toStart = pending.Where(id => !_inFlight.ContainsKey(id)).ToList();
+
+        if (!workflowConfig.Value.SequentialProcessing || toStart.Count == 0)
         {
-            await ProcessMessageAsync(message, dbContext, orchestrator, ct);
+            return toStart;
         }
+
+        // Sequential mode: one workflow at a time, wait until the previous one has finished.
+        if (!_inFlight.IsEmpty)
+        {
+            return [];
+        }
+
+        var lastIssue = await dbContext.Issues
+            .AsNoTracking()
+            .OrderByDescending(i => i.LastUpdated)
+            .FirstOrDefaultAsync(ct);
+
+        return lastIssue is not null && !lastIssue.CurrentStage.IsTerminal() ? [] : [toStart[0]];
     }
 
-    private async Task ProcessMessageAsync(InboxMessage message, WorkflowDbContext dbContext, IOrchestrator orchestrator, CancellationToken ct)
+    /// <summary>
+    /// Starts the workflow for a message and returns a task that completes when the workflow ends.
+    /// The orchestrator is invoked before the first await so invocation order matches dispatch order.
+    /// </summary>
+    private Task StartMessageAsync(Guid messageId, CancellationToken ct)
     {
+        var scope = scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
+        var message = dbContext.InboxMessages.FirstOrDefault(m => m.Id == messageId);
+
+        if (message is null || message.ProcessedAt is not null)
+        {
+            scope.Dispose();
+            return Task.CompletedTask;
+        }
+
+        Task workflow;
         try
         {
             var email = JsonSerializer.Deserialize<IncomingEmail>(message.Payload);
-            if (email is null)
-            {
-                message.Error = "Failed to deserialize email payload";
-                message.ProcessedAt = DateTimeOffset.UtcNow;
-                await dbContext.SaveChangesAsync(ct);
-                return;
-            }
-
-            await orchestrator.ProcessIssueAsync(email, ct);
-            message.ProcessedAt = DateTimeOffset.UtcNow;
+            workflow = email is null
+                ? Task.FromException(new InvalidOperationException("Failed to deserialize email payload"))
+                : scope.ServiceProvider.GetRequiredService<IOrchestrator>().ProcessIssueAsync(email, ct);
         }
         catch (Exception ex)
         {
-            message.Error = ex.Message;
-            message.ProcessedAt = DateTimeOffset.UtcNow;
-            logger.LogWarning(ex, "Failed to process inbox message {Id}", message.Id);
+            workflow = Task.FromException(ex);
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        return CompleteMessageAsync(scope, dbContext, message, workflow);
     }
 
-    private static async Task<IssueEntity?> GetLastProcessedIssueAsync(WorkflowDbContext dbContext, CancellationToken ct)
+    private async Task CompleteMessageAsync(IServiceScope scope, WorkflowDbContext dbContext, InboxMessage message, Task workflow)
     {
-        return await dbContext.Issues
-            .OrderByDescending(i => i.LastUpdated)
-            .FirstOrDefaultAsync(ct);
-    }
+        using (scope)
+        {
+            try
+            {
+                await workflow;
+            }
+            catch (Exception ex)
+            {
+                message.Error = ex.Message;
+                logger.LogWarning(ex, "Failed to process inbox message {Id}", message.Id);
+            }
 
-    private static bool IsTerminalStage(WorkflowStage stage) =>
-        stage is WorkflowStage.Failed
-            or WorkflowStage.CodeChangeGenerated
-            or WorkflowStage.ClassifiedOutOfScope;
+            // Always mark as processed (no infinite retries), even during shutdown.
+            message.ProcessedAt = DateTimeOffset.UtcNow;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+    }
 }

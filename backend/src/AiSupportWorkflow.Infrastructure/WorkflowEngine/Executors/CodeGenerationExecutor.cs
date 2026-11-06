@@ -4,6 +4,7 @@ using AiSupportWorkflow.Domain.Entities;
 using AiSupportWorkflow.Domain.Enums;
 using AiSupportWorkflow.Domain.Interfaces;
 using AiSupportWorkflow.Domain.ValueObjects;
+using AiSupportWorkflow.Infrastructure.AgentFramework;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 
@@ -16,7 +17,8 @@ public sealed partial class CodeGenerationExecutor(
     protected override ProtocolBuilder ConfigureProtocol(ProtocolBuilder protocolBuilder)
     {
         protocolBuilder.RouteBuilder.AddHandler<ApprovalDecision>((Func<ApprovalDecision, IWorkflowContext, CancellationToken, ValueTask>)HandleAsync);
-        return protocolBuilder;
+        // Successful runs terminate here with a WorkflowResult output.
+        return protocolBuilder.YieldsOutput<WorkflowResult>();
     }
 
     public async ValueTask HandleAsync(
@@ -27,9 +29,13 @@ public sealed partial class CodeGenerationExecutor(
             "LatestResolution", scopeName: "Workflow", ct)
             ?? throw new InvalidOperationException("Resolution not found");
 
+        var agentId = await context.ReadStateAsync<string>(AgentAssignmentExecutor.AssignedAgentIdKey, scopeName: "Workflow", ct);
+        var options = agentId is null ? ChatOpts : LlmTelemetryMiddleware.ForAgent(ChatOpts, agentId);
+
         var response = await chatClient.GetResponseAsync<PullRequest>(
-            [new(ChatRole.User, BuildCodeGenPrompt(report))], ChatOpts, cancellationToken: ct);
-        var pullRequest = response.Result;
+            [new(ChatRole.User, BuildCodeGenPrompt(report))], options, cancellationToken: ct);
+        // Keep the PR linked to the real issue, regardless of what the model returned.
+        var pullRequest = response.Result with { IssueId = issueId };
 
         await stateTracker.TransitionAsync(issueId, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
         await context.YieldOutputAsync(WorkflowResult.Completed(issueId, pullRequest), ct);

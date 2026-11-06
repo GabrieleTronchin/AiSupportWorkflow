@@ -61,7 +61,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act — use StartAsync/StopAsync with a short cancellation
@@ -71,7 +71,7 @@ public class InboxProcessorTests
         await processor.StopAsync(CancellationToken.None);
 
         // Assert — reload from DB
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId);
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId, TestContext.Current.CancellationToken);
         Assert.NotNull(message.ProcessedAt);
         Assert.Null(message.Error);
     }
@@ -93,7 +93,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -103,7 +103,7 @@ public class InboxProcessorTests
         await processor.StopAsync(CancellationToken.None);
 
         // Assert — reload from DB
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId);
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(m => m.Id == msgId, TestContext.Current.CancellationToken);
         Assert.NotNull(message.ProcessedAt);
         Assert.Equal("Processing failed", message.Error);
     }
@@ -133,7 +133,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -177,7 +177,7 @@ public class InboxProcessorTests
             Payload = JsonSerializer.Serialize(email),
             ReceivedAt = DateTimeOffset.UtcNow,
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -190,7 +190,7 @@ public class InboxProcessorTests
         await orchestrator.DidNotReceive().ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>());
 
         // Message should still be unprocessed
-        var message = await context.InboxMessages.AsNoTracking().FirstAsync();
+        var message = await context.InboxMessages.AsNoTracking().FirstAsync(TestContext.Current.CancellationToken);
         Assert.Null(message.ProcessedAt);
     }
 
@@ -252,7 +252,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
@@ -264,6 +264,61 @@ public class InboxProcessorTests
         // Assert — exactly one message should have been processed
         Assert.Single(processedSubjects);
         Assert.Equal("Email-0", processedSubjects[0]);
+    }
+
+    [Fact]
+    public async Task ParallelMode_LongRunningWorkflow_DoesNotBlockOtherMessages()
+    {
+        // Arrange — the first workflow never completes on its own (e.g. waiting for human approval)
+        var (context, orchestrator, processor) = CreateProcessor(sequentialProcessing: false);
+        var blocked = new TaskCompletionSource<WorkflowResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var processedSubjects = new System.Collections.Concurrent.ConcurrentQueue<string>();
+
+        orchestrator.ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var email = callInfo.Arg<IncomingEmail>();
+                processedSubjects.Enqueue(email.Subject);
+                return email.Subject == "Awaiting approval"
+                    ? blocked.Task
+                    : Task.FromResult(WorkflowResult.OutOfScope(Guid.NewGuid()));
+            });
+
+        var baseTime = DateTimeOffset.UtcNow.AddMinutes(-10);
+        string[] subjects = ["Awaiting approval", "Second", "Third"];
+        for (var i = 0; i < subjects.Length; i++)
+        {
+            context.InboxMessages.Add(new InboxMessage
+            {
+                Id = Guid.NewGuid(),
+                Payload = JsonSerializer.Serialize(new IncomingEmail("test@test.com", subjects[i], "Body")),
+                ReceivedAt = baseTime.AddMinutes(i),
+            });
+        }
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        context.ChangeTracker.Clear();
+
+        // Act
+        await processor.StartAsync(TestContext.Current.CancellationToken);
+        try
+        {
+            await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+            // Assert — the other messages were processed while the first one is still running
+            var messages = await context.InboxMessages.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
+            var state = string.Join("; ", messages.Select(m => $"{m.ProcessedAt is not null}:{m.Error}"));
+            Assert.True(subjects.Order().SequenceEqual(processedSubjects.Order()), $"Processed: [{string.Join(",", processedSubjects)}] Inbox: {state}");
+            Assert.Equal(2, messages.Count(m => m.ProcessedAt != null));
+
+            // The running workflow is not started twice by later polling cycles
+            await Task.Delay(1200, TestContext.Current.CancellationToken);
+            Assert.Equal(1, processedSubjects.Count(s => s == "Awaiting approval"));
+        }
+        finally
+        {
+            blocked.SetResult(WorkflowResult.OutOfScope(Guid.NewGuid()));
+            await processor.StopAsync(CancellationToken.None);
+        }
     }
 
     [Fact]
@@ -292,7 +347,7 @@ public class InboxProcessorTests
                 ReceivedAt = baseTime.AddMinutes(i),
             });
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         context.ChangeTracker.Clear();
 
         // Act
