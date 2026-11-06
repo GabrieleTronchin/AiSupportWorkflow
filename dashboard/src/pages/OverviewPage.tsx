@@ -1,38 +1,43 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAgents } from '../hooks/useAgents';
 import { useConfig } from '../hooks/useConfig';
 import { useGrpcStream } from '../hooks/useGrpcStream';
+import { useWorkflowCatalog } from '../hooks/WorkflowCatalogContext';
 import { PipelineVisualizer } from '../components/PipelineVisualizer';
-import { EmailComposer } from '../components/EmailComposer';
+import { RunSubmitForm } from '../components/RunSubmitForm';
 import { LlmModeBadge } from '../components/LlmModeBadge';
-import { getStageBadgeClasses } from '../utils/badges';
-import { abortWorkflow } from '../api/client';
+import { ModuleWorkflowPicker } from '../components/ModuleWorkflowPicker';
+import { formatStatus, getStatusBadgeClasses } from '../utils/badges';
+import { abortRun } from '../api/client';
+import { isTerminal } from '../types';
 
 export function OverviewPage() {
   const { agents } = useAgents();
-  const { latestStates, isConnected } = useGrpcStream();
+  const { latestRuns, isConnected } = useGrpcStream();
+  const { selectedWorkflow, stepName } = useWorkflowCatalog();
   const { sequentialProcessing, demoMode, llmProvider, llmModel } = useConfig();
   const [abortingId, setAbortingId] = useState<string | null>(null);
 
+  const workflowRuns = useMemo(
+    () => (selectedWorkflow ? latestRuns.filter((r) => r.workflowId === selectedWorkflow.id) : []),
+    [latestRuns, selectedWorkflow],
+  );
+  const activeRuns = useMemo(() => workflowRuns.filter((r) => !isTerminal(r.status)), [workflowRuns]);
+
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
-  const totalIssues = latestStates.length;
-  const recentFailures = latestStates.filter((i) => i.stage === 'Failed').length;
-  const awaitingApproval = latestStates.filter((i) => i.stage === 'AwaitingApproval').length;
+  const failures = workflowRuns.filter((r) => r.status === 'Failed' || r.status === 'Cancelled').length;
+  const awaitingInput = latestRuns.filter((r) => r.status === 'AwaitingInput').length;
 
-  // Filter to non-terminal issues for the PipelineVisualizer
-  const terminalStages: string[] = ['CodeChangeGenerated', 'ClassifiedOutOfScope', 'Failed', 'ManualReviewRequired'];
-  const activeIssues = latestStates.filter((s) => !terminalStages.includes(s.stage));
-
-  const handleAbort = async (issueId: string) => {
-    if (!window.confirm('Are you sure you want to abort this workflow? This cannot be undone.')) {
+  const handleAbort = async (runId: string) => {
+    if (!window.confirm('Are you sure you want to abort this run? This cannot be undone.')) {
       return;
     }
-    setAbortingId(issueId);
+    setAbortingId(runId);
     try {
-      await abortWorkflow(issueId);
+      await abortRun(runId);
     } catch {
-      // The state will update via gRPC stream
+      // The state will update via the stream
     } finally {
       setAbortingId(null);
     }
@@ -41,9 +46,10 @@ export function OverviewPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-4 gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold text-zinc-100">Overview</h1>
+          <ModuleWorkflowPicker />
           {sequentialProcessing && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-900/50 text-amber-300 border border-amber-700">
               Sequential Mode
@@ -51,31 +57,27 @@ export function OverviewPage() {
           )}
           <LlmModeBadge demoMode={demoMode} llmProvider={llmProvider} llmModel={llmModel} />
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`}
-          />
-          <span className="text-xs text-zinc-400">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`inline-block w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+          <span className="text-xs text-zinc-400">{isConnected ? 'Connected' : 'Disconnected'}</span>
         </div>
       </div>
 
-      {/* Approval notification banner */}
-      {awaitingApproval > 0 && (
+      {/* Human input notification banner */}
+      {awaitingInput > 0 && (
         <Link
           to="/approvals"
           className="block mb-4 px-4 py-3 rounded-lg bg-amber-900/30 border border-amber-700 text-amber-200 hover:bg-amber-900/50 transition-colors"
         >
-          ⚠️ {awaitingApproval} workflow(s) awaiting your approval — Review now →
+          ⚠️ {awaitingInput} run(s) awaiting your approval — Review now →
         </Link>
       )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
-          <p className="text-zinc-400 text-xs">Total Issues</p>
-          <p className="text-xl font-bold text-zinc-100">{totalIssues}</p>
+          <p className="text-zinc-400 text-xs">Total Runs</p>
+          <p className="text-xl font-bold text-zinc-100">{workflowRuns.length}</p>
         </div>
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
           <p className="text-zinc-400 text-xs">Active Agents</p>
@@ -83,61 +85,44 @@ export function OverviewPage() {
         </div>
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
           <p className="text-zinc-400 text-xs">Awaiting Approval</p>
-          <p className="text-xl font-bold text-amber-400">{awaitingApproval}</p>
+          <p className="text-xl font-bold text-amber-400">{awaitingInput}</p>
         </div>
         <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700">
-          <p className="text-zinc-400 text-xs">Recent Failures</p>
-          <p className="text-xl font-bold text-zinc-100">{recentFailures}</p>
+          <p className="text-zinc-400 text-xs">Failures</p>
+          <p className="text-xl font-bold text-zinc-100">{failures}</p>
         </div>
       </div>
 
-      {/* Pipeline status panel — always visible */}
+      {/* Runs in progress */}
       <div className="bg-zinc-800/60 rounded-lg border border-zinc-700 p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">
-            Pipeline Status
-          </h2>
-          <Link
-            to="/events"
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-          >
+          <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">Pipeline Status</h2>
+          <Link to="/events" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
             View Event Log →
           </Link>
         </div>
 
-        {activeIssues.length === 0 ? (
-          <p className="text-zinc-500 text-sm italic">
-            No issues in progress — pipeline idle
-          </p>
+        {activeRuns.length === 0 ? (
+          <p className="text-zinc-500 text-sm italic">No runs in progress — pipeline idle</p>
         ) : (
           <div className="space-y-2">
-            {activeIssues.map((issue) => (
-              <div
-                key={issue.issueId}
-                className="flex items-start gap-3 bg-zinc-900/60 rounded-md px-3 py-2.5"
-              >
-                <span className="font-mono text-xs text-zinc-500 shrink-0 mt-0.5">
-                  {issue.issueId.slice(0, 8)}
+            {activeRuns.map((run) => (
+              <div key={run.id} className="flex items-start gap-3 bg-zinc-900/60 rounded-md px-3 py-2.5">
+                <span className="font-mono text-xs text-zinc-500 shrink-0 mt-0.5">{run.id.slice(0, 8)}</span>
+                <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${getStatusBadgeClasses(run.status)}`}>
+                  {formatStatus(run.status)}
                 </span>
-                <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${getStageBadgeClasses(issue.stage)}`}>
-                  {issue.stage}
-                </span>
+                <span className="text-xs text-zinc-300 shrink-0 mt-0.5">{stepName(run.workflowId, run.currentStepId)}</span>
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  {issue.subject && (
-                    <span className="text-sm text-zinc-100 font-medium truncate">
-                      {issue.subject}
-                    </span>
-                  )}
-                  <span className="text-xs text-zinc-400 truncate">
-                    {issue.detail || '—'}
-                  </span>
+                  {run.title && <span className="text-sm text-zinc-100 font-medium truncate">{run.title}</span>}
+                  <span className="text-xs text-zinc-400 truncate">{run.detail || '—'}</span>
                 </div>
                 <button
-                  onClick={() => handleAbort(issue.issueId)}
-                  disabled={abortingId === issue.issueId}
+                  onClick={() => handleAbort(run.id)}
+                  disabled={abortingId === run.id}
                   className="shrink-0 px-2 py-1 text-xs font-medium text-red-400 bg-red-900/30 border border-red-800 rounded hover:bg-red-900/60 disabled:opacity-50 transition-colors"
                 >
-                  {abortingId === issue.issueId ? 'Aborting…' : 'Abort'}
+                  {abortingId === run.id ? 'Aborting…' : 'Abort'}
                 </button>
               </div>
             ))}
@@ -145,15 +130,19 @@ export function OverviewPage() {
         )}
       </div>
 
-      {/* Main content: graph + email composer */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-        <div className="lg:col-span-2 bg-zinc-900/40 rounded-lg border border-zinc-700 overflow-hidden">
-          <PipelineVisualizer activeIssues={activeIssues} />
+      {/* Graph + submission form */}
+      {selectedWorkflow ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+          <div className="lg:col-span-2 bg-zinc-900/40 rounded-lg border border-zinc-700 overflow-hidden">
+            <PipelineVisualizer graph={selectedWorkflow.graph} activeRuns={activeRuns} />
+          </div>
+          <div className="overflow-y-auto">
+            <RunSubmitForm workflow={selectedWorkflow} />
+          </div>
         </div>
-        <div className="overflow-y-auto">
-          <EmailComposer />
-        </div>
-      </div>
+      ) : (
+        <p className="text-zinc-500 text-sm">No workflow available yet. Start a module service to load its workflows.</p>
+      )}
     </div>
   );
 }
