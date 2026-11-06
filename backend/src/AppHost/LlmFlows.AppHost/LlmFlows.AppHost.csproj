@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>llmflows-apphost</UserSecretsId>
+    <!-- Orchestration dependencies come from NuGet (no Aspire CLI needed): dotnet run is enough. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Services\LlmFlows.Engine.Service\LlmFlows.Engine.Service.csproj" />
+    <ProjectReference Include="..\..\Services\LlmFlows.Gateway\LlmFlows.Gateway.csproj" />
+    <ProjectReference Include="..\..\..\..\modules\support\service\LlmFlows.Modules.Support.csproj" />
+  </ItemGroup>
+
+</Project>
