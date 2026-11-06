@@ -267,6 +267,61 @@ public class InboxProcessorTests
     }
 
     [Fact]
+    public async Task ParallelMode_LongRunningWorkflow_DoesNotBlockOtherMessages()
+    {
+        // Arrange — the first workflow never completes on its own (e.g. waiting for human approval)
+        var (context, orchestrator, processor) = CreateProcessor(sequentialProcessing: false);
+        var blocked = new TaskCompletionSource<WorkflowResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var processedSubjects = new System.Collections.Concurrent.ConcurrentQueue<string>();
+
+        orchestrator.ProcessIssueAsync(Arg.Any<IncomingEmail>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var email = callInfo.Arg<IncomingEmail>();
+                processedSubjects.Enqueue(email.Subject);
+                return email.Subject == "Awaiting approval"
+                    ? blocked.Task
+                    : Task.FromResult(WorkflowResult.OutOfScope(Guid.NewGuid()));
+            });
+
+        var baseTime = DateTimeOffset.UtcNow.AddMinutes(-10);
+        string[] subjects = ["Awaiting approval", "Second", "Third"];
+        for (var i = 0; i < subjects.Length; i++)
+        {
+            context.InboxMessages.Add(new InboxMessage
+            {
+                Id = Guid.NewGuid(),
+                Payload = JsonSerializer.Serialize(new IncomingEmail("test@test.com", subjects[i], "Body")),
+                ReceivedAt = baseTime.AddMinutes(i),
+            });
+        }
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        context.ChangeTracker.Clear();
+
+        // Act
+        await processor.StartAsync(TestContext.Current.CancellationToken);
+        try
+        {
+            await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+            // Assert — the other messages were processed while the first one is still running
+            var messages = await context.InboxMessages.AsNoTracking().ToListAsync(TestContext.Current.CancellationToken);
+            var state = string.Join("; ", messages.Select(m => $"{m.ProcessedAt is not null}:{m.Error}"));
+            Assert.True(subjects.Order().SequenceEqual(processedSubjects.Order()), $"Processed: [{string.Join(",", processedSubjects)}] Inbox: {state}");
+            Assert.Equal(2, messages.Count(m => m.ProcessedAt != null));
+
+            // The running workflow is not started twice by later polling cycles
+            await Task.Delay(1200, TestContext.Current.CancellationToken);
+            Assert.Equal(1, processedSubjects.Count(s => s == "Awaiting approval"));
+        }
+        finally
+        {
+            blocked.SetResult(WorkflowResult.OutOfScope(Guid.NewGuid()));
+            await processor.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public async Task ParallelMode_ProcessesAllPendingMessages()
     {
         // Arrange
