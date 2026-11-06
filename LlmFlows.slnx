@@ -29,4 +29,9 @@
     <Project Path="backend/tests/LlmFlows.Engine.Tests/LlmFlows.Engine.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Gateway.Tests/LlmFlows.Gateway.Tests.csproj" />
   </Folder>
+  <Folder Name="/modules/" />
+  <Folder Name="/modules/support/">
+    <Project Path="modules/support/service/LlmFlows.Modules.Support.csproj" />
+    <Project Path="modules/support/tests/LlmFlows.Modules.Support.Tests.csproj" />
+  </Folder>
 </Solution>
