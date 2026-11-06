@@ -8,7 +8,7 @@ export function useInbox() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [filter, setFilter] = useState<InboxStatus | 'all'>('all');
-  const { latestStates } = useGrpcStream();
+  const { lastUpdate } = useGrpcStream();
 
   const loadMessages = useCallback(async () => {
     try {
@@ -27,12 +27,11 @@ export function useInbox() {
     loadMessages();
   }, [loadMessages]);
 
-  // Re-fetch inbox when gRPC stream reports a new state transition
-  // (a 'Received' stage means an inbox message was just processed)
+  // Re-fetch when the stream reports a transition (a queued message may have been processed)
   useEffect(() => {
-    if (latestStates.length === 0) return;
+    if (!lastUpdate) return;
     loadMessages();
-  }, [latestStates, loadMessages]);
+  }, [lastUpdate, loadMessages]);
 
   const stats: InboxStats = {
     queued: messages.filter((m) => m.status === 'queued').length,

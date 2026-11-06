@@ -1,23 +1,26 @@
-import type { WorkflowStage, InboxStatus } from '../types';
-
-const terminalStages: WorkflowStage[] = ['Failed', 'ClassifiedOutOfScope', 'ManualReviewRequired'];
-const completedStages: WorkflowStage[] = ['CodeChangeGenerated', 'Resolved'];
-const awaitingStages: WorkflowStage[] = ['AwaitingApproval'];
+import type { InboxStatus, ModuleStatus, RunStatus } from '../types';
 
 /**
- * Returns Tailwind classes for a workflow stage badge.
+ * Returns Tailwind classes for a run status badge. Derived from the generic RunStatus,
+ * so it works for every workflow.
  */
-export function getStageBadgeClasses(stage: WorkflowStage): string {
-  if (terminalStages.includes(stage)) {
-    return 'text-red-400 bg-red-400/10';
+export function getStatusBadgeClasses(status: RunStatus): string {
+  switch (status) {
+    case 'Failed':
+    case 'Cancelled':
+      return 'text-red-400 bg-red-400/10';
+    case 'Completed':
+      return 'text-emerald-400 bg-emerald-400/10';
+    case 'AwaitingInput':
+      return 'text-amber-400 bg-amber-400/10';
+    default:
+      return 'text-blue-400 bg-blue-400/10';
   }
-  if (completedStages.includes(stage)) {
-    return 'text-emerald-400 bg-emerald-400/10';
-  }
-  if (awaitingStages.includes(stage)) {
-    return 'text-amber-400 bg-amber-400/10';
-  }
-  return 'text-blue-400 bg-blue-400/10';
+}
+
+/** Human-readable status label. */
+export function formatStatus(status: RunStatus): string {
+  return status === 'AwaitingInput' ? 'Awaiting input' : status;
 }
 
 /**
@@ -44,6 +47,19 @@ export function getInboxStatusBadgeClasses(status: InboxStatus): string {
     case 'processed':
       return 'text-emerald-400 bg-emerald-400/10';
     case 'failed':
+      return 'text-red-400 bg-red-400/10';
+  }
+}
+
+/** Returns Tailwind classes for a module availability badge. */
+export function getModuleStatusBadgeClasses(status: ModuleStatus): string {
+  switch (status) {
+    case 'Available':
+      return 'text-emerald-400 bg-emerald-400/10';
+    case 'Loading':
+      return 'text-blue-400 bg-blue-400/10';
+    case 'Invalid':
+    case 'Unavailable':
       return 'text-red-400 bg-red-400/10';
   }
 }

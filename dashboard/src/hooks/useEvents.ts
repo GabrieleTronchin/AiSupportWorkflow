@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { StateTransitionEvent, ApiError } from '../types';
+import type { ApiError, RunEvent } from '../types';
 import { fetchEvents } from '../api/client';
 import { useGrpcStream } from './useGrpcStream';
 
 export function useEvents() {
-  const [events, setEvents] = useState<StateTransitionEvent[]>([]);
+  const [events, setEvents] = useState<RunEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
-  const { latestStates } = useGrpcStream();
+  const { lastUpdate } = useGrpcStream();
 
   const loadEvents = useCallback(async () => {
     try {
@@ -26,11 +26,11 @@ export function useEvents() {
     loadEvents();
   }, [loadEvents]);
 
-  // Re-fetch events when gRPC stream reports a new state transition
+  // Re-fetch events when the stream reports a new transition
   useEffect(() => {
-    if (latestStates.length === 0) return;
+    if (!lastUpdate) return;
     loadEvents();
-  }, [latestStates, loadEvents]);
+  }, [lastUpdate, loadEvents]);
 
   return { events, isLoading, error };
 }

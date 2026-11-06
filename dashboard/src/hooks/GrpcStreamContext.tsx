@@ -1,66 +1,58 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import type { WorkflowState } from '../types';
+import type { RunSummary, RunUpdate } from '../types';
 import { createStreamClient, type GrpcStreamClient } from '../api/grpc-client';
-import { fetchIssues } from '../api/client';
+import { fetchRuns } from '../api/client';
+import { mergeRuns, sortRuns } from '../utils/runs';
 
 interface GrpcStreamContextValue {
-  latestStates: WorkflowState[];
+  /** Latest known state of every run (REST snapshot merged with stream updates), newest first. */
+  latestRuns: RunSummary[];
+  /** Last update received from the stream (null before the first one). */
+  lastUpdate: RunUpdate | null;
   isConnected: boolean;
 }
 
 const GrpcStreamCtx = createContext<GrpcStreamContextValue>({
-  latestStates: [],
+  latestRuns: [],
+  lastUpdate: null,
   isConnected: false,
 });
 
 /**
  * Provides a single gRPC stream connection that persists across page navigations.
- * On reconnection (e.g. after backend restart), resets state and fetches current issues
- * from the REST API to re-sync.
+ * On (re)connection it loads the current runs from the REST API to re-sync.
  */
 export function GrpcStreamProvider({ children }: { children: ReactNode }) {
-  const [latestStates, setLatestStates] = useState<WorkflowState[]>([]);
+  const [latestRuns, setLatestRuns] = useState<RunSummary[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<RunUpdate | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const clientRef = useRef<GrpcStreamClient | null>(null);
 
-  const handleUpdate = useCallback((state: WorkflowState) => {
-    setLatestStates((prev) => {
-      const existing = prev.findIndex((s) => s.issueId === state.issueId);
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = state;
-        return updated;
-      }
-      return [state, ...prev];
-    });
+  const handleUpdate = useCallback((update: RunUpdate) => {
+    setLatestRuns((prev) => sortRuns(mergeRuns(prev, [update])));
+    setLastUpdate(update);
   }, []);
 
-  const handleReconnect = useCallback(async () => {
-    // Backend was restarted — fetch current state from REST API
+  const loadRuns = useCallback(async () => {
     try {
-      const issues = await fetchIssues();
-      setLatestStates(issues);
+      setLatestRuns(sortRuns(await fetchRuns()));
     } catch {
-      // If fetch fails, just clear stale state
-      setLatestStates([]);
+      // Keep the current state; the stream will populate it
     }
   }, []);
 
-  // Also fetch initial state on mount from REST API
   useEffect(() => {
-    fetchIssues()
-      .then((issues) => setLatestStates(issues))
-      .catch(() => {/* ignore — stream will populate */});
-  }, []);
+    loadRuns();
+  }, [loadRuns]);
 
   useEffect(() => {
     const client = createStreamClient();
     clientRef.current = client;
 
-    client.subscribe((state) => {
-      handleUpdate(state);
+    client.subscribe((update) => {
+      handleUpdate(update);
       setIsConnected(client.isConnected);
-    }, handleReconnect);
+    }, loadRuns);
 
     const statusInterval = setInterval(() => {
       setIsConnected(client.isConnected);
@@ -71,19 +63,16 @@ export function GrpcStreamProvider({ children }: { children: ReactNode }) {
       clientRef.current = null;
       clearInterval(statusInterval);
     };
-  }, [handleUpdate, handleReconnect]);
+  }, [handleUpdate, loadRuns]);
 
   return (
-    <GrpcStreamCtx.Provider value={{ latestStates, isConnected }}>
+    <GrpcStreamCtx.Provider value={{ latestRuns, lastUpdate, isConnected }}>
       {children}
     </GrpcStreamCtx.Provider>
   );
 }
 
-/**
- * Hook to consume the shared gRPC stream state.
- * Uses the app-level context so the stream survives page transitions.
- */
+/** Shared gRPC stream state (app-level, survives page transitions). */
 export function useGrpcStreamContext(): GrpcStreamContextValue {
   return useContext(GrpcStreamCtx);
 }
