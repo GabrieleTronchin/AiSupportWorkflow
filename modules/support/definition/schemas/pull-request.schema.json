@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "description", "affectedFilePaths", "simulatedDiff"],
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "affectedFilePaths": { "type": "array", "items": { "type": "string" }, "description": "Paths relative to the support module folder." },
+    "simulatedDiff": { "type": "string", "description": "Unified diff of the proposed change." }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rootCauseDescription", "affectedComponent", "severityAssessment", "proposedFixSummary", "requiresEscalation", "escalationReason"],
+  "properties": {
+    "rootCauseDescription": { "type": "string" },
+    "affectedComponent": { "type": "string", "description": "File or component that contains the defect." },
+    "severityAssessment": { "type": "string", "description": "Critical, High, Medium or Low." },
+    "proposedFixSummary": { "type": "string" },
+    "requiresEscalation": { "type": "boolean" },
+    "escalationReason": { "type": ["string", "null"] }
+  }
+}
