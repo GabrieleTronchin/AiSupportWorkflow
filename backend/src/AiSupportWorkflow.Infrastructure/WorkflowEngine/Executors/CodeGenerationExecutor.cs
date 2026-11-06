@@ -30,7 +30,8 @@ public sealed partial class CodeGenerationExecutor(
 
         var response = await chatClient.GetResponseAsync<PullRequest>(
             [new(ChatRole.User, BuildCodeGenPrompt(report))], ChatOpts, cancellationToken: ct);
-        var pullRequest = response.Result;
+        // Keep the PR linked to the real issue, regardless of what the model returned.
+        var pullRequest = response.Result with { IssueId = issueId };
 
         await stateTracker.TransitionAsync(issueId, WorkflowStage.CodeChangeGenerated, pullRequest.Title);
         await context.YieldOutputAsync(WorkflowResult.Completed(issueId, pullRequest), ct);

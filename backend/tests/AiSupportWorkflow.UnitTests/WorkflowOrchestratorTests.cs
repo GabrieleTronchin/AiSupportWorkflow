@@ -100,6 +100,10 @@ public class WorkflowOrchestratorTests
         Assert.True(result.IsSuccess, result.FailureReason);
         Assert.NotNull(result.PullRequest);
         Assert.Equal("Fix null Items", result.PullRequest!.Title);
+        // The model returns a placeholder IssueId: approval and PR must still reference the real issue.
+        Assert.Equal(result.IssueId, result.PullRequest.IssueId);
+        await _stateTracker.Received(1).TransitionAsync(result.IssueId, WorkflowStage.AwaitingApproval, Arg.Any<string?>());
+        await _stateTracker.DidNotReceive().TransitionAsync(Guid.Empty, Arg.Any<WorkflowStage>(), Arg.Any<string?>());
         await _stateTracker.Received(1).TransitionAsync(result.IssueId, WorkflowStage.CodeChangeGenerated, Arg.Any<string?>());
         await _stateTracker.DidNotReceive().TransitionAsync(Arg.Any<Guid>(), WorkflowStage.Failed, Arg.Any<string?>());
     }
