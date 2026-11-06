@@ -11,7 +11,7 @@ import { abortWorkflow } from '../api/client';
 export function OverviewPage() {
   const { agents } = useAgents();
   const { latestStates, isConnected } = useGrpcStream();
-  const { sequentialProcessing } = useConfig();
+  const { sequentialProcessing, demoMode } = useConfig();
   const [abortingId, setAbortingId] = useState<string | null>(null);
 
   const activeAgents = agents.filter((a) => a.status === 'Working').length;
@@ -46,6 +46,14 @@ export function OverviewPage() {
           {sequentialProcessing && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-900/50 text-amber-300 border border-amber-700">
               Sequential Mode
+            </span>
+          )}
+          {demoMode && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-900/50 text-violet-300 border border-violet-700"
+              title="LLM responses are simulated (LlmProvider:Provider = Demo)"
+            >
+              Demo Mode
             </span>
           )}
         </div>

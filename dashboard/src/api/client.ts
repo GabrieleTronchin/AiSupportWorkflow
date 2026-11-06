@@ -51,9 +51,15 @@ export async function fetchInbox(): Promise<InboxMessage[]> {
   return handleResponse<InboxMessage[]>(response);
 }
 
-export async function fetchConfig(): Promise<{ sequentialProcessing: boolean }> {
+export interface RuntimeConfig {
+  sequentialProcessing: boolean;
+  /** True when the backend uses simulated LLM responses (LlmProvider:Provider = "Demo"). */
+  demoMode: boolean;
+}
+
+export async function fetchConfig(): Promise<RuntimeConfig> {
   const response = await fetch('/api/support/config');
-  return handleResponse<{ sequentialProcessing: boolean }>(response);
+  return handleResponse<RuntimeConfig>(response);
 }
 
 export async function fetchPendingApprovals(): Promise<PendingApproval[]> {
