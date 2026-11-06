@@ -18,6 +18,9 @@ public sealed class HostRoutingHandler : HttpMessageHandler
 
     public bool IsDown(string host) => _down.GetValueOrDefault(host);
 
+    /// <summary>A handler for IHttpClientFactory that forwards here and never disposes the router.</summary>
+    public HttpMessageHandler CreateClientHandler() => new ForwardingHandler(this);
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var host = request.RequestUri?.Host ?? "";
@@ -30,5 +33,13 @@ public sealed class HostRoutingHandler : HttpMessageHandler
         }
 
         return invoker.SendAsync(request, cancellationToken);
+    }
+
+    private sealed class ForwardingHandler(HostRoutingHandler router) : HttpMessageHandler
+    {
+        private readonly HttpMessageInvoker _invoker = new(router, disposeHandler: false);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            _invoker.SendAsync(request, cancellationToken);
     }
 }

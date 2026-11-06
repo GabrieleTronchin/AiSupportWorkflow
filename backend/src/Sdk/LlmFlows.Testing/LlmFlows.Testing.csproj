@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <Description>In-process platform harness (engine, modules, gateway on TestServers) for module and platform tests.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Services\LlmFlows.Engine.Service\LlmFlows.Engine.Service.csproj" />
     <ProjectReference Include="..\..\Services\LlmFlows.Gateway\LlmFlows.Gateway.csproj" />
+    <ProjectReference Include="..\LlmFlows.Module.Sdk\LlmFlows.Module.Sdk.csproj" />
   </ItemGroup>
 
 </Project>
