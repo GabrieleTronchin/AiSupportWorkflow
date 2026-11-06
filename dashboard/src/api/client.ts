@@ -55,6 +55,10 @@ export interface RuntimeConfig {
   sequentialProcessing: boolean;
   /** True when the backend uses simulated LLM responses (LlmProvider:Provider = "Demo"). */
   demoMode: boolean;
+  /** Configured LLM provider, e.g. "Demo" or "OpenAI" (null if unknown, e.g. older backend). */
+  llmProvider: string | null;
+  /** Model used for LLM calls, e.g. "gpt-4o-mini" (null if unknown). */
+  llmModel: string | null;
 }
 
 export async function fetchConfig(): Promise<RuntimeConfig> {
