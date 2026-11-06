@@ -90,11 +90,10 @@ All NuGet packages used in this solution are free and open-source. No paid or pr
 | Akka.NET / Akka.Hosting / Akka.TestKit.Xunit2 | Apache-2.0 | ✅ |
 | Microsoft.Agents.AI / Microsoft.Agents.AI.OpenAI | MIT | ✅ |
 | Microsoft.Extensions.* (Options, Logging, Http.Resilience, Options.ConfigurationExtensions) | MIT | ✅ |
-| xUnit / xunit.runner.visualstudio | Apache-2.0 | ✅ |
-| FsCheck.Xunit | BSD-3-Clause | ✅ |
+| xunit.v3 | Apache-2.0 | ✅ |
+| FsCheck.Xunit.v3 | BSD-3-Clause | ✅ |
 | NSubstitute | BSD-3-Clause | ✅ |
-| coverlet.collector | MIT | ✅ |
-| Microsoft.NET.Test.Sdk | MIT | ✅ |
+| coverlet.MTP | MIT | ✅ |
 | Microsoft.AspNetCore.Mvc.Testing | MIT | ✅ |
 | Microsoft.Extensions.Http.Resilience | MIT | ✅ |
 

@@ -12,7 +12,7 @@ The AI Support Workflow includes a real-time monitoring dashboard that provides 
 
 | Technology | Purpose |
 |------------|---------|
-| React 18 | UI framework |
+| React 19 | UI framework |
 | TypeScript | Type-safe development |
 | Vite | Build tool and dev server |
 | Tailwind CSS | Utility-first styling |
@@ -78,7 +78,7 @@ The dashboard connects to the .NET backend through two channels:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ (22 LTS or newer recommended)
 - The .NET backend running (see [main README](../README.md))
 
 ### Installation and Development

@@ -93,12 +93,12 @@ This gate ensures no automated code changes are generated without human oversigh
 | Layer | Technology |
 |-------|-----------|
 | Runtime | .NET 10, C# latest |
-| Orchestration | Microsoft Agent Framework Workflows 1.3.0 (`WorkflowBuilder`, `Executor`, typed edges) |
+| Orchestration | Microsoft Agent Framework Workflows 1.27.0 (`WorkflowBuilder`, `Executor`, typed edges) |
 | LLM Integration | Microsoft.Extensions.AI structured output (`GetResponseAsync<T>`) |
 | Persistence | EF Core 10 InMemory (ready for SQL migration) |
 | Real-time | gRPC server streaming + gRPC-Web |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, ReactFlow |
-| Testing | xUnit, FsCheck (property-based), NSubstitute, Vitest, fast-check |
+| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, ReactFlow |
+| Testing | xUnit v3 (Microsoft.Testing.Platform), FsCheck (property-based), NSubstitute, Vitest 4, fast-check 4 |
 
 ---
 
