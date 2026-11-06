@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package llmflows;
+
+option csharp_namespace = "LlmFlows.Engine.Service.Grpc";
+
+// Real-time run transitions published by the engine (served as gRPC-Web through the gateway).
+service RunMonitor {
+  rpc Subscribe (SubscribeRequest) returns (stream RunUpdate);
+}
+
+// All filters are optional; when several are set, an update must match all of them.
+message SubscribeRequest {
+  optional string run_id = 1;
+  optional string workflow_id = 2;
+  optional string module_id = 3;
+}
+
+message RunUpdate {
+  string run_id = 1;
+  string module_id = 2;
+  string workflow_id = 3;
+  string step_id = 4;
+  string status = 5;
+  string event_kind = 6;
+  string timestamp = 7;
+  optional string detail = 8;
+  optional string title = 9;
+}
