@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { AgentStatus, ApiError } from '../types';
 import { useAgents } from '../hooks/useAgents';
+import { agent } from './fixtures';
 
 vi.mock('../api/client', () => ({
   fetchAgents: vi.fn(),
@@ -15,27 +16,18 @@ import { fetchAgents } from '../api/client';
 
 const mockFetchAgents = vi.mocked(fetchAgents);
 
-const agentA: AgentStatus = {
-  agentId: 'TeamA_BackendDeveloper',
-  team: 'TeamA',
-  role: 'BackendDeveloper',
-  status: 'Idle',
-  lastAction: null,
-  currentIssueId: null,
-  currentSubject: null,
-  currentStage: null,
-};
+const agentA: AgentStatus = agent();
 
-const agentB: AgentStatus = {
+const agentB: AgentStatus = agent({
   agentId: 'TeamB_FrontendDeveloper',
-  team: 'TeamB',
+  name: 'Frontend developer',
+  group: 'TeamB',
   role: 'FrontendDeveloper',
   status: 'Working',
-  lastAction: 'Analyzing issue-123',
-  currentIssueId: null,
-  currentSubject: null,
-  currentStage: null,
-};
+  currentRunId: 'run-123',
+  currentRunTitle: 'Blank total price',
+  currentStepId: 'resolve',
+});
 
 describe('useAgents', () => {
   beforeEach(() => {

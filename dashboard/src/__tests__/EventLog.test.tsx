@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { EventLog, capEvents } from '../components/EventLog';
-import type { StateTransitionEvent } from '../types';
+import { EventLog, capEvents, describeEventKind, groupEventsByRun } from '../components/EventLog';
+import type { RunEvent } from '../types';
+import { event } from './fixtures';
 
 describe('EventLog', () => {
   // Fixed clock so relative-time assertions don't drift on slow test runs.
@@ -16,31 +17,10 @@ describe('EventLog', () => {
     vi.useRealTimers();
   });
 
-  const mockEvents: StateTransitionEvent[] = [
-    {
-      id: 'evt-1',
-      issueId: 'abcdef1234567890',
-      previousStage: null,
-      newStage: 'Received',
-      detail: 'Email received from user',
-      timestamp: new Date(NOW - 3 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'evt-2',
-      issueId: '1234567890abcdef',
-      previousStage: 'Resolving',
-      newStage: 'Failed',
-      detail: null,
-      timestamp: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'evt-3',
-      issueId: 'deadbeef12345678',
-      previousStage: 'Resolved',
-      newStage: 'CodeChangeGenerated',
-      detail: 'PR created successfully',
-      timestamp: new Date(NOW - 30 * 1000).toISOString(),
-    },
+  const mockEvents: RunEvent[] = [
+    event({ id: 'evt-1', runId: 'abcdef1234567890', kind: 'Queued', stepId: null, status: 'Queued', detail: 'Email received from user', timestamp: new Date(NOW - 3 * 60 * 1000).toISOString() }),
+    event({ id: 'evt-2', runId: '1234567890abcdef', kind: 'Failed', stepId: 'route_team', status: 'Failed', detail: null, timestamp: new Date(NOW - 2 * 60 * 60 * 1000).toISOString() }),
+    event({ id: 'evt-3', runId: 'deadbeef12345678', kind: 'Completed', stepId: 'code_change_generated', status: 'Completed', detail: 'PR created successfully', timestamp: new Date(NOW - 30 * 1000).toISOString() }),
   ];
 
   describe('Rendering', () => {
@@ -49,7 +29,7 @@ describe('EventLog', () => {
       expect(screen.getByText('No events yet')).toBeInTheDocument();
     });
 
-    it('renders events with truncated issue ID (first 8 chars)', () => {
+    it('renders groups with the truncated run id (first 8 chars)', () => {
       render(<EventLog events={mockEvents} />);
 
       expect(screen.getByText('abcdef12')).toBeInTheDocument();
@@ -57,34 +37,31 @@ describe('EventLog', () => {
       expect(screen.getByText('deadbeef')).toBeInTheDocument();
     });
 
-    it('shows new stage badges', () => {
+    it('shows status badges and event kinds', () => {
       render(<EventLog events={mockEvents} />);
 
-      expect(screen.getAllByText('Received').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Failed').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('CodeChangeGenerated').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Completed').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Run failed')).toBeInTheDocument();
+      expect(screen.getByText('Run completed')).toBeInTheDocument();
     });
 
-    it('shows previous stage when present', () => {
+    it('shows the step of each event', () => {
       render(<EventLog events={mockEvents} />);
 
-      expect(screen.getByText('Resolving')).toBeInTheDocument();
-      expect(screen.getByText('Resolved')).toBeInTheDocument();
+      expect(screen.getAllByText('route_team').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('code_change_generated').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('shows detail text when present', () => {
+    it('shows detail text, or a dash when missing', () => {
       render(<EventLog events={mockEvents} />);
 
       expect(screen.getByText('Email received from user')).toBeInTheDocument();
       expect(screen.getByText('PR created successfully')).toBeInTheDocument();
+      expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('shows dash when detail is null', () => {
-      render(<EventLog events={mockEvents} />);
-      expect(screen.getByText('—')).toBeInTheDocument();
-    });
-
-    it('shows relative timestamp', () => {
+    it('shows relative timestamps', () => {
       render(<EventLog events={mockEvents} />);
 
       expect(screen.getAllByText('3 min ago').length).toBeGreaterThanOrEqual(1);
@@ -94,7 +71,7 @@ describe('EventLog', () => {
   });
 
   describe('Group toggle', () => {
-    it('exposes the expanded state of each issue group via aria-expanded', () => {
+    it('exposes the expanded state of each run group via aria-expanded', () => {
       render(<EventLog events={mockEvents} />);
 
       const header = screen.getByRole('button', { name: /abcdef12/ });
@@ -111,65 +88,57 @@ describe('EventLog', () => {
   });
 
   describe('Event cap', () => {
+    const many = (count: number): RunEvent[] => Array.from({ length: count }, (_, i) => event({
+      id: `evt-${i}`,
+      runId: `run${String(i).padStart(12, '0')}`,
+      detail: `Event ${i}`,
+      timestamp: new Date(NOW - i * 1000).toISOString(),
+    }));
+
     it('displays at most 200 events when more are provided', () => {
-      const manyEvents: StateTransitionEvent[] = Array.from({ length: 250 }, (_, i) => ({
-        id: `evt-${i}`,
-        issueId: `issue${String(i).padStart(12, '0')}`,
-        previousStage: null,
-        newStage: 'Received' as const,
-        detail: `Event ${i}`,
-        timestamp: new Date(Date.now() - i * 1000).toISOString(),
-      }));
+      render(<EventLog events={many(250)} />);
 
-      render(<EventLog events={manyEvents} />);
-
-      const items = screen.getAllByRole('listitem');
-      expect(items).toHaveLength(200);
+      expect(screen.getAllByRole('listitem')).toHaveLength(200);
     });
 
     it('displays all events when fewer than 200', () => {
       render(<EventLog events={mockEvents} />);
 
-      const items = screen.getAllByRole('listitem');
-      expect(items).toHaveLength(3);
+      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
+
+    it('capEvents returns the first 200 items', () => {
+      const result = capEvents(many(220));
+
+      expect(result).toHaveLength(200);
+      expect(result[0].runId).toBe('run000000000000');
+      expect(result[199].runId).toBe('run000000000199');
+    });
+
+    it('capEvents returns all items for short or empty arrays', () => {
+      expect(capEvents(many(50))).toHaveLength(50);
+      expect(capEvents([])).toEqual([]);
     });
   });
 
-  describe('capEvents utility', () => {
-    it('returns first 200 items from array longer than 200', () => {
-      const events: StateTransitionEvent[] = Array.from({ length: 220 }, (_, i) => ({
-        id: `evt-${i}`,
-        issueId: `issue${String(i).padStart(12, '0')}`,
-        previousStage: null,
-        newStage: 'Received' as const,
-        detail: `Event ${i}`,
-        timestamp: new Date().toISOString(),
-      }));
+  describe('Grouping', () => {
+    it('groups events by run preserving the order of first appearance', () => {
+      const events = [
+        event({ id: '1', runId: 'b' }),
+        event({ id: '2', runId: 'a' }),
+        event({ id: '3', runId: 'b' }),
+      ];
 
-      const result = capEvents(events);
-      expect(result).toHaveLength(200);
-      expect(result[0].issueId).toBe('issue000000000000');
-      expect(result[199].issueId).toBe('issue000000000199');
+      const groups = groupEventsByRun(events);
+
+      expect([...groups.keys()]).toEqual(['b', 'a']);
+      expect(groups.get('b')!.map((e) => e.id)).toEqual(['1', '3']);
     });
 
-    it('returns all items when array is shorter than 200', () => {
-      const events: StateTransitionEvent[] = Array.from({ length: 50 }, (_, i) => ({
-        id: `evt-${i}`,
-        issueId: `issue${String(i).padStart(12, '0')}`,
-        previousStage: null,
-        newStage: 'Received' as const,
-        detail: `Event ${i}`,
-        timestamp: new Date().toISOString(),
-      }));
-
-      const result = capEvents(events);
-      expect(result).toHaveLength(50);
-    });
-
-    it('returns empty array for empty input', () => {
-      const result = capEvents([]);
-      expect(result).toHaveLength(0);
-      expect(result).toEqual([]);
+    it('describes every event kind', () => {
+      expect(describeEventKind('AwaitingInput')).toBe('Awaiting input');
+      expect(describeEventKind('InputReceived')).toBe('Input received');
+      expect(describeEventKind('StepStarted')).toBe('Started');
     });
   });
 });
