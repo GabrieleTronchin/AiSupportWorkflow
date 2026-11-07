@@ -20,6 +20,7 @@
     <Project Path="backend/src/Services/LlmFlows.Gateway/LlmFlows.Gateway.csproj" />
   </Folder>
   <Folder Name="/backend/tests/">
+    <Project Path="backend/tests/LlmFlows.Architecture.Tests/LlmFlows.Architecture.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Engine.Tests/LlmFlows.Engine.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Gateway.Tests/LlmFlows.Gateway.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Integration.Tests/LlmFlows.Integration.Tests.csproj" />
