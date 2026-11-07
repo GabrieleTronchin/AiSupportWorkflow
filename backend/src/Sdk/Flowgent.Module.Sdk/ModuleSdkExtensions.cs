@@ -26,7 +26,10 @@ public static class ModuleSdkExtensions
     {
         builder.Services.Configure<ModuleSdkOptions>(builder.Configuration.GetSection(ModuleSdkOptions.SectionName));
         builder.Services.AddSingleton<ModuleDefinitionProvider>();
-        builder.Services.AddSingleton(sp => GetRegistry(builder.Services));
+        // Create (or reuse) the registry holder now, during configuration, so it works for modules without any tool.
+        // Resolving it in a factory would run after the service collection is read-only.
+        var registry = GetRegistry(builder.Services);
+        builder.Services.AddSingleton(registry);
         builder.Services.AddHostedService<ModuleStartupValidator>();
 
         builder.Services.AddHttpClient<IEngineClient, EngineClient>(EngineClient.HttpClientName, (sp, client) =>
