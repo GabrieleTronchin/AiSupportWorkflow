@@ -23,6 +23,9 @@
     <Project Path="backend/tests/LlmFlows.Engine.Tests/LlmFlows.Engine.Tests.csproj" />
     <Project Path="backend/tests/LlmFlows.Gateway.Tests/LlmFlows.Gateway.Tests.csproj" />
   </Folder>
+  <Folder Name="/backend/tests/Fixtures/">
+    <Project Path="backend/tests/Fixtures/LlmFlows.Fixtures.Module/LlmFlows.Fixtures.Module.csproj" />
+  </Folder>
   <Folder Name="/modules/" />
   <Folder Name="/modules/_template/">
     <Project Path="modules/_template/service/LlmFlows.Modules.Template.csproj" />

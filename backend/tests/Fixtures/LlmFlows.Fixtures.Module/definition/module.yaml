@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../../../../schemas/module.schema.json
+#
+# Test-only module used by LlmFlows.Integration.Tests: it runs alongside the support module and its workflows
+# exercise every step kind and both terminal outcomes.
+id: fixture
+name: Fixture
+description: Test-only module exercising every step kind and both terminal outcomes.
+
+config:
+  # The http step calls the fixture service's own echo endpoint as if it were an external API
+  # (the in-process harness routes http://fixture to the fixture service).
+  echoBaseUrl: http://fixture
+
+agents:
+  - id: fixture_writer
+    name: Writer
+    group: Fixture
+    role: Writer
+    persona: A test writer.
+  - id: fixture_reviewer
+    name: Reviewer
+    group: Fixture
+    role: Reviewer
+    persona: A test reviewer.
+
+tools:
+  - name: fixture.reverse
+    description: Reverses a text.
+    input:
+      schema: { type: object, required: [text], properties: { text: { type: string } } }
+    output:
+      schema: { type: object, required: [reversed], properties: { reversed: { type: string } } }
+    timeoutSeconds: 5
+
+workflows:
+  - workflows/fixture-flow.yaml
+  - workflows/fixture-rules.yaml
+
+samples:
+  - samples/fixture.samples.yaml
