@@ -112,8 +112,8 @@ graph TD
     Persistence[LlmFlows.Persistence] --> Runtime
     EngineSvc[LlmFlows.Engine.Service] --> Runtime & Persistence & Defaults
     Gateway[LlmFlows.Gateway] --> Defaults[LlmFlows.ServiceDefaults]
-    Sdk[LlmFlows.Module.Sdk] --> Definitions & Defaults
-    Modules[Module services] --> Sdk
+    Sdk[LlmFlows.Module.Sdk] --> Contracts & Definitions
+    Modules[Module services] --> Sdk & Defaults
     Testing[LlmFlows.Testing] --> EngineSvc & Gateway & Sdk
 ```
 
