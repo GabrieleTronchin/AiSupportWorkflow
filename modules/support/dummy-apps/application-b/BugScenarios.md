@@ -1,5 +1,7 @@
 # Application B — Bug Scenarios
 
+> Sample inputs: `scenario-b1`, `scenario-b2`, `scenario-b3` in [`definition/samples/scenarios.yaml`](../../definition/samples/scenarios.yaml). Expected results: [Scenarios](../../docs/scenarios.md) · [Support module](../../README.md)
+
 ## Scenario B1: SQL Injection in User Search (Backend)
 
 - **Category:** Backend Bug

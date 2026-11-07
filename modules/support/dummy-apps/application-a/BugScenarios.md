@@ -1,5 +1,7 @@
 # Application A — Bug Scenarios
 
+> Sample inputs: `scenario-a1`, `scenario-a2`, `scenario-a3` in [`definition/samples/scenarios.yaml`](../../definition/samples/scenarios.yaml). Expected results: [Scenarios](../../docs/scenarios.md) · [Support module](../../README.md)
+
 ## Scenario A1: Null Reference in Order Summary (Backend)
 
 - **Category:** Backend Bug
