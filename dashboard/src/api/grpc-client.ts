@@ -1,25 +1,24 @@
 import { createClient } from '@connectrpc/connect';
 import { createGrpcWebTransport } from '@connectrpc/connect-web';
-import { WorkflowMonitor } from '../gen/workflow_monitor_pb';
-import type { WorkflowState, WorkflowStage } from '../types';
+import { RunMonitor } from '../gen/run_monitor_pb';
+import type { RunEventKind, RunStatus, RunUpdate } from '../types';
 
 const transport = createGrpcWebTransport({ baseUrl: window.location.origin });
-const client = createClient(WorkflowMonitor, transport);
+const client = createClient(RunMonitor, transport);
 
 const INITIAL_RECONNECT_DELAY = 2000;
 const MAX_RECONNECT_DELAY = 30000;
 
 export interface GrpcStreamClient {
-  subscribe(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void): void;
+  subscribe(onUpdate: (update: RunUpdate) => void, onReconnect?: () => void): void;
   disconnect(): void;
   isConnected: boolean;
 }
 
 /**
- * Creates a streaming client that connects to the backend WorkflowMonitor gRPC-Web service.
- * Receives real-time WorkflowStateUpdate messages via server streaming.
- * Implements auto-reconnect with exponential backoff on stream errors.
- * Calls onReconnect when the stream reconnects after a disconnection.
+ * Creates a streaming client for the engine RunMonitor gRPC-Web service (through the gateway).
+ * Receives real-time run transitions via server streaming, reconnects with exponential backoff
+ * and calls onReconnect when the stream comes back after a disconnection.
  */
 export function createStreamClient(): GrpcStreamClient {
   let connected = false;
@@ -28,14 +27,11 @@ export function createStreamClient(): GrpcStreamClient {
   let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let hasConnectedBefore = false;
 
-  async function startStream(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
+  async function startStream(onUpdate: (update: RunUpdate) => void, onReconnect?: () => void) {
     if (!abortController || abortController.signal.aborted) return;
 
     try {
-      const stream = client.subscribeToUpdates(
-        {},
-        { signal: abortController.signal },
-      );
+      const stream = client.subscribe({}, { signal: abortController.signal });
 
       connected = true;
       reconnectDelay = INITIAL_RECONNECT_DELAY;
@@ -50,10 +46,15 @@ export function createStreamClient(): GrpcStreamClient {
         if (abortController?.signal.aborted) return;
 
         onUpdate({
-          issueId: update.issueId,
-          stage: update.stage as WorkflowStage,
-          lastUpdated: update.lastUpdated,
+          runId: update.runId,
+          moduleId: update.moduleId,
+          workflowId: update.workflowId,
+          stepId: update.stepId || null,
+          status: update.status as RunStatus,
+          eventKind: update.eventKind as RunEventKind,
+          timestamp: update.timestamp,
           detail: update.detail ?? null,
+          title: update.title ?? null,
         });
       }
 
@@ -62,7 +63,7 @@ export function createStreamClient(): GrpcStreamClient {
         connected = false;
         scheduleReconnect(onUpdate, onReconnect);
       }
-    } catch (err: unknown) {
+    } catch {
       if (abortController?.signal.aborted) return;
 
       connected = false;
@@ -70,7 +71,7 @@ export function createStreamClient(): GrpcStreamClient {
     }
   }
 
-  function scheduleReconnect(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
+  function scheduleReconnect(onUpdate: (update: RunUpdate) => void, onReconnect?: () => void) {
     reconnectTimeoutId = setTimeout(() => {
       reconnectTimeoutId = null;
       startStream(onUpdate, onReconnect);
@@ -84,7 +85,7 @@ export function createStreamClient(): GrpcStreamClient {
       return connected;
     },
 
-    subscribe(onUpdate: (state: WorkflowState) => void, onReconnect?: () => void) {
+    subscribe(onUpdate: (update: RunUpdate) => void, onReconnect?: () => void) {
       abortController = new AbortController();
       reconnectDelay = INITIAL_RECONNECT_DELAY;
       hasConnectedBefore = false;

@@ -1,280 +1,178 @@
-# AI Support Workflow
+# Flowgent
 
 ![CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/ci.yml/badge.svg)
 ![Dashboard CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/dashboard-ci.yml/badge.svg)
 ![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet)
-![React](https://img.shields.io/badge/React-18-61dafb?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/github/license/GabrieleTronchin/AiSupportWorkflow)
 
 **A spec-driven AI experiment.**
 
-An AI-driven technical support workflow built with .NET 10. This project simulates the full lifecycle of a support request — from email intake to automated code fix generation — using LLM-powered agents orchestrated through **Microsoft Agent Framework Workflows** with a human-in-the-loop approval gate.
+Flowgent is a base for building LLM workflows. Workflows are described in YAML (steps, transitions, prompts, JSON schemas, rules, human review, demo responses) and run by a domain-agnostic engine on **Microsoft Agent Framework Workflows**. Each business domain is a **module**: a small service that owns its definitions and custom code. A generic dashboard monitors every module, and one command starts everything.
 
----
+- **Engine**: validates and runs workflows, owns runs, events, the inbox, human input, LLM access (Demo or OpenAI-compatible) and telemetry.
+- **Modules**: publish their definitions and expose tools (C# operations called by workflow steps) and domain endpoints.
+- **Gateway**: the single entry point for the dashboard and clients.
+- **Dashboard**: adapts to the selected workflow (graph, form, approvals, runs, agents, events).
+- **Demo mode** by default: no API key needed, every workflow runs offline with the responses declared in YAML.
 
-## What It Does
-
-The system automates technical support by processing incoming emails through a multi-stage AI pipeline:
-
-1. **Email Reception** — A support email is submitted via the REST API with a sender, subject, and body.
-2. **LLM Classification** — The email is analyzed by an LLM to determine whether it describes a code-related issue and to categorize it (backend bug, frontend bug, or quality/test issue). Out-of-scope emails are rejected here.
-3. **Team Routing** — The email text is matched against known applications (Application A, Application B) to route the issue to the correct team.
-4. **Agent Assignment** — Based on the issue category, a specialized AI agent is selected (backend developer, frontend developer, or QA engineer).
-5. **Root Cause Analysis** — The assigned agent performs LLM-powered analysis to identify the root cause and produce a resolution report.
-6. **Human Approval Gate** — The resolution report is held for human review. The workflow pauses in an `AwaitingApproval` state until a human approves or rejects the proposed fix via the dashboard. Rejected issues move to `ManualReviewRequired`.
-7. **Code Fix Generation** — Once approved, a simulated pull request is generated with the proposed fix, including affected file paths and a diff.
-
-Each stage is implemented as a discrete **Executor** in the Microsoft Agent Framework Workflows graph. The pipeline is defined declaratively using `WorkflowBuilder` with typed edges and conditions, replacing the previous Akka.NET actor hierarchy.
-
-The system includes a **real-time monitoring dashboard** (React + gRPC-Web) that visualizes the pipeline state, agent activity, and event history. Email processing is fully asynchronous via the **Transactional Inbox pattern** — submissions return immediately (HTTP 202) while a background processor handles the workflow pipeline.
-
----
-
-## Architecture
-
-The project follows Clean Architecture with a strict inward dependency flow, combined with a **declarative workflow graph** (Microsoft Agent Framework) for processing support requests.
-
-### Clean Architecture Layers
-
-Dependencies flow inward — each layer only depends on the layer closer to the core. The Domain layer has zero external dependencies.
+## Topology
 
 ```mermaid
 graph LR
-    subgraph Presentation
-        P[Minimal API<br/>Endpoints<br/>Program.cs<br/>gRPC Service]
-    end
-    subgraph Infrastructure
-        I[Workflow Engine<br/>Executors<br/>Agent Framework Services<br/>EF Core InMemory<br/>InboxProcessor]
-    end
-    subgraph Application
-        A[EmailProcessor<br/>AgentSelector / TeamRouter<br/>UseCases]
-    end
-    subgraph Domain
-        D[Entities / Enums<br/>Interfaces<br/>Value Objects]
-    end
-
-    P --> I --> A --> D
+    Browser[Dashboard :5173] --> GW[Gateway :5080]
+    Client[HTTP clients] --> GW
+    GW -->|/api/engine/**, gRPC-Web| ENG[Engine :5081]
+    GW -->|"/api/modules/{id}/**"| MOD[Module services]
+    ENG -->|definitions, tools| MOD
+    MOD -->|intake| ENG
+    ENG --> LLM[(Demo / OpenAI-compatible)]
 ```
 
-### Workflow Pipeline (Microsoft Agent Framework)
+Details: [Architecture](docs/architecture.md).
 
-The orchestration uses `WorkflowBuilder` to define a directed graph of **Executors** connected by typed **Edges**. Each executor handles a single stage, receives typed input, and returns typed output that the framework routes to the next executor.
+## Modules
 
-```mermaid
-flowchart LR
-    E[📧 Email Received] --> C[🔍 Classification<br/>Executor]
-    C -->|Out of Scope| OOS[⛔ Rejected]
-    C -->|Code-Related| TR[🔀 TeamAssignment<br/>Executor]
-    TR --> AS[👤 AgentAssignment<br/>Executor]
-    AS --> R[🧠 Resolution<br/>Executor]
-    R --> HA[✋ HumanApproval<br/>Gate]
-    HA -->|Approved| CG[💻 CodeGeneration<br/>Executor]
-    HA -->|Rejected| MR[📋 Manual Review]
+| Module | Folder | Description |
+|--------|--------|-------------|
+| Support | [`modules/support`](modules/support/README.md) | Reference module: triages support emails and proposes code fixes after human approval. |
+| Jokes | [`modules/jokes`](modules/jokes/definition/module.yaml) | Tiny example: one `llm` step turns a topic into a one-liner joke. A good starting point to read. |
+| Template | [`modules/_template`](modules/_template/README.md) | Minimal module to copy when creating a new one (disabled by default). |
+
+A test-only fixture module (`backend/tests/Fixtures/Flowgent.Fixtures.Module`) covers every step kind in the integration tests.
+
+## How modules work
+
+1. A module folder contains `definition/` (`module.yaml`, `workflows/`, `prompts/`, `schemas/`, `samples/`), `service/` (ASP.NET Core on `Flowgent.Module.Sdk`), `tests/` and its documentation.
+2. The module service publishes its definition files at `GET /_module/package`. The engine polls every configured module, validates the definitions and compiles each workflow into an Agent Framework graph.
+3. A client submits an input to `POST /api/engine/workflows/{id}/runs` (or to a module endpoint that forwards it). The engine validates it against the input schema, stores it in the inbox and returns `202`.
+4. The run executes step by step: `llm`, `rule`, `map`, `human-input`, `tool` (calls the module service), `http` (calls an external API) and `terminal`.
+5. Every transition is persisted and streamed to the dashboard.
+
+A minimal workflow (shortened from [`template-hello.yaml`](modules/_template/definition/workflows/template-hello.yaml)):
+
+```yaml
+id: template-hello
+version: 1
+name: Hello (template)
+input:
+  schema: { file: schemas/template-hello.input.schema.json }
+start: summarize
+steps:
+  - id: summarize
+    kind: llm
+    name: Summary
+    prompt: { file: prompts/summarize.user.md }
+    output: { schema: { file: schemas/summary.schema.json } }
+    demo:
+      output: { summary: "[Demo] {{ input.text | string.truncate 80 }}" }
+    next: count_words
+  - id: count_words
+    kind: tool
+    name: Word count
+    tool: template.wordCount
+    input: { text: "{{ steps.summarize.summary }}" }
+    next: done
+  - id: done
+    kind: terminal
+    name: Done
+    outcome: success
+    message: "{{ steps.summarize.summary }} ({{ steps.count_words.words }} words)"
 ```
 
-### Human-in-the-Loop Approval
+To add a module, copy `modules/_template` and follow its README: no change to the engine, the gateway code or the dashboard is needed. See [Module authoring](docs/module-authoring.md).
 
-The `HumanApprovalGateExecutor` pauses the workflow after resolution and waits for an external decision:
+## Getting started
 
-1. The resolution report (root cause, severity, proposed fix) is exposed via `GET /api/support/approvals/pending`
-2. The dashboard shows a notification banner and the Approvals page with full details
-3. A human reviews and clicks **Approve** or **Reject**
-4. On approval → the workflow resumes and generates the code fix
-5. On rejection → the workflow transitions to `ManualReviewRequired` (terminal state)
-6. Stuck workflows can be force-aborted via the **Abort** button (`POST /api/support/issues/{id}/abort`)
+Requirements: .NET 10 SDK, Node.js 20.19+.
 
-This gate ensures no automated code changes are generated without human oversight.
+```bash
+git clone <repository-url> flowgent
+cd flowgent
+cd dashboard && npm install && cd ..
 
----
+# Engine, enabled modules, gateway and dashboard (.NET Aspire)
+dotnet run --project backend/src/AppHost/Flowgent.AppHost
+```
 
-## Tech Stack
+| What | Where |
+|------|-------|
+| Monitoring dashboard | http://localhost:5173 |
+| Gateway (API entry point) | http://localhost:5080 |
+| Aspire dashboard (logs, traces, metrics) | http://localhost:15080 |
 
-| Layer | Technology |
-|-------|-----------|
+Enable the template module with `-- --AppHost:Modules:template:Enabled=true`. Services can also be started one by one; see [Orchestration](docs/orchestration.md).
+
+The engine starts in Demo mode. To use a real model, set `Flowgent:Llm` in the git-ignored `backend/src/Services/Flowgent.Engine.Service/appsettings.Development.json` or in environment variables; see [Demo mode](docs/demo-mode.md).
+
+### Build and test
+
+```bash
+dotnet build backend/Flowgent.slnx
+dotnet test --solution backend/Flowgent.slnx          # engine, gateway, architecture, integration and module tests
+
+cd dashboard
+npm run typecheck
+npm run test -- --run
+npm run build
+```
+
+Tests run in-process (`Flowgent.Testing.PlatformHarness`): no ports, no Aspire, Demo mode.
+
+## Repository structure
+
+```
+global.json                         # .NET test runner (Microsoft.Testing.Platform), read from the working directory
+backend/
+├── Flowgent.slnx                   # single solution (backend and modules)
+├── Directory.Build.props, Directory.Packages.props, nuget.config   # shared build settings and package versions
+├── schemas/                        # JSON Schemas of the YAML formats
+├── protos/run_monitor.proto        # gRPC run stream
+├── src/
+│   ├── Engine/                     # Flowgent.Contracts, .Definitions, .Runtime, .Persistence
+│   ├── Services/                   # Flowgent.Engine.Service, Flowgent.Gateway
+│   ├── Sdk/                        # Flowgent.Module.Sdk, Flowgent.Testing
+│   └── AppHost/                    # Flowgent.AppHost, Flowgent.ServiceDefaults
+└── tests/                          # Engine, Gateway, Architecture, Integration tests, Fixtures/
+modules/
+├── _template/                      # module template
+├── jokes/                          # tiny example module (single llm step, no tools)
+└── support/                        # support module (definition, service, tests, dummy-apps, docs)
+dashboard/                          # React monitoring console
+docs/                               # platform documentation
+```
+
+## Tech stack
+
+| Area | Technology |
+|------|-----------|
 | Runtime | .NET 10, C# latest |
-| Orchestration | Microsoft Agent Framework Workflows 1.27.0 (`WorkflowBuilder`, `Executor`, typed edges) |
-| LLM Integration | Microsoft.Extensions.AI structured output (`GetResponseAsync<T>`) |
-| Persistence | EF Core 10 InMemory (ready for SQL migration) |
-| Real-time | gRPC server streaming + gRPC-Web |
-| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, ReactFlow |
-| Testing | xUnit v3 (Microsoft.Testing.Platform), FsCheck (property-based), NSubstitute, Vitest 4, fast-check 4 |
+| Execution | Microsoft Agent Framework Workflows 1.27 |
+| LLM | Microsoft.Extensions.AI `IChatClient` (Demo, OpenAI-compatible) with structured output |
+| Definitions | YAML (YamlDotNet), Scriban templates, JSON Schema (JsonSchema.Net) |
+| Services | ASP.NET Core minimal APIs, YARP gateway, gRPC-Web |
+| Orchestration | .NET Aspire 13, OpenTelemetry |
+| Persistence | EF Core 10 InMemory |
+| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Flow, dagre |
+| Testing | xUnit v3 (Microsoft.Testing.Platform), FsCheck, NSubstitute, NetArchTest, Vitest, fast-check |
 
----
+## Documentation
 
-## DummyApps & Test Scenarios
-
-The `DummyApps/` folder contains two sample applications — **ApplicationA** and **ApplicationB** — that serve as test fixtures for the AI workflow. Each application includes source code with intentional bugs and a `BugScenarios.md` file documenting three predefined scenarios (one per issue category).
-
-### Bug Categories
-
-| Category | Description | Example |
-|----------|-------------|---------|
-| **BackendBug** | Server-side logic errors (null references, SQL injection) | App A: `NullReferenceException` in `GetOrderSummary`; App B: SQL injection in `SearchUsers` |
-| **FrontendBug** | UI/component rendering issues (wrong bindings, missing null checks) | App A: incorrect property binding in `OrderSummary.razor`; App B: missing null check on avatar URL |
-| **QualityTestIssue** | Missing or flaky tests that let bugs slip through | App A: missing test for empty order edge case; App B: flaky test with hardcoded date |
-
-### Scenario Files
-
-- [`DummyApps/ApplicationA/BugScenarios.md`](DummyApps/ApplicationA/BugScenarios.md) — Three scenarios (A1–A3) covering an order management system
-- [`DummyApps/ApplicationB/BugScenarios.md`](DummyApps/ApplicationB/BugScenarios.md) — Three scenarios (B1–B3) covering a user management system
-
-
----
-
-## API Endpoints
-
-All endpoints are served under the `/api/support` base path.
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/support/emails` | Submit a support email (async — returns 202 Accepted) |
-| `GET` | `/api/support/issues/{id:guid}` | Get workflow state by issue ID |
-| `GET` | `/api/support/issues` | List all processed issues |
-| `GET` | `/api/support/events` | List state transition events (persistent audit log, max 200) |
-| `GET` | `/api/support/agents` | All configured agents with current status (Idle/Working) |
-| `GET` | `/api/support/inbox` | Inbox queue messages with optional status filter |
-| `GET` | `/api/support/approvals/pending` | List workflows awaiting human approval |
-| `POST` | `/api/support/approvals/{id:guid}/approve` | Approve a workflow — resumes to code generation |
-| `POST` | `/api/support/approvals/{id:guid}/reject` | Reject a workflow — moves to ManualReviewRequired |
-| `POST` | `/api/support/issues/{id:guid}/abort` | Abort a workflow, forcing it into Failed state |
-| `GET` | `/api/support/agents/{agentId}/telemetry` | Agent-specific LLM telemetry (tokens, latency) |
-| `GET` | `/api/support/telemetry/summary` | Global LLM usage statistics |
-| `GET` | `/api/support/config` | Runtime flags for the dashboard (sequential mode, demo mode, LLM provider and model) |
-| gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
-
-📄 [Full API reference with request/response examples →](docs/api-endpoints.md)
-
----
-
-## Project Structure
-
-```
-AiSupportWorkflow/
-├── backend/                                 # .NET backend (solution, source, tests)
-│   ├── AiSupportWorkflow.sln               # Solution file
-│   ├── src/
-│   │   ├── AiSupportWorkflow.Domain/       # Pure domain layer — entities, enums, interfaces, value objects
-│   │   ├── AiSupportWorkflow.Application/  # Business logic — services, use cases, configuration
-│   │   ├── AiSupportWorkflow.Infrastructure/ # External integrations — Workflow Engine, Agent Framework, EF Core
-│   │   │   ├── WorkflowEngine/             # Executors, SupportWorkflowFactory, WorkflowOrchestrator
-│   │   │   ├── AgentFramework/             # ChatClientAgentFactory, LLM Telemetry Middleware
-│   │   │   ├── Persistence/               # EF Core InMemory, StateTracker, CheckpointStore
-│   │   │   └── Services/                  # InboxProcessor, WorkflowApprovalService
-│   │   └── AiSupportWorkflow.Presentation/ # REST API & composition root — Minimal API endpoints, Program.cs
-│   └── tests/
-│       ├── AiSupportWorkflow.UnitTests/    # xUnit + NSubstitute unit tests
-│       └── AiSupportWorkflow.PropertyTests/ # FsCheck property-based tests
-│
-├── dashboard/                               # React monitoring dashboard (Vite + TypeScript + Tailwind)
-│
-├── DummyApps/
-│   ├── ApplicationA/                        # Sample app with predefined bug scenarios
-│   └── ApplicationB/                        # Sample app with predefined bug scenarios
-│
-├── docs/                                    # In-depth documentation
-└── README.md
-```
-
----
-
-## Deep-Dive Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Clean Architecture](docs/clean-architecture.md) | Four-layer structure, dependency rules, and compliance verification |
-| [Workflow Engine](docs/agent-framework-integration.md) | Microsoft Agent Framework Workflows — executors, edges, and structured output |
-| [Demo Mode](docs/demo-mode.md) | Default offline mode with simulated LLM responses — configuration and behaviour |
-| [Human Approval Gate](docs/human-approval-gate.md) | Human-in-the-loop design, approval API, and dashboard integration |
-| [API Endpoints](docs/api-endpoints.md) | Full API reference with request/response examples |
-| [Dashboard](docs/dashboard.md) | Real-time monitoring dashboard architecture and usage |
-| [Transactional Inbox](docs/transactional-inbox.md) | Async email processing pattern and implementation |
-| [Debugging](docs/debugging.md) | HTTP file for IDE-based testing and PowerShell monitor script |
-
-
----
-
-## Getting Started
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/your-username/AiSupportWorkflow.git
-   cd AiSupportWorkflow
-   ```
-
-2. **Choose the LLM provider (optional):**
-
-   The backend starts in **Demo mode** by default: LLM responses are simulated, no API key is needed, and the whole pipeline and dashboard work offline. See [Demo Mode](docs/demo-mode.md) for how it works.
-
-   To use a real model, override the provider in `backend/src/AiSupportWorkflow.Presentation/appsettings.Development.json` (git-ignored, never committed):
-
-   ```json
-   {
-     "LlmProvider": {
-       "Provider": "OpenAI",
-       "ApiKey": "YOUR_API_KEY_HERE",
-       "ModelName": "gpt-4o-mini"
-     }
-   }
-   ```
-
-   `LlmProvider` supports the following settings:
-
-   | Setting | Default | Description |
-   |---------|---------|-------------|
-   | `Provider` | `Demo` | `Demo` (simulated responses, no API key) or `OpenAI` (real model). |
-   | `ModelName` | `gpt-4o-mini` | Model id used with `OpenAI`. |
-   | `ApiKey` | — | API key, required with `OpenAI`, ignored in `Demo` mode. |
-   | `Endpoint` | OpenAI | Optional absolute `http(s)` URL of any OpenAI-compatible endpoint (e.g. Groq `https://api.groq.com/openai/v1`, Ollama `http://localhost:11434/v1`). |
-   | `DemoLatencyMs` | `1500` | Simulated latency per LLM call in `Demo` mode, so pipeline progress is visible in the UI. |
-
-   Each processed email makes three LLM calls (classification, root cause analysis, code change). The dashboard shows the active mode in the Overview header: **Demo Mode**, or the provider and model in use (e.g. **OpenAI · gpt-4o-mini**).
-
-3. **Run the project:**
-
-   ```bash
-   dotnet run --project backend/src/AiSupportWorkflow.Presentation
-   ```
-
-   The API will be available at `http://localhost:5000` (or the port configured in `launchSettings.json`).
-
-4. **Start the dashboard (optional):**
-
-   ```bash
-   cd dashboard
-   npm install
-   npm run dev
-   ```
-
-   The dashboard will be available at `http://localhost:5173`.
-
-### Configuration
-
-The `Workflow` section in `appsettings.json` controls runtime behavior:
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `EnableVisualization` | `bool` | `true` | Enables gRPC streaming and agents endpoint |
-| `SequentialProcessing` | `bool` | `false` | When `false` (default), pending messages are dispatched concurrently — each workflow runs in its own task so the poller never blocks on a long-running workflow. When `true`, one message is processed at a time and the next waits for the previous issue to reach a terminal state |
-| `InboxPollingIntervalSeconds` | `int` | `5` | Polling interval for the inbox processor background service |
-| `Teams` | `array` | — | Team and agent configuration |
-
-### Verbose Logging
-
-Set the `AiSupportWorkflow` log level to `Debug` in `appsettings.Development.json`:
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "AiSupportWorkflow": "Debug"
-    }
-  }
-}
-```
-
----
+| Document | Content |
+|----------|---------|
+| [Architecture](docs/architecture.md) | Services, contracts, module catalog, run model, persistence, dependency rules |
+| [Workflow reference](docs/workflow-reference.md) | `module.yaml`, workflows, every step kind, samples, validation |
+| [Expressions](docs/expressions.md) | Scriban templates and conditions, available data, sandbox |
+| [Module authoring](docs/module-authoring.md) | Creating a module from the template: SDK, tools, endpoints, registration, tests |
+| [Gateway](docs/gateway.md) | Routes, configuration, correlation id, 503 handling |
+| [Engine API](docs/engine-api.md) | `/api/engine` endpoints, gRPC stream, engine configuration |
+| [Demo mode](docs/demo-mode.md) | LLM providers and demo responses |
+| [Inbox](docs/inbox.md) | Asynchronous intake and processing |
+| [Human input](docs/human-input.md) | Approve, reject and abort |
+| [Dashboard](docs/dashboard.md) | Pages, graph, form, real-time updates |
+| [Orchestration](docs/orchestration.md) | AppHost, standalone services, observability |
+| [Debugging](docs/debugging.md) | `.http` files, troubleshooting, traces |
 
 ## License
 

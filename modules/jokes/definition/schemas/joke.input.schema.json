@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Joke topic",
+  "type": "object",
+  "required": ["topic"],
+  "properties": {
+    "topic": { "type": "string", "title": "Topic", "minLength": 1, "pattern": "\\S" }
+  }
+}

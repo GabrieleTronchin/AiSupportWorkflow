@@ -35,7 +35,7 @@ describe('AppLayout / Sidebar', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
 
-    for (const label of ['Overview', 'Inbox', 'Issues', 'Approvals', 'Agents', 'Event Log']) {
+    for (const label of ['Overview', 'Inbox', 'Runs', 'Approvals', 'Agents', 'Event Log']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false');

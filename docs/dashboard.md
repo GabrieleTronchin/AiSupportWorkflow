@@ -1,150 +1,75 @@
 # Dashboard
 
-> **📚 Navigation:** [← Back to README](../README.md)
+[← README](../README.md) · [Engine API](engine-api.md) · [Human input](human-input.md)
 
-## Overview
+`dashboard/` is a generic React console for every module. It contains no step names or module-specific code: pages, graph, forms, filters and badges come from the workflow definitions and run statuses returned by the engine.
 
-The AI Support Workflow includes a real-time monitoring dashboard that provides visibility into the workflow pipeline. It visualizes issue progression through stages, agent activity, the event audit log, and the inbox queue — all updating in real-time via gRPC-Web streaming and REST polling.
-
----
-
-## Tech Stack
-
-| Technology | Purpose |
-|------------|---------|
-| React 19 | UI framework |
-| TypeScript | Type-safe development |
-| Vite | Build tool and dev server |
-| Tailwind CSS | Utility-first styling |
-| ReactFlow (@xyflow/react) | Pipeline graph visualization |
-| gRPC-Web (@connectrpc/connect-web) | Real-time streaming from the backend |
-
----
-
-## Pages
-
-### Overview
-
-The main dashboard page combining:
-
-- **Pipeline Graph** — A fixed ReactFlow visualization showing the workflow stages. Nodes animate and change color as issues progress through the pipeline.
-- **Email Composer** — A form to submit test emails directly from the dashboard. Submissions are asynchronous (HTTP 202) and progress is visible immediately in the graph.
-- **Summary Statistics** — Total issues, active agents, and recent failures displayed at the top.
-
-### Issues
-
-A filterable table showing all processed issues with their current state:
-
-- Issue ID, current stage, detail, and last update timestamp
-- Filter by workflow stage
-
-### Event Log
-
-A persistent audit log of all state transition events (max 200 entries):
-
-- Issue ID, previous stage, new stage, timestamp, and detail
-- Reverse chronological order (most recent first)
-- Data persists across page refreshes (backed by the Events table)
-
-### Agents
-
-Displays all configured agents from `appsettings.json` with their current status:
-
-- Agent identifier, team, role, and status (Idle or Working)
-- Updates via periodic polling
-
-### Inbox
-
-Email queue monitoring page (replaces the old "/emails" page):
-
-- Table of all inbox messages with ID, sender, subject, status, timestamps
-- Status badges: Queued (amber), Processed (green), Failed (red)
-- Filter by status (Queued, Processed, Failed, All)
-- Summary counters at the top
-
----
-
-## Backend Connection
-
-The dashboard connects to the .NET backend through two channels:
-
-1. **gRPC-Web Streaming** — Real-time workflow state updates via `WorkflowMonitor.SubscribeToUpdates` server streaming RPC. The client automatically reconnects on disconnection and shows a status indicator.
-
-2. **REST Polling** — Periodic fetches to REST endpoints for agents, issues, events, and inbox data. Used for data that doesn't require sub-second updates.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20.19+ (22 LTS or newer recommended)
-- The .NET backend running (see [main README](../README.md))
-
-### Installation and Development
+## Running it
 
 ```bash
 cd dashboard
 npm install
-npm run dev
+npm run dev        # http://localhost:5173
 ```
 
-The dashboard will be available at `http://localhost:5173`.
+The AppHost starts it automatically on port 5173. The dev server proxies `/api` and `/flowgent.RunMonitor` to the gateway: `GATEWAY_URL` (set by the AppHost) or `http://localhost:5080`. The dashboard never calls the engine or a module directly.
 
-The Vite dev server proxies API requests to the backend at `http://localhost:5000`.
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server |
+| `npm run build` | Type check and production build (`dist/`) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test -- --run` | Vitest (single run) |
+| `npm run generate` | Regenerate `src/gen/` from `backend/protos/run_monitor.proto` (buf) |
 
----
+Node.js 20.19 or later is required.
 
-## Project Structure
+## Pages
+
+| Page | Route | Content |
+|------|-------|---------|
+| Overview | `/` | Module/workflow picker, LLM mode badge, connection status, counters (runs, active agents, awaiting approval, failures), runs in progress with **Abort**, pipeline graph and submission form. |
+| Inbox | `/inbox` | Inbox messages filtered by status (queued, processed, failed) with their payload. |
+| Runs | `/runs` | Runs of the selected workflow, filterable by status and by step. |
+| Approvals | `/approvals` | Pending human inputs of every module with **Approve**, **Reject** (optional reason) and **Abort**. |
+| Agents | `/agents` | Agents of every module with Idle/Working status and LLM telemetry (tokens, latency, estimated cost). |
+| Event Log | `/events` | Transition events grouped by run, with step names from the workflow graph. |
+
+## Module and workflow selection
+
+`ModuleWorkflowPicker` lists the modules and workflows from `/api/engine/modules` and `/api/engine/workflows` (refreshed every 10 s). It shows the module status (`Loading`, `Available`, `Invalid`, `Unavailable`) and its validation errors. The selection is stored in `localStorage` (`flowgent.selection`); by default the first available workflow is selected.
+
+## Pipeline graph
+
+`PipelineVisualizer` draws `workflow.graph` with React Flow, laid out left-to-right by dagre. Nodes are coloured by the state of the active runs of the selected workflow; terminal nodes have a border coloured by outcome (success or failure); edge labels show transition conditions.
+
+## Submission form
+
+`RunSubmitForm` builds its fields from the workflow input schema (`string` → input, `x-multiline` → textarea, `enum` → select, `boolean` → checkbox, `number`/`integer` → number) and offers the workflow's samples, grouped by `group`. It validates required fields locally and posts to `/api/engine/workflows/{id}/runs`; the engine validates the same schema and its `400` message is shown. Samples marked `expectInvalid` demonstrate the validation.
+
+## Real-time updates
+
+The gRPC-Web client (`@connectrpc/connect-web`) subscribes to `RunMonitor.Subscribe` through the gateway and reconnects with exponential backoff (2 s up to 30 s), reloading runs after a reconnection. REST polling complements the stream: agents every 3 s, human inputs every 5 s, workflow catalog every 10 s.
+
+## Status badges
+
+| Run status | Colour |
+|------------|--------|
+| `Queued`, `Running` | Blue |
+| `AwaitingInput` | Amber |
+| `Completed` | Emerald |
+| `Failed`, `Cancelled` | Red |
+
+## Code map
 
 ```
-dashboard/
-├── index.html                    # HTML entry point
-├── package.json                  # Dependencies and scripts
-├── vite.config.ts                # Vite configuration with API proxy
-├── tailwind.config.ts            # Tailwind CSS configuration
-├── tsconfig.json                 # TypeScript configuration
-├── postcss.config.js             # PostCSS configuration
-├── vitest.config.ts              # Test configuration
-│
-├── src/
-│   ├── main.tsx                  # React entry point
-│   ├── App.tsx                   # Router and layout
-│   ├── index.css                 # Global styles (Tailwind imports)
-│   │
-│   ├── api/
-│   │   ├── client.ts             # REST API client
-│   │   └── grpc-client.ts        # gRPC-Web client setup
-│   │
-│   ├── components/
-│   │   ├── PipelineVisualizer.tsx  # ReactFlow pipeline graph
-│   │   ├── EmailComposer.tsx       # Email submission form
-│   │   ├── AgentMonitor.tsx        # Agent status display
-│   │   ├── EventLog.tsx            # Event log table
-│   │   ├── IssuesList.tsx          # Issues table
-│   │   └── layout/                 # Navigation and layout components
-│   │
-│   ├── hooks/
-│   │   ├── useGrpcStream.ts      # gRPC-Web streaming hook
-│   │   ├── useAgents.ts          # Agents polling hook
-│   │   ├── useEvents.ts          # Events polling hook
-│   │   ├── useInbox.ts           # Inbox polling hook
-│   │   ├── useIssues.ts          # Issues polling hook
-│   │   └── useEmailSubmit.ts     # Email submission hook
-│   │
-│   ├── pages/
-│   │   ├── OverviewPage.tsx      # Overview with graph + email form
-│   │   ├── IssuesPage.tsx        # Issues table page
-│   │   ├── EventLogPage.tsx      # Event log page
-│   │   ├── AgentsPage.tsx        # Agents status page
-│   │   └── InboxPage.tsx         # Inbox queue page
-│   │
-│   ├── types/
-│   │   └── index.ts              # Shared TypeScript types
-│   │
-│   └── __tests__/                # Unit and property-based tests
-│       ├── properties.test.ts    # fast-check property tests
-│       └── *.test.ts(x)          # Component and hook tests
-│
-└── dist/                         # Production build output
+dashboard/src/
+├── api/          # client.ts (REST, engine routes), grpc-client.ts (RunMonitor stream)
+├── gen/          # generated from run_monitor.proto
+├── hooks/        # WorkflowCatalogContext, GrpcStreamContext, useRuns, useEvents, useInbox, useAgents, useHumanInputs, useConfig, useRunSubmit
+├── components/   # ModuleWorkflowPicker, PipelineVisualizer, RunSubmitForm, RunsList, EventLog, AgentMonitor, LlmModeBadge, layout/
+├── pages/        # Overview, Inbox, Runs, Approvals, Agents, Event Log
+├── utils/        # badges, graphLayout (dagre), schemaForm, runs
+├── types/        # shared types
+└── __tests__/    # Vitest + fast-check
 ```

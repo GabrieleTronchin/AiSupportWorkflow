@@ -1,0 +1,113 @@
+# yaml-language-server: $schema=../../../../../schemas/workflow.schema.json
+#
+# draft (llm) -> shape (map) -> reverse (tool) -> echo (http) -> review (human-input) -> done (success) | declined (failure)
+id: fixture-flow
+version: 1
+name: Fixture flow
+description: Every step kind except rule, ending in success (approved) or failure (rejected).
+title: "{{ input.text }}"
+
+input:
+  schema:
+    type: object
+    required: [text, priority]
+    properties:
+      text: { type: string, minLength: 1, pattern: '\S' }
+      priority: { type: string, enum: [high, low] }
+  errorMessage: Text and priority are required.
+
+start: draft
+
+steps:
+  - id: draft
+    kind: llm
+    name: Draft
+    agent: fixture_writer
+    temperature: 0.1
+    systemPrompt: "You are {{ agent.persona }}."
+    prompt: "Write a draft for: {{ input.text }}"
+    output:
+      schema:
+        type: object
+        additionalProperties: false
+        required: [text]
+        properties:
+          text: { type: string }
+    demo:
+      output: { text: "draft {{ input.text }}" }
+    detail: "{{ steps.draft.text }}"
+    next: shape
+
+  - id: shape
+    kind: map
+    name: Shape
+    lookups:
+      queueByPriority: { high: fast-lane, low: slow-lane }
+    outputs:
+      - name: queue
+        lookup: queueByPriority
+        key: "{{ input.priority }}"
+      - name: label
+        value: "{{ output.queue }}:{{ steps.draft.text | string.upcase }}"
+    assignAgent: fixture_reviewer
+    detail: "{{ steps.shape.label }}"
+    next: reverse
+
+  - id: reverse
+    kind: tool
+    name: Reverse
+    tool: fixture.reverse
+    input:
+      text: "{{ steps.draft.text }}"
+    detail: "{{ steps.reverse.reversed }}"
+    next: echo
+
+  - id: echo
+    kind: http
+    name: Echo
+    method: POST
+    url: "{{ config.echoBaseUrl }}/api/modules/fixture/echo"
+    headers:
+      X-Fixture-Run: "{{ run.id }}"
+    body:
+      value: "{{ steps.reverse.reversed }}"
+      queue: "{{ steps.shape.queue }}"
+    timeoutSeconds: 5
+    output:
+      schema:
+        type: object
+        required: [echoed, queue, runHeader]
+        properties:
+          echoed: { type: string }
+          queue: { type: string }
+          runHeader: { type: string }
+    detail: "{{ steps.echo.echoed }}"
+    next: review
+
+  - id: review
+    kind: human-input
+    name: Review
+    review:
+      title: "Review {{ input.text }}"
+      fields:
+        - { label: Draft, value: "{{ steps.draft.text }}" }
+        - { label: Queue, value: "{{ steps.shape.queue }}" }
+        - { label: Echo, value: "{{ steps.echo.echoed }}" }
+    detail: Waiting for review
+    transitions:
+      - when: steps.review.decision == "approved"
+        to: done
+      - to: declined
+
+  - id: done
+    kind: terminal
+    name: Done
+    outcome: success
+    message: "{{ steps.echo.echoed }}"
+    output: "{{ steps.echo }}"
+
+  - id: declined
+    kind: terminal
+    name: Declined
+    outcome: failure
+    message: "{{ steps.review.reason | object.default 'Declined' }}"

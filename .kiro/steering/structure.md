@@ -1,100 +1,93 @@
 # Project Structure
 
-## Architecture
-
-Clean Architecture with strict inward dependency flow:
+## Topology
 
 ```
-Domain ← Application ← Infrastructure ← Presentation
+Dashboard (:5173) ─┐
+HTTP clients ──────┴─> Gateway (:5080) ─┬─> Engine service (:5081)
+                                        └─> Module services (support :5082, template :5083)
+Engine ──(GET /_module/package, POST /_module/tools/{name})──> Module services
+Module services ──(POST /api/engine/workflows/{id}/runs)──> Engine
 ```
 
-- Domain has zero external package references
-- Application depends only on Domain
-- Infrastructure implements Domain interfaces, integrates external services
-- Presentation is the composition root (Minimal API, DI wiring, Akka.NET actor setup, gRPC service)
+Service-to-service calls go directly (service discovery under Aspire), never through the gateway.
 
-## Solution Layout
+## Repository layout
 
 ```
-src/
-├── AiSupportWorkflow.Domain/            # Pure domain layer
-│   ├── Entities/                         # Records: IncomingEmail, IssueRecord, WorkflowState, BugScenario, PullRequest
-│   ├── Enums/                            # AgentRole, IssueCategory, WorkflowStage
-│   ├── Interfaces/                       # Contracts: IOrchestrator, IIssueClassifier, IBugResolver, IWorkflowStateTracker, etc.
-│   ├── ValueObjects/                     # Immutable results: WorkflowResult, ClassificationResult, ResolutionReport, etc.
-│   └── Messages/                         # Akka actor messages: AssignIssueMessage, ResolutionCompleteMessage, etc.
-│
-├── AiSupportWorkflow.Application/        # Business logic
-│   ├── Services/                         # Orchestrator, EmailProcessor, AgentSelector, TeamRouter
-│   ├── UseCases/                         # ProcessSupportEmailUseCase
-│   ├── Configuration/                    # WorkflowConfiguration, TeamConfiguration, AgentRoleConfiguration
-│   └── Interfaces/                       # IPipelineStage<TIn, TOut>
-│
-├── AiSupportWorkflow.Infrastructure/     # External integrations
-│   ├── Actors/                           # AIAgentActor, SupervisorActor (Akka.NET)
-│   ├── Agents/                           # AiAgent (LLM-backed agent)
-│   ├── AgentFramework/                   # IssueClassifierService, BugResolverService, CodeChangeGeneratorService
-│   ├── Persistence/                      # EF Core InMemory persistence layer
-│   │   ├── Entities/                     # IssueEntity, StateTransitionEvent, InboxMessage
-│   │   ├── Configurations/              # IEntityTypeConfiguration<T> for each entity
-│   │   ├── WorkflowDbContext.cs         # DbContext with Issues, Events, InboxMessages DbSets
-│   │   ├── EfWorkflowStateTracker.cs    # IWorkflowStateTracker implementation (replaces old ConcurrentDictionary)
-│   │   └── PersistenceServiceExtensions.cs  # AddPersistence() DI registration
-│   ├── Services/                         # InboxProcessor (IHostedService), WorkflowUpdateChannel
-│   ├── Configuration/                    # OpenAIConfiguration
-│   └── InfrastructureServiceExtensions.cs  # DI registration extension method
-│
-├── AiSupportWorkflow.Presentation/       # REST API & composition root
-│   ├── Program.cs                        # Host builder, DI, Akka actor system, gRPC, InboxProcessor setup
-│   ├── Endpoints/                        # Minimal API endpoint classes (IEndpoint pattern)
-│   │   ├── SupportEmailEndpoints.cs      # POST /api/support/emails (202 + inbox)
-│   │   ├── WorkflowStatusEndpoints.cs    # GET /issues, /issues/{id}, /events
-│   │   ├── AgentsEndpoints.cs            # GET /agents (configured agents with status)
-│   │   └── InboxEndpoints.cs             # GET /inbox (with status filter)
-│   ├── Services/                         # WorkflowMonitorService (gRPC server streaming)
-│   ├── Protos/                           # workflow_monitor.proto (Protobuf definition)
-│   └── Responses/                        # API response DTOs
-
-tests/
-├── AiSupportWorkflow.UnitTests/          # xUnit + NSubstitute, one test class per service
-│   ├── Persistence/                      # EfWorkflowStateTracker, InboxProcessor, Endpoint tests
-│   └── Helpers/                          # Shared test utilities
-├── AiSupportWorkflow.PropertyTests/      # FsCheck property-based tests
-│   ├── PersistenceProperties.cs          # Dual-write invariant, gRPC notification
-│   └── InboxProperties.cs               # FIFO order, failure handling, round-trip
-
-dashboard/                                # React monitoring dashboard
+.editorconfig, .gitattributes, global.json   # repo-wide (global.json: test runner, read from the working directory)
+backend/
+├── Flowgent.slnx                    # single solution (backend + modules, module paths are ../modules/...)
+├── Directory.Build.props, Directory.Packages.props, nuget.config
+├── schemas/                         # module/workflow/samples JSON Schemas (embedded in Flowgent.Definitions)
+├── protos/run_monitor.proto         # gRPC contract (engine + dashboard codegen)
 ├── src/
-│   ├── api/                              # REST client, gRPC-Web client
-│   ├── components/                       # PipelineVisualizer, EmailComposer, AgentMonitor, EventLog, IssuesList
-│   ├── hooks/                            # useGrpcStream, useAgents, useIssues, useEvents, useInbox, useEmailSubmit
-│   ├── pages/                            # OverviewPage, IssuesPage, EventLogPage, AgentsPage, InboxPage
-│   ├── types/                            # Shared TypeScript types
-│   └── __tests__/                        # Vitest + fast-check tests
-
-DummyApps/
-├── ApplicationA/                         # Sample app with BugScenarios.md, src/, tests/
-├── ApplicationB/                         # Sample app with BugScenarios.md, src/, tests/
+│   ├── Engine/
+│   │   ├── Flowgent.Contracts/      # HTTP DTOs: module package, tool invocation, engine API views, RunStatus/RunEventKind
+│   │   ├── Flowgent.Definitions/    # YAML → JsonNode reader, model records, ModuleLoader, DefinitionValidator, Scriban TemplateEngine
+│   │   ├── Flowgent.Runtime/        # WorkflowCompiler, step handlers, RunOrchestrator, RunRegistry, HumanInputRegistry,
+│   │   │                            #   IntakeService, InboxProcessor, ModuleCatalog(+Service), ModuleClient, LLM (Demo, telemetry)
+│   │   └── Flowgent.Persistence/    # EF Core InMemory EngineDbContext, EfRunStore (dual-write), EfInboxStore
+│   ├── Services/
+│   │   ├── Flowgent.Engine.Service/ # EngineHost, /api/engine endpoints, RunMonitorService (gRPC), engine.http
+│   │   └── Flowgent.Gateway/        # GatewayHost, GatewayRoutes, GatewayMiddleware (correlation id, 503)
+│   ├── Sdk/
+│   │   ├── Flowgent.Module.Sdk/     # AddFlowgentModule/MapFlowgentModule, ModuleTool<TIn,TOut>, IEngineClient, ModuleDefinitionAssert
+│   │   └── Flowgent.Testing/        # PlatformHarness: engine, modules and gateway in-process on TestServer
+│   └── AppHost/
+│       ├── Flowgent.AppHost/        # Aspire AppHost, ModuleWiring, AppHost:Modules toggles
+│       └── Flowgent.ServiceDefaults/ # health, OpenTelemetry, service discovery, resilience
+└── tests/
+    ├── Flowgent.Engine.Tests/       # definitions, runtime, persistence, LLM, endpoints (+ FsCheck properties)
+    ├── Flowgent.Gateway.Tests/      # routes, forwarding, correlation id, 503
+    ├── Flowgent.Integration.Tests/  # support + fixture modules: isolation, module down, version reload, gRPC-Web via gateway
+    ├── Flowgent.Architecture.Tests/ # dependency rules (project files + NetArchTest)
+    └── Fixtures/Flowgent.Fixtures.Module/  # test-only module covering every step kind
+modules/
+├── Directory.Build.props, Directory.Packages.props   # import the backend/ ones; nuget.config mirrors backend/nuget.config
+├── _template/                       # definition/, service/ (Flowgent.Modules.Template), tests/, README.md
+└── support/                         # definition/, service/ (Flowgent.Modules.Support), tests/, dummy-apps/, docs/, README.md
+dashboard/                           # React console: api/, gen/, hooks/, components/, pages/, utils/, types/, __tests__/
+docs/                                # platform documentation (engine, not domain)
 ```
 
-## Key Patterns
+## Module folder layout
 
-- **Actor Model**: Agents are Akka.NET actors managed by a SupervisorActor
-- **Result Pattern**: `WorkflowResult`, `ClassificationResult` for explicit success/failure (no exceptions for business logic)
-- **Records**: Domain entities and value objects are immutable C# records
-- **Minimal APIs**: Endpoints defined as classes implementing `IEndpoint`, auto-discovered via reflection
-- **DI via Extension Methods**: `AddInfrastructure()`, `AddPersistence()` in Infrastructure, service registration in `Program.cs`
-- **Configuration-Driven**: Teams and agents loaded from `appsettings.json`, not hardcoded
-- **Async-First**: All I/O-bound operations use `async/await` with `CancellationToken`
-- **Transactional Inbox**: Email submissions saved to inbox (HTTP 202), processed asynchronously by `InboxProcessor`
-- **EF Core InMemory**: Structured persistence with `WorkflowDbContext`, ready for SQL migration
-- **gRPC Server Streaming**: Real-time workflow updates via `WorkflowMonitorService` + `WorkflowUpdateChannel`
-- **Dual-Write**: Every state transition updates both the issue record and creates a `StateTransitionEvent` (audit log)
+Every module follows the same layout; nothing module-specific lives outside it:
 
-## Testing Conventions
+```
+modules/<id>/
+├── definition/   # module.yaml, workflows/, prompts/, schemas/, samples/
+├── service/      # Flowgent.Modules.<Name>.csproj: <Name>Host.Create, Program.cs, Tools/, endpoints, <id>.http
+├── tests/        # Flowgent.Modules.<Name>.Tests.csproj
+├── docs/, README.md
+└── assets        # e.g. support's dummy-apps/
+```
 
-- Unit tests: one test class per service, Arrange-Act-Assert, NSubstitute for mocking
-- Property tests: FsCheck (.NET) and fast-check (TypeScript) for generative/invariant testing
-- Unit test project uses Web SDK (`Microsoft.NET.Sdk.Web`) for integration test support
-- Both test projects reference all src projects
-- Frontend tests use Vitest with jsdom environment
+New modules start from `modules/_template` (see its README and `docs/module-authoring.md`). Support domain details: `modules/support/README.md`.
+
+## Dependency rules (Flowgent.Architecture.Tests)
+
+- `Contracts` has no project references; `Definitions` references only `Contracts`.
+- `Runtime` → `Definitions`; `Persistence` → `Runtime`; `Engine.Service` → `Runtime`, `Persistence`, `ServiceDefaults`; `Gateway` → `ServiceDefaults`; `Module.Sdk` → `Contracts`, `Definitions`; `Testing` → `Engine.Service`, `Gateway`, `Module.Sdk`.
+- Engine projects and the gateway never reference `modules/` or `Fixtures/` and contain no `Flowgent.Modules.*` types.
+- Module services reference only `Module.Sdk`, `Contracts`, `Definitions`, `ServiceDefaults`.
+- `Definitions` and `Runtime` do not depend on ASP.NET Core.
+- Engine sources and the proto contain no support-domain terms.
+
+## Key patterns
+
+- **Hosts as factories**: every service exposes `XxxHost.Create(WebApplicationOptions, Action<WebApplicationBuilder>?)`; `Program.cs` calls it and tests use it in-process.
+- **Pull model**: the engine polls module packages with ETag; new versions load atomically, in-flight runs keep their definition.
+- **Per-run graphs**: `WorkflowCompiler` builds one Agent Framework workflow per run with one executor per step; `StepMessage(NextStepId)` is the only message.
+- **Result types** for expected failures; `StepFailedException(stepId, reason)` ends a run as `Failed`.
+- **Configuration-driven**: modules (engine `Flowgent:Modules`, gateway `Gateway:Modules`, AppHost `AppHost:Modules`), never hard-coded.
+- **Async-first** with `CancellationToken` for all I/O.
+
+## Testing conventions
+
+- xUnit v3 on Microsoft.Testing.Platform; FsCheck for properties; NSubstitute where mocks are needed.
+- Platform and module tests run services in-process with `PlatformHarness` in Demo mode (no ports, no Aspire).
+- Module tests validate the definition with `ModuleDefinitionAssert.IsValid` and run workflows end-to-end.
+- Generated artifacts (e.g. `modules/support/service/support.http`) are checked by tests and regenerated with `UPDATE_SNAPSHOTS=1`.
+- Dashboard: Vitest (jsdom) + fast-check in `dashboard/src/__tests__/`.

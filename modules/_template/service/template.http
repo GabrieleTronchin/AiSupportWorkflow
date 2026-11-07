@@ -1,0 +1,21 @@
+# Template module requests. They go through the gateway: start everything with the AppHost and the template enabled
+#   dotnet run --project backend/src/AppHost/Flowgent.AppHost -- --AppHost:Modules:template:Enabled=true
+
+@HostAddress = http://localhost:5080
+
+### Module summary (routed to the template service)
+
+GET {{HostAddress}}/api/modules/template
+
+### Start a run of the template-hello workflow
+
+POST {{HostAddress}}/api/engine/workflows/template-hello/runs
+Content-Type: application/json
+
+{
+  "text": "Flowgent runs workflows described in YAML. Each module publishes its definitions and tools, and the engine runs them."
+}
+
+### Runs of the template workflow
+
+GET {{HostAddress}}/api/engine/runs?workflowId=template-hello

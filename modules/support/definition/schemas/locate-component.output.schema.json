@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["found", "component", "path", "language"],
+  "properties": {
+    "found": { "type": "boolean" },
+    "component": { "type": "string", "description": "File name, e.g. OrderController.cs, or UnknownComponent." },
+    "path": { "type": "string", "description": "Path relative to the support module folder, starting with config.dummyAppsRoot." },
+    "language": { "type": "string" },
+    "snippet": { "type": ["string", "null"], "description": "Content of the file (truncated)." }
+  }
+}

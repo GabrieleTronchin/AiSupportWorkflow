@@ -4,96 +4,45 @@ inclusion: always
 
 # Product Overview
 
-AI Support Workflow is a simulated AI-driven technical support system. It automates the full lifecycle of a support request: receiving emails, classifying issues via LLM, routing to the correct team and agent, performing root cause analysis, and generating code fixes as pull requests. It includes a real-time monitoring dashboard and uses the Transactional Inbox pattern for asynchronous email processing.
+Flowgent is a reusable base for building LLM workflows. Workflows are defined in YAML and executed by a domain-agnostic engine on Microsoft Agent Framework Workflows. Each business domain is a module service that owns its definitions and custom code. A generic dashboard monitors every module through a single gateway, and a .NET Aspire AppHost starts everything with one command.
 
-## Workflow Pipeline
+## Components
 
-The `Orchestrator` drives a linear pipeline with these stages (mapped to `WorkflowStage` enum):
+- **Gateway** (`Flowgent.Gateway`, :5080): the only entry point for the dashboard and clients. Config-driven YARP routes: `/api/engine/**` and the gRPC-Web stream `/flowgent.RunMonitor/**` to the engine, `/api/modules/{id}/**` (plus per-module extra routes) to module services. Correlation id, `503` problem details when a target is down.
+- **Engine** (`Flowgent.Engine.Service`, :5081): pulls module packages, validates and compiles workflows, runs them. Owns runs, transition events, the inbox, human input, LLM access (Demo default, OpenAI-compatible), telemetry, the `/api/engine` API and the gRPC `RunMonitor` stream. Contains no domain code.
+- **Module services** (`modules/<id>/service`, on `Flowgent.Module.Sdk`): publish `definition/` at `GET /_module/package`, implement tools at `POST /_module/tools/{name}`, expose domain endpoints and submit inputs through `IEngineClient`.
+- **Dashboard** (`dashboard/`, :5173): generic React console; graph, forms, filters and badges come from the workflow definitions.
+- **AppHost** (`Flowgent.AppHost`): starts engine, enabled modules, gateway and dashboard; Aspire dashboard at :15080.
 
-1. `Received` — `EmailProcessor.Process` validates the email (subject and body required) and creates an `IssueRecord`.
-2. `Classified` / `ClassifiedOutOfScope` — `IIssueClassifier.ClassifyAsync` returns a `ClassificationResult` with `IsCodeRelated`, `IssueCategory`, `ConfidenceScore`, and `Reasoning`. Out-of-scope issues terminate here.
-3. `TeamAssigned` — `TeamRouter.Route` matches "Application A" or "Application B" mentions in the email text (regex, case-insensitive). Ambiguous or unmatched emails fail with a `Result<TeamAssignment>.Failure`.
-4. `AgentAssigned` — `AgentSelector.Select` maps `IssueCategory` → `AgentRole` (BackendBug→BackendDeveloper, FrontendBug→FrontendDeveloper, QualityTestIssue→QAEngineer). Agent ID format: `{TeamName}_{Role}`.
-5. `Resolving` / `Resolved` — The assigned Akka.NET actor agent performs LLM-powered root cause analysis, producing a `ResolutionReport`.
-6. `CodeChangeGenerated` — `ICodeChangeGenerator.GenerateAsync` produces a simulated `PullRequest` with diff.
+## Workflow model
 
-Terminal states: `Failed`, `CodeChangeGenerated`, `ClassifiedOutOfScope` (defined by `WorkflowState.IsTerminal`).
+- A module has `module.yaml` (id, config, agents, tools, workflow and sample files), `workflows/*.yaml`, `prompts/`, `schemas/` and `samples/`.
+- A workflow has an id, version, input JSON Schema, a start step and steps. Step kinds: `llm` (structured output validated against a schema, `demo:` response), `rule` (ordered regex/expression rules), `map` (lookups and computed values), `human-input` (approve/reject), `tool` (module service call), `http` (external API), `terminal` (success or failure).
+- Transitions: `next` or ordered `transitions` with Scriban `when` conditions (first true wins, no condition = default). Templates use Scriban with `input`, `steps.<id>`, `config`, `run` (and `agent` in llm prompts, `output` in map steps).
+- Definitions are validated at load time (format schema, references, reachability, templates, agents, tools, samples); invalid modules are reported with file/step/line and not loaded.
 
-## Email Processing (Transactional Inbox)
+## Runs
 
-Email submission is asynchronous:
-1. `POST /api/support/emails` saves the email as an `InboxMessage` and returns HTTP 202 Accepted immediately.
-2. The `InboxProcessor` (IHostedService) polls the inbox table for unprocessed messages in FIFO order.
-3. Each message is deserialized and passed to the `Orchestrator` for workflow processing.
-4. On success: `ProcessedAt` is set. On failure: `Error` is recorded and `ProcessedAt` is set (no infinite retries).
+- Intake: `POST /api/engine/workflows/{id}/runs` validates the input and stores an inbox message plus a `Queued` run in one operation, returning `202 { messageId, runId }`.
+- `InboxProcessor` starts runs FIFO without awaiting them (no retries, start errors recorded on the message); `SequentialProcessing` starts one run at a time.
+- `RunStatus`: `Queued`, `Running`, `AwaitingInput`, `Completed`, `Failed`, `Cancelled` (last three terminal). Each run has a current step id.
+- Every transition updates the run and appends an event in one `SaveChanges` (dual-write), then is published on the gRPC stream.
+- Human input: `GET /api/engine/human-inputs`, `POST .../{runId}/approve|reject` (`204`/`404`/`409`); abort `POST /api/engine/runs/{runId}/abort` ends the run `Failed` with `Aborted by user`.
+- Demo mode (default): `llm` steps answer from their YAML `demo:` block; no API key needed.
 
-## Domain Model
+## Modules in the repository
 
-Entities (immutable records):
-- `IncomingEmail(Sender, Subject, Body)` — API input
-- `IssueRecord(Id, Sender, Subject, Body, CreatedAt)` — created from email with a new GUID
-- `WorkflowState(IssueId, Stage, LastUpdated, Detail)` — tracks pipeline progress
-- `BugScenario(ScenarioId, ApplicationName, Category, ...)` — test fixture definition
-- `PullRequest(Id, IssueId, Title, Description, AffectedFilePaths, SimulatedDiff)` — output artifact
+- `modules/support`: reference module and regression suite (support-email triage with human approval). Domain details live in `modules/support/README.md` and `modules/support/docs/`; do not describe them in platform documentation.
+- `modules/_template`: minimal module to copy (`template-hello`), disabled in the AppHost by default.
+- `backend/tests/Fixtures/Flowgent.Fixtures.Module`: test-only module covering every step kind.
 
-Persistence entities (EF Core):
-- `IssueEntity(Id, CurrentStage, LastUpdated, Detail)` — current state of each issue
-- `StateTransitionEvent(Id, IssueId, PreviousStage, NewStage, Timestamp, Detail)` — audit log entry
-- `InboxMessage(Id, MessageType, Payload, ReceivedAt, ProcessedAt, Error)` — email queue record
+## Documentation
 
-Value objects:
-- `Result<T>` — generic success/failure wrapper (no exceptions for business logic)
-- `WorkflowResult` — final outcome with factory methods: `Completed`, `OutOfScope`, `Failed`
-- `ClassificationResult(IsCodeRelated, Category, ConfidenceScore, Reasoning)`
-- `ResolutionReport(IssueId, RootCauseDescription, AffectedComponent, SeverityAssessment, ProposedFixSummary, RequiresEscalation, EscalationReason)`
-- `TeamAssignment(TeamName, ApplicationName)`
-- `AgentAssignment(AgentId, TeamName, Role)`
+Platform docs are in `docs/` (architecture, workflow reference, expressions, module authoring, gateway, engine API, demo mode, inbox, human input, dashboard, orchestration, debugging). Platform docs use generic or template examples; module docs live in the module folder.
 
-Enums:
-- `IssueCategory`: BackendBug, FrontendBug, QualityTestIssue, OutOfScope
-- `AgentRole`: BackendDeveloper, FrontendDeveloper, QAEngineer
-- `WorkflowStage`: Received → Classified | ClassifiedOutOfScope → TeamAssigned → AgentAssigned → Resolving → Resolved → CodeChangeGenerated | Failed | ManualReviewRequired
+## Constraints
 
-## Routing and Assignment Rules
-
-- Team routing is text-based: regex matches "Application A" or "Application B" in subject+body. Both mentioned = ambiguous error. Neither mentioned = routing failure.
-- Each team maps to one application (`TeamConfiguration.ApplicationName`).
-- Agent selection is deterministic: `IssueCategory` maps 1:1 to `AgentRole`. OutOfScope never reaches agent selection.
-- Teams, agents, and personas are configuration-driven via `WorkflowConfiguration` in `appsettings.json`.
-
-## API Surface
-
-| Method | Route | Purpose |
-|--------|-------|---------|
-| POST | `/api/support/emails` | Submit a support email (async — returns 202 Accepted) |
-| GET | `/api/support/issues/{id}` | Get workflow state by issue ID |
-| GET | `/api/support/issues` | List all processed issues |
-| GET | `/api/support/events` | List state transition events (persistent audit log, max 200) |
-| GET | `/api/support/agents` | All configured agents with current status (Idle/Working) |
-| GET | `/api/support/inbox` | Inbox queue messages with optional status filter |
-| gRPC | `WorkflowMonitor.SubscribeToUpdates` | Server streaming for real-time workflow updates |
-
-## Dashboard
-
-A React-based real-time monitoring dashboard at `dashboard/`:
-- **Overview**: Pipeline graph (fixed, animated) + email submission form + summary stats
-- **Issues**: Filterable table of all issues with current state
-- **Event Log**: Persistent audit log of all state transitions (from `/api/support/events`)
-- **Agents**: All configured agents with Idle/Working status
-- **Inbox**: Email queue monitoring (Queued/Processed/Failed)
-
-Connects to backend via gRPC-Web streaming (real-time) and REST polling (periodic).
-
-## DummyApps Test Fixtures
-
-`DummyApps/` contains two sample applications (ApplicationA, ApplicationB) used as test fixtures. Each has a `BugScenarios.md` defining three scenarios per app (one per `IssueCategory`: BackendBug, FrontendBug, QualityTestIssue) with structured fields: ScenarioId, Category, Description, AffectedFile, LineRange, BuggyCode, and ExpectedFix.
-
-## Key Behavioral Constraints
-
-- Email validation: both `Subject` and `Body` must be non-empty/non-whitespace.
-- Classification is async and LLM-backed; all other routing/selection is synchronous and deterministic.
-- The `Result<T>` pattern is used for expected failures (validation, routing). Exceptions are reserved for unexpected errors.
-- Actor resolution uses `IRequiredActor<SupervisorActor>` from Akka.Hosting with a configurable Ask timeout.
-- gRPC streaming and agents endpoint are gated by `WorkflowConfiguration.EnableVisualization`.
-- State transitions perform dual-write: update `IssueEntity` + create `StateTransitionEvent`.
-- `InboxProcessor` processes messages FIFO by `ReceivedAt`, records errors without retrying.
+- The engine and gateway never reference module projects or domain types; enforced by `Flowgent.Architecture.Tests`.
+- Module services reference only the SDK, contracts, definitions and service defaults.
+- Expected failures use result types (`IntakeResult`, `EngineSubmitResult`, `HumanInputResult`, step failures with descriptive reasons); exceptions are for unexpected errors.
+- No authentication: the gateway is the only intended public entry point. Secrets (`Flowgent:Llm:ApiKey`, `Flowgent:Secrets:*`) come from configuration and are never returned by any endpoint.

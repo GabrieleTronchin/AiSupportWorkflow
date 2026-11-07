@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches: [master]
-    paths: ['backend/**']
+    paths: ['backend/**', 'modules/**', 'global.json']
   pull_request:
     branches: [master]
-    paths: ['backend/**']
+    paths: ['backend/**', 'modules/**', 'global.json']
 
 jobs:
   build-and-test:
@@ -16,6 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore backend/AiSupportWorkflow.sln
-      - run: dotnet build backend/AiSupportWorkflow.sln --no-restore
-      - run: dotnet test --solution backend/AiSupportWorkflow.sln --no-build
+      - run: dotnet restore backend/Flowgent.slnx
+      - run: dotnet build backend/Flowgent.slnx --no-restore
+      - run: dotnet test --solution backend/Flowgent.slnx --no-build

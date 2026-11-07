@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["applicationFolder", "text"],
+  "properties": {
+    "applicationFolder": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Folder of the application under config.dummyAppsRoot." },
+    "text": { "type": "string", "description": "Text to search for file names (subject and body)." }
+  }
+}

@@ -3,6 +3,7 @@ import { useAgents } from '../hooks/useAgents';
 import { AgentMonitor } from '../components/AgentMonitor';
 import { fetchAgentTelemetry, fetchTelemetrySummary } from '../api/client';
 import type { AgentTelemetry, TelemetrySummary } from '../types';
+import { useWorkflowCatalog } from '../hooks/WorkflowCatalogContext';
 
 export function calculateCost(tokens: number, ratePerThousand: number): number {
   return Math.round((tokens / 1000) * ratePerThousand * 100) / 100;
@@ -10,6 +11,12 @@ export function calculateCost(tokens: number, ratePerThousand: number): number {
 
 export function AgentsPage() {
   const { agents, isLoading, error, retry } = useAgents();
+  const { workflows, stepName } = useWorkflowCatalog();
+  // Agents belong to a module; resolve step names through the workflows of that module.
+  const agentStepName = (agent: { moduleId: string }, stepId: string) => {
+    const workflow = workflows.find((w) => w.moduleId === agent.moduleId && w.graph.nodes.some((n) => n.id === stepId));
+    return workflow ? stepName(workflow.id, stepId) : stepId;
+  };
   const [telemetryMap, setTelemetryMap] = useState<Record<string, AgentTelemetry>>({});
   const [summary, setSummary] = useState<TelemetrySummary | null>(null);
   const [costRate, setCostRate] = useState(0.03); // $ per 1K tokens
@@ -97,12 +104,12 @@ export function AgentsPage() {
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 text-center">
           <p className="text-zinc-300 font-medium mb-2">No agents configured</p>
           <p className="text-zinc-500 text-sm">
-            Enable <code className="text-zinc-400 bg-zinc-700 px-1 rounded">EnableVisualization</code> in the configuration to activate agents.
+            Agents are declared in the module manifests (<code className="text-zinc-400 bg-zinc-700 px-1 rounded">module.yaml</code>); check that a module is available and <code className="text-zinc-400 bg-zinc-700 px-1 rounded">Flowgent:EnableVisualization</code> is enabled.
           </p>
         </div>
       ) : (
         <>
-          <AgentMonitor agents={agents} isLoading={isLoading} />
+          <AgentMonitor agents={agents} isLoading={isLoading} stepName={agentStepName} />
 
           {/* Per-agent telemetry details */}
           {Object.keys(telemetryMap).length > 0 && (

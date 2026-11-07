@@ -1,10 +1,28 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { submitEmail, fetchIssues, fetchIssue, fetchAgents } from '../api/client';
-import type { IncomingEmail, WorkflowState, AgentStatus } from '../types';
+import {
+  abortRun,
+  approveRun,
+  extractErrorMessage,
+  fetchAgents,
+  fetchAgentTelemetry,
+  fetchConfig,
+  fetchEvents,
+  fetchHumanInputs,
+  fetchInbox,
+  fetchModules,
+  fetchRun,
+  fetchRuns,
+  fetchTelemetrySummary,
+  fetchWorkflows,
+  rejectRun,
+  submitRun,
+} from '../api/client';
+import { agent, run, workflow } from './fixtures';
 
 const mockFetch = vi.fn();
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubGlobal('fetch', mockFetch);
 });
 
@@ -12,12 +30,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function okResponse(data: unknown): Response {
-  return {
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve(data),
-  } as unknown as Response;
+function okResponse(data: unknown, status = 200): Response {
+  return { ok: true, status, json: () => Promise.resolve(data) } as unknown as Response;
 }
 
 function errorResponse(status: number, body?: unknown): Response {
@@ -28,210 +42,125 @@ function errorResponse(status: number, body?: unknown): Response {
   } as unknown as Response;
 }
 
-describe('submitEmail', () => {
-  const email: IncomingEmail = {
-    sender: 'user@example.com',
-    subject: 'Bug in Application A',
-    body: 'There is a backend bug in the order service.',
-  };
+describe('submitRun', () => {
+  const input = { sender: 'user@example.com', subject: 'Bug in Application A', body: 'Backend bug.' };
 
-  it('sends POST request with correct URL, method, headers, and body', async () => {
-    mockFetch.mockResolvedValue(okResponse({ id: '123' }));
+  it('posts the input to the workflow intake', async () => {
+    mockFetch.mockResolvedValue(okResponse({ messageId: 'm1', runId: 'r1' }, 202));
 
-    await submitEmail(email);
+    const result = await submitRun('support-email', input);
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/support/emails', {
+    expect(mockFetch).toHaveBeenCalledWith('/api/engine/workflows/support-email/runs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(email),
+      body: JSON.stringify(input),
     });
+    expect(result).toEqual({ messageId: 'm1', runId: 'r1' });
   });
 
-  it('returns parsed JSON on success', async () => {
-    const responseData = { id: 'abc-123' };
-    mockFetch.mockResolvedValue(okResponse(responseData));
+  it('encodes the workflow id', async () => {
+    mockFetch.mockResolvedValue(okResponse({ messageId: 'm1', runId: 'r1' }, 202));
 
-    const result = await submitEmail(email);
+    await submitRun('a b', {});
 
-    expect(result).toEqual(responseData);
+    expect(mockFetch.mock.calls[0][0]).toBe('/api/engine/workflows/a%20b/runs');
   });
 
-  it('throws ApiError on non-ok response with message in body', async () => {
-    mockFetch.mockResolvedValue(errorResponse(400, { message: 'Invalid email format' }));
+  it('throws the problem detail on 400', async () => {
+    mockFetch.mockResolvedValue(errorResponse(400, { title: 'Invalid input', detail: 'Subject and Body are required.' }));
 
-    await expect(submitEmail(email)).rejects.toEqual({
-      statusCode: 400,
-      message: 'Invalid email format',
-    });
+    await expect(submitRun('support-email', input)).rejects.toEqual({ statusCode: 400, message: 'Subject and Body are required.' });
   });
 
-  it('throws ApiError with fallback message when body has no message field', async () => {
-    mockFetch.mockResolvedValue(errorResponse(500, { error: 'something went wrong' }));
-
-    await expect(submitEmail(email)).rejects.toEqual({
-      statusCode: 500,
-      message: 'Request failed with status 500',
-    });
-  });
-
-  it('throws ApiError with fallback message when body fails to parse as JSON', async () => {
+  it('throws a fallback message when the body is not JSON', async () => {
     mockFetch.mockResolvedValue(errorResponse(502));
 
-    await expect(submitEmail(email)).rejects.toEqual({
-      statusCode: 502,
-      message: 'Request failed with status 502',
-    });
+    await expect(submitRun('support-email', input)).rejects.toEqual({ statusCode: 502, message: 'Request failed with status 502' });
   });
 });
 
-describe('fetchIssues', () => {
-  const mockIssues: WorkflowState[] = [
-    { issueId: 'issue-1', stage: 'Received', lastUpdated: '2024-01-01T00:00:00Z', detail: null },
-    { issueId: 'issue-2', stage: 'Classified', lastUpdated: '2024-01-02T00:00:00Z', detail: 'Code related' },
-  ];
-
-  it('sends GET request to correct URL', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockIssues));
-
-    await fetchIssues();
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/support/issues');
-  });
-
-  it('returns parsed WorkflowState array on success', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockIssues));
-
-    const result = await fetchIssues();
-
-    expect(result).toEqual(mockIssues);
-  });
-
-  it('throws ApiError on non-ok response with message in body', async () => {
-    mockFetch.mockResolvedValue(errorResponse(503, { message: 'Service unavailable' }));
-
-    await expect(fetchIssues()).rejects.toEqual({
-      statusCode: 503,
-      message: 'Service unavailable',
-    });
-  });
-
-  it('throws ApiError with fallback message when body has no message field', async () => {
-    mockFetch.mockResolvedValue(errorResponse(404, { detail: 'not found' }));
-
-    await expect(fetchIssues()).rejects.toEqual({
-      statusCode: 404,
-      message: 'Request failed with status 404',
-    });
-  });
-
-  it('throws ApiError with fallback message when body fails to parse', async () => {
-    mockFetch.mockResolvedValue(errorResponse(500));
-
-    await expect(fetchIssues()).rejects.toEqual({
-      statusCode: 500,
-      message: 'Request failed with status 500',
-    });
+describe('extractErrorMessage', () => {
+  it.each([
+    [{ detail: 'Problem detail' }, 'Problem detail'],
+    [{ message: 'Message' }, 'Message'],
+    [{ error: 'Legacy error' }, 'Legacy error'],
+    [{ title: 'Only title' }, 'Only title'],
+    [{ detail: '  ', message: 'Fallback to message' }, 'Fallback to message'],
+    [{ retryAfter: 60 }, 'Request failed with status 418'],
+    [null, 'Request failed with status 418'],
+    ['text', 'Request failed with status 418'],
+  ])('extracts %j', (body, expected) => {
+    expect(extractErrorMessage(body, 418)).toBe(expected);
   });
 });
 
-describe('fetchIssue', () => {
-  const mockIssue: WorkflowState = {
-    issueId: 'issue-42',
-    stage: 'Resolving',
-    lastUpdated: '2024-03-15T10:30:00Z',
-    detail: 'Agent working on resolution',
-  };
+describe('read endpoints', () => {
+  it.each([
+    ['fetchConfig', () => fetchConfig(), '/api/engine/config'],
+    ['fetchModules', () => fetchModules(), '/api/engine/modules'],
+    ['fetchWorkflows', () => fetchWorkflows(), '/api/engine/workflows'],
+    ['fetchWorkflows(moduleId)', () => fetchWorkflows('support'), '/api/engine/workflows?moduleId=support'],
+    ['fetchRuns', () => fetchRuns(), '/api/engine/runs'],
+    ['fetchRuns(filters)', () => fetchRuns({ workflowId: 'support-email', status: 'Failed' }), '/api/engine/runs?workflowId=support-email&status=Failed'],
+    ['fetchRun', () => fetchRun('r1'), '/api/engine/runs/r1'],
+    ['fetchHumanInputs', () => fetchHumanInputs(), '/api/engine/human-inputs'],
+    ['fetchEvents', () => fetchEvents(), '/api/engine/events'],
+    ['fetchAgents', () => fetchAgents(), '/api/engine/agents'],
+    ['fetchAgentTelemetry', () => fetchAgentTelemetry('TeamA_BackendDeveloper'), '/api/engine/agents/TeamA_BackendDeveloper/telemetry'],
+    ['fetchTelemetrySummary', () => fetchTelemetrySummary(), '/api/engine/telemetry/summary'],
+    ['fetchInbox', () => fetchInbox(), '/api/engine/inbox'],
+  ])('%s calls %s', async (_name, call, url) => {
+    mockFetch.mockResolvedValue(okResponse([]));
 
-  it('sends GET request to correct URL with issue ID', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockIssue));
+    await call();
 
-    await fetchIssue('issue-42');
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/support/issues/issue-42');
+    expect(mockFetch).toHaveBeenCalledWith(url);
   });
 
-  it('returns parsed WorkflowState on success', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockIssue));
+  it('returns the parsed body', async () => {
+    mockFetch.mockResolvedValueOnce(okResponse([run()])).mockResolvedValueOnce(okResponse([agent()])).mockResolvedValueOnce(okResponse([workflow]));
 
-    const result = await fetchIssue('issue-42');
-
-    expect(result).toEqual(mockIssue);
+    expect(await fetchRuns()).toEqual([run()]);
+    expect(await fetchAgents()).toEqual([agent()]);
+    expect(await fetchWorkflows()).toEqual([workflow]);
   });
 
-  it('throws ApiError on non-ok response with message in body', async () => {
-    mockFetch.mockResolvedValue(errorResponse(404, { message: 'Issue not found' }));
+  it.each([
+    [503, { detail: 'Module unavailable' }, 'Module unavailable'],
+    [500, { message: 'Internal server error' }, 'Internal server error'],
+    [429, { retryAfter: 60 }, 'Request failed with status 429'],
+    [502, undefined, 'Request failed with status 502'],
+  ])('throws ApiError for %i', async (status, body, message) => {
+    mockFetch.mockResolvedValue(errorResponse(status, body));
 
-    await expect(fetchIssue('nonexistent')).rejects.toEqual({
-      statusCode: 404,
-      message: 'Issue not found',
-    });
-  });
-
-  it('throws ApiError with fallback message when body has no message field', async () => {
-    mockFetch.mockResolvedValue(errorResponse(403, {}));
-
-    await expect(fetchIssue('forbidden-id')).rejects.toEqual({
-      statusCode: 403,
-      message: 'Request failed with status 403',
-    });
-  });
-
-  it('throws ApiError with fallback message when body fails to parse', async () => {
-    mockFetch.mockResolvedValue(errorResponse(500));
-
-    await expect(fetchIssue('error-id')).rejects.toEqual({
-      statusCode: 500,
-      message: 'Request failed with status 500',
-    });
+    await expect(fetchRuns()).rejects.toEqual({ statusCode: status, message });
   });
 });
 
-describe('fetchAgents', () => {
-  const mockAgents: AgentStatus[] = [
-    { agentId: 'TeamA_BackendDeveloper', team: 'TeamA', role: 'BackendDeveloper', status: 'Idle', lastAction: null, currentIssueId: null, currentSubject: null, currentStage: null },
-    { agentId: 'TeamB_FrontendDeveloper', team: 'TeamB', role: 'FrontendDeveloper', status: 'Working', lastAction: 'Analyzing root cause', currentIssueId: null, currentSubject: null, currentStage: null },
-  ];
+describe('run actions', () => {
+  it('approve, reject and abort post to the engine', async () => {
+    mockFetch.mockResolvedValue(okResponse(null, 204));
 
-  it('sends GET request to correct URL', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockAgents));
+    await approveRun('r1');
+    await rejectRun('r1', 'Too risky');
+    await abortRun('r1');
 
-    await fetchAgents();
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/support/agents');
-  });
-
-  it('returns parsed AgentStatus array on success', async () => {
-    mockFetch.mockResolvedValue(okResponse(mockAgents));
-
-    const result = await fetchAgents();
-
-    expect(result).toEqual(mockAgents);
-  });
-
-  it('throws ApiError on non-ok response with message in body', async () => {
-    mockFetch.mockResolvedValue(errorResponse(500, { message: 'Internal server error' }));
-
-    await expect(fetchAgents()).rejects.toEqual({
-      statusCode: 500,
-      message: 'Internal server error',
+    expect(mockFetch).toHaveBeenNthCalledWith(1, '/api/engine/human-inputs/r1/approve', { method: 'POST' });
+    expect(mockFetch).toHaveBeenNthCalledWith(2, '/api/engine/human-inputs/r1/reject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Too risky' }),
     });
+    expect(mockFetch).toHaveBeenNthCalledWith(3, '/api/engine/runs/r1/abort', { method: 'POST' });
   });
 
-  it('throws ApiError with fallback message when body has no message field', async () => {
-    mockFetch.mockResolvedValue(errorResponse(429, { retryAfter: 60 }));
+  it.each([
+    ['approve', () => approveRun('r1')],
+    ['reject', () => rejectRun('r1')],
+    ['abort', () => abortRun('r1')],
+  ])('%s throws on 409 with the problem detail', async (_name, call) => {
+    mockFetch.mockResolvedValue(errorResponse(409, { detail: 'Run r1 has already completed (Completed).' }));
 
-    await expect(fetchAgents()).rejects.toEqual({
-      statusCode: 429,
-      message: 'Request failed with status 429',
-    });
-  });
-
-  it('throws ApiError with fallback message when body fails to parse', async () => {
-    mockFetch.mockResolvedValue(errorResponse(502));
-
-    await expect(fetchAgents()).rejects.toEqual({
-      statusCode: 502,
-      message: 'Request failed with status 502',
-    });
+    await expect(call()).rejects.toEqual({ statusCode: 409, message: 'Run r1 has already completed (Completed).' });
   });
 });

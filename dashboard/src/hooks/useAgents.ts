@@ -4,6 +4,7 @@ import { fetchAgents } from '../api/client';
 
 const POLLING_INTERVAL_MS = 3000;
 
+/** Agents of all modules, polled every 3 seconds. */
 export function useAgents() {
   const [agents, setAgents] = useState<AgentStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +27,6 @@ export function useAgents() {
   // Fetch on mount and start polling
   useEffect(() => {
     loadAgents();
-
     intervalRef.current = setInterval(loadAgents, POLLING_INTERVAL_MS);
 
     return () => {

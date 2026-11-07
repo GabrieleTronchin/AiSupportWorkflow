@@ -2,18 +2,17 @@ import type { AgentStatus } from '../types';
 import { getAgentStatusBadgeClasses } from '../utils/badges';
 
 /**
- * Returns a description of the agent's current activity based on its status and email info.
+ * Describes the agent's current activity from its status and current run.
  * Exported for testability (property tests).
  */
-export function renderAgentActivity(agent: AgentStatus): string {
-  if (agent.status === 'Working' && agent.currentIssueId) {
-    const parts: string[] = [];
-    parts.push(`Issue: ${agent.currentIssueId}`);
-    if (agent.currentSubject) {
-      parts.push(`Subject: ${agent.currentSubject}`);
+export function renderAgentActivity(agent: AgentStatus, stepName?: (stepId: string) => string): string {
+  if (agent.status === 'Working' && agent.currentRunId) {
+    const parts: string[] = [`Run: ${agent.currentRunId}`];
+    if (agent.currentRunTitle) {
+      parts.push(`Title: ${agent.currentRunTitle}`);
     }
-    if (agent.currentStage) {
-      parts.push(`Stage: ${agent.currentStage}`);
+    if (agent.currentStepId) {
+      parts.push(`Step: ${stepName ? stepName(agent.currentStepId) : agent.currentStepId}`);
     }
     return parts.join(' | ');
   }
@@ -23,6 +22,7 @@ export function renderAgentActivity(agent: AgentStatus): string {
 interface AgentMonitorProps {
   agents: AgentStatus[];
   isLoading: boolean;
+  stepName?: (agent: AgentStatus, stepId: string) => string;
 }
 
 function SkeletonCard() {
@@ -38,7 +38,7 @@ function SkeletonCard() {
   );
 }
 
-export function AgentMonitor({ agents, isLoading }: AgentMonitorProps) {
+export function AgentMonitor({ agents, isLoading, stepName }: AgentMonitorProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -52,23 +52,28 @@ export function AgentMonitor({ agents, isLoading }: AgentMonitorProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {agents.map((agent) => (
-        <div
-          key={agent.agentId}
-          className="bg-zinc-800 rounded-lg p-4 border border-zinc-700"
-        >
+        <div key={`${agent.moduleId}/${agent.agentId}`} className="bg-zinc-800 rounded-lg p-4 border border-zinc-700">
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium text-zinc-100">{agent.agentId}</span>
-            <span
-              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getAgentStatusBadgeClasses(agent.status)}`}
-            >
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getAgentStatusBadgeClasses(agent.status)}`}>
               {agent.status}
             </span>
           </div>
           <p className="text-zinc-400 text-xs mb-1">
-            <span className="text-zinc-500">Team:</span> {agent.team} · <span className="text-zinc-500">Role:</span> {agent.role}
+            {agent.name}
+            {agent.group && (
+              <>
+                {' · '}<span className="text-zinc-500">Group:</span> {agent.group}
+              </>
+            )}
+            {agent.role && (
+              <>
+                {' · '}<span className="text-zinc-500">Role:</span> {agent.role}
+              </>
+            )}
           </p>
           <p className="text-zinc-400 text-sm">
-            {renderAgentActivity(agent)}
+            {renderAgentActivity(agent, stepName ? (stepId) => stepName(agent, stepId) : undefined)}
           </p>
         </div>
       ))}

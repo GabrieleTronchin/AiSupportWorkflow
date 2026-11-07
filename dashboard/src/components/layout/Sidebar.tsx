@@ -13,7 +13,7 @@ import {
 const navItems = [
   { label: 'Overview', icon: LayoutDashboard, to: '/' },
   { label: 'Inbox', icon: Inbox, to: '/inbox' },
-  { label: 'Issues', icon: ClipboardList, to: '/issues' },
+  { label: 'Runs', icon: ClipboardList, to: '/runs' },
   { label: 'Approvals', icon: ShieldCheck, to: '/approvals' },
   { label: 'Agents', icon: Bot, to: '/agents' },
   { label: 'Event Log', icon: ScrollText, to: '/events' },
@@ -34,7 +34,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center h-14 px-4 border-b border-zinc-800">
         {!collapsed && (
           <span className="text-sm font-semibold text-zinc-100 truncate">
-            AI Support Workflow
+            Flowgent
           </span>
         )}
       </div>

@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["isCodeRelated", "category", "confidenceScore", "reasoning"],
+  "properties": {
+    "isCodeRelated": { "type": "boolean", "description": "True when the email reports a defect in application code or tests." },
+    "category": { "type": "string", "enum": ["BackendBug", "FrontendBug", "QualityTestIssue", "OutOfScope"] },
+    "confidenceScore": { "type": "number", "description": "Confidence between 0 and 1." },
+    "reasoning": { "type": "string", "description": "One or two sentences explaining the classification." }
+  }
+}

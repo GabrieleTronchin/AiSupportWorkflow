@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../../../../backend/schemas/workflow.schema.json
+id: joke
+version: 1
+name: Tell a joke
+description: Turns a topic into a short joke with a single LLM step and ends.
+title: "Joke about {{ input.topic }}"
+
+input:
+  schema: { file: schemas/joke.input.schema.json }
+  errorMessage: A topic is required.
+
+start: tell
+
+steps:
+  - id: tell
+    kind: llm
+    name: Tell the joke
+    agent: comedian
+    temperature: 0.8
+    systemPrompt: { file: prompts/joke.system.md }
+    prompt: { file: prompts/joke.user.md }
+    output:
+      schema: { file: schemas/joke.output.schema.json }
+    # Used in Demo mode (no API key needed): the engine returns this output instead of calling a model.
+    demo:
+      output:
+        joke: "[Demo] Why did the {{ input.topic }} cross the road? To get to the other side."
+    detail: "{{ steps.tell.joke }}"
+    next: done
+
+  - id: done
+    kind: terminal
+    name: Done
+    outcome: success
+    message: "{{ steps.tell.joke }}"
+    output:
+      joke: "{{ steps.tell.joke }}"

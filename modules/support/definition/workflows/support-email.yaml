@@ -1,0 +1,162 @@
+# yaml-language-server: $schema=../../../../backend/schemas/workflow.schema.json
+id: support-email
+version: 1
+name: Support email
+description: Classifies a support email, routes it to a team agent, analyses the root cause and proposes a code change after human approval.
+title: "{{ input.subject }}"
+
+input:
+  schema: { file: schemas/support-email.input.schema.json }
+  errorMessage: Subject and Body are required.
+
+start: classify
+
+steps:
+  - id: classify
+    kind: llm
+    name: Classification
+    temperature: 0.1
+    systemPrompt: { file: prompts/classify.system.md }
+    prompt: |
+      Subject: {{ input.subject }}
+
+      Body: {{ input.body }}
+    output:
+      schema: { file: schemas/classification.schema.json }
+    demo:
+      value: "{{ input.subject }} {{ input.body }}"
+      rules:
+        - match: '\btests?\b|flaky|coverage'
+          output: { isCodeRelated: true, category: QualityTestIssue, confidenceScore: 0.88, reasoning: "[Demo] Mentions tests, coverage or flakiness." }
+        - match: 'frontend|front-end|\.razor|component|\bcss\b|\bui\b|button|render|display'
+          output: { isCodeRelated: true, category: FrontendBug, confidenceScore: 0.9, reasoning: "[Demo] Mentions UI components or rendering." }
+        - match: 'exception|error|crash|\bnull\b|\bsql\b|\bapi\b|endpoint|database|\bbug\b|latency|controller|injection|timeout'
+          output: { isCodeRelated: true, category: BackendBug, confidenceScore: 0.92, reasoning: "[Demo] Mentions exceptions, APIs or data access." }
+      default: { isCodeRelated: false, category: OutOfScope, confidenceScore: 0.95, reasoning: "[Demo] No code-related signal found; looks like a general support request." }
+    detail: "{{ steps.classify.category }} ({{ steps.classify.confidenceScore * 100 | math.round }}%)"
+    transitions:
+      - when: steps.classify.isCodeRelated
+        to: route_team
+      - to: classified_out_of_scope
+
+  - id: route_team
+    kind: rule
+    name: Team routing
+    value: "{{ input.subject }} {{ input.body }}"
+    rules:
+      - match: 'Application\s?A'
+        output: { teamName: TeamA, applicationName: ApplicationA, applicationFolder: application-a }
+      - match: 'Application\s?B'
+        output: { teamName: TeamB, applicationName: ApplicationB, applicationFolder: application-b }
+    onMultipleMatches:
+      fail: "Ambiguous routing: both ApplicationA and ApplicationB are mentioned."
+    onNoMatch:
+      fail: "Cannot determine affected application: neither ApplicationA nor ApplicationB is mentioned."
+    detail: "{{ steps.route_team.teamName }}"
+    next: assign_agent
+
+  - id: assign_agent
+    kind: map
+    name: Agent assignment
+    lookups:
+      roleByCategory:
+        BackendBug: BackendDeveloper
+        FrontendBug: FrontendDeveloper
+        QualityTestIssue: QAEngineer
+    outputs:
+      - name: role
+        lookup: roleByCategory
+        key: "{{ steps.classify.category }}"
+        onMissing: "No agent role mapping for category '{{ steps.classify.category }}'."
+      - name: agentId
+        value: "{{ steps.route_team.teamName }}_{{ output.role }}"
+    assignAgent: "{{ steps.assign_agent.agentId }}"
+    detail: "{{ steps.assign_agent.agentId }}"
+    next: locate_component
+
+  - id: locate_component
+    kind: tool
+    name: Component lookup
+    tool: support.locateComponent
+    input:
+      applicationFolder: "{{ steps.route_team.applicationFolder }}"
+      text: "{{ input.subject }} {{ input.body }}"
+    detail: "{{ steps.locate_component.path }}"
+    next: resolve
+
+  - id: resolve
+    kind: llm
+    name: Root cause analysis
+    temperature: 0.2
+    systemPrompt: { file: prompts/resolve.system.md }
+    prompt: { file: prompts/resolve.user.md }
+    output:
+      schema: { file: schemas/resolution.schema.json }
+    demo:
+      output:
+        rootCauseDescription: '[Demo] Simulated root cause analysis for "{{ input.subject }}": the defect originates in {{ steps.locate_component.component }}.'
+        affectedComponent: "{{ steps.locate_component.component }}"
+        severityAssessment: "{{ t = input.subject + ' ' + input.body | string.downcase }}{{ if (t | string.contains 'injection') || (t | string.contains 'security') }}Critical{{ else if (t | string.contains 'exception') || (t | string.contains 'crash') }}High{{ else }}Medium{{ end }}"
+        proposedFixSummary: "[Demo] Apply a targeted fix in {{ steps.locate_component.component }} and add a regression test."
+        requiresEscalation: false
+        escalationReason: null
+    detail: "{{ steps.resolve.proposedFixSummary }}"
+    next: approval
+
+  - id: approval
+    kind: human-input
+    name: Human approval
+    review:
+      title: "Proposed fix: {{ steps.resolve.affectedComponent }}"
+      fields:
+        - { label: Root cause, value: "{{ steps.resolve.rootCauseDescription }}" }
+        - { label: Affected component, value: "{{ steps.resolve.affectedComponent }}" }
+        - { label: Severity, value: "{{ steps.resolve.severityAssessment }}" }
+        - { label: Proposed fix, value: "{{ steps.resolve.proposedFixSummary }}" }
+        - { label: Escalation, value: "{{ if steps.resolve.requiresEscalation }}{{ steps.resolve.escalationReason }}{{ else }}None{{ end }}" }
+    detail: "{{ steps.resolve.proposedFixSummary }}"
+    transitions:
+      - when: steps.approval.decision == "approved"
+        to: generate_code
+      - to: manual_review_required
+
+  - id: generate_code
+    kind: llm
+    name: Code generation
+    temperature: 0.5
+    systemPrompt: { file: prompts/generate-code.system.md }
+    prompt: { file: prompts/generate-code.user.md }
+    output:
+      schema: { file: schemas/pull-request.schema.json }
+    demo:
+      output:
+        title: "[Demo] Fix {{ steps.resolve.affectedComponent }}"
+        description: "{{ steps.resolve.proposedFixSummary }}"
+        affectedFilePaths: ["{{ steps.locate_component.path }}"]
+        simulatedDiff: |
+          --- a/{{ steps.locate_component.path }}
+          +++ b/{{ steps.locate_component.path }}
+          @@ -1,3 +1,4 @@
+          +// [Demo] simulated change: {{ steps.resolve.proposedFixSummary }}
+           // existing code
+    detail: "{{ steps.generate_code.title }}"
+    next: code_change_generated
+
+  - id: code_change_generated
+    kind: terminal
+    name: Code change generated
+    outcome: success
+    message: "{{ steps.generate_code.title }}"
+    output: "{{ steps.generate_code }}"
+
+  - id: classified_out_of_scope
+    kind: terminal
+    name: Out of scope
+    outcome: success
+    message: "{{ steps.classify.reasoning }}"
+
+  - id: manual_review_required
+    kind: terminal
+    name: Manual review required
+    outcome: failure
+    message: "{{ steps.approval.reason | object.default 'Rejected' }}"

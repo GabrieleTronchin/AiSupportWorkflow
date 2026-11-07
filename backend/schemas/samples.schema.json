@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowgent.local/schemas/samples.schema.json",
+  "title": "Flowgent sample inputs",
+  "description": "Example inputs shown as templates in the dashboard.",
+  "type": "object",
+  "required": ["samples"],
+  "additionalProperties": false,
+  "properties": {
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "workflow", "input"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+          "name": { "type": "string", "minLength": 1 },
+          "group": { "type": "string" },
+          "description": { "type": "string" },
+          "workflow": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+          "input": { "type": "object" },
+          "expectInvalid": { "type": "boolean", "description": "The input intentionally fails the workflow input schema (validation demo)." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../../../../../schemas/workflow.schema.json
+#
+# classify (rule: fallback output when nothing matches, failure when several rules match) -> routed
+id: fixture-rules
+version: 1
+name: Fixture rules
+description: Rule step with an onNoMatch fallback output and a failing onMultipleMatches policy.
+title: "{{ input.text }}"
+
+input:
+  schema:
+    type: object
+    required: [text]
+    properties:
+      text: { type: string, minLength: 1 }
+
+start: classify
+
+steps:
+  - id: classify
+    kind: rule
+    name: Classify
+    value: "{{ input.text }}"
+    rules:
+      - match: '\balpha\b'
+        output: { group: Alpha }
+      - match: '\bbeta\b'
+        output: { group: Beta }
+    onMultipleMatches:
+      fail: "Ambiguous: '{{ input.text }}' matches several groups."
+    onNoMatch:
+      output: { group: Other }
+    detail: "{{ steps.classify.group }}"
+    next: routed
+
+  - id: routed
+    kind: terminal
+    name: Routed
+    outcome: success
+    message: "{{ steps.classify.group }}"
+    output: "{{ steps.classify }}"

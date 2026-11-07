@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support email",
+  "type": "object",
+  "required": ["subject", "body"],
+  "properties": {
+    "sender": { "type": "string", "title": "Sender", "description": "Email address of the sender." },
+    "subject": { "type": "string", "title": "Subject", "minLength": 1, "pattern": "\\S" },
+    "body": { "type": "string", "title": "Body", "minLength": 1, "pattern": "\\S", "x-multiline": true }
+  }
+}
