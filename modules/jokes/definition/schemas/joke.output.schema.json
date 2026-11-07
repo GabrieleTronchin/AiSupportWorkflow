@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["joke"],
+  "properties": {
+    "joke": { "type": "string", "description": "The one-liner joke." }
+  }
+}

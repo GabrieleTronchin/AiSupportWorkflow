@@ -22,6 +22,9 @@ modules.Add<Projects.Flowgent_Modules_Support>("support", "/api/support/{**catch
 // Example module (modules/_template), disabled by default: --AppHost:Modules:template:Enabled=true turns it on.
 modules.Add<Projects.Flowgent_Modules_Template>("template");
 
+// Jokes: a second simple example module (modules/jokes), enabled by default.
+modules.Add<Projects.Flowgent_Modules_Jokes>("jokes");
+
 builder.AddViteApp("dashboard", "../../../../dashboard")
     .WithReference(gateway)
     .WithEnvironment("GATEWAY_URL", gateway.GetEndpoint("http"))

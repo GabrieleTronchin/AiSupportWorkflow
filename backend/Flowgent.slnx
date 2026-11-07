@@ -37,4 +37,7 @@
     <Project Path="../modules/support/service/Flowgent.Modules.Support.csproj" />
     <Project Path="../modules/support/tests/Flowgent.Modules.Support.Tests.csproj" />
   </Folder>
+  <Folder Name="/modules/jokes/">
+    <Project Path="../modules/jokes/service/Flowgent.Modules.Jokes.csproj" />
+  </Folder>
 </Solution>
