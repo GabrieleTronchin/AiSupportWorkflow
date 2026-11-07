@@ -2,86 +2,77 @@
 
 ## Runtime & Language
 
-- .NET 10.0 (`net10.0`)
-- C# with `LangVersion: latest`
-- Nullable reference types enabled
-- Implicit usings enabled
+- .NET 10.0 (`net10.0`), C# `LangVersion: latest`, nullable and implicit usings enabled
+- Central package management (`Directory.Packages.props`, transitive pinning); single package source nuget.org (`nuget.config`)
+- Tests run on Microsoft.Testing.Platform (root `global.json`)
 
 ## Key Libraries — Backend
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| Microsoft.Agents.AI | 1.27.0 | AI orchestration and LLM integration |
-| Microsoft.Agents.AI.OpenAI | 1.27.0 | OpenAI connector |
-| Microsoft.Agents.AI.Workflows | 1.27.0 | Workflow orchestration (WorkflowBuilder, Executors) |
-| Microsoft.EntityFrameworkCore | 10.0.14 | ORM and persistence abstraction |
-| Microsoft.EntityFrameworkCore.InMemory | 10.0.14 | In-memory database provider |
-| Grpc.AspNetCore | 2.85.0 | gRPC server with ASP.NET Core integration |
-| Grpc.AspNetCore.Web | 2.85.0 | gRPC-Web protocol support for browser clients |
-| xunit.v3 | 4.0.2 | Unit testing framework (runs on Microsoft.Testing.Platform, see root `global.json`) |
-| FsCheck.Xunit.v3 | 3.6.0 | Property-based testing |
-| NSubstitute | 6.2.0 | Mocking library for unit tests |
-| coverlet.MTP | 10.1.0 | Code coverage |
+| Microsoft.Agents.AI / .OpenAI / .Workflows | 1.27.0 | Workflow execution (WorkflowBuilder, executors), `IChatClient` integration |
+| Aspire.AppHost.Sdk, Aspire.Hosting.JavaScript | 13.6.4 | Local orchestration (AppHost, Vite dashboard) |
+| Microsoft.Extensions.ServiceDiscovery (+ .Yarp) | 10.11.0 | Service discovery, gateway destination resolution |
+| Microsoft.Extensions.Http.Resilience | 10.11.0 | Resilience handlers and per-module retries |
+| Yarp.ReverseProxy | 2.3.0 | Gateway |
+| YamlDotNet | 18.1.0 | YAML definitions |
+| Scriban | 7.5.3 | Templates and expressions (sandboxed) |
+| JsonSchema.Net | 9.6.0 | Definition, input, LLM output and tool schema validation |
+| OpenTelemetry (Hosting, OTLP, ASP.NET Core, Http, Runtime) | 1.20.x | Logs, traces, metrics |
+| Microsoft.EntityFrameworkCore(.InMemory) | 10.0.14 | Engine persistence (runs, events, inbox) |
+| Grpc.AspNetCore / .Web | 2.85.0 | `RunMonitor` server stream, gRPC-Web |
+| xunit.v3 | 4.0.2 | Tests |
+| FsCheck.Xunit.v3 | 3.6.0 | Property-based tests |
+| NSubstitute | 6.2.0 | Mocks |
+| NetArchTest.Rules | 1.3.2 | Architecture tests |
+| Microsoft.AspNetCore.TestHost | 10.0.14 | In-process services (`LlmFlows.Testing`) |
+| coverlet.MTP | 10.1.0 | Coverage |
 
 ## Key Libraries — Frontend (dashboard)
 
-Node.js >= 20.19 required.
-
-| Package | Purpose |
-|---------|---------|
-| React 19 | UI framework |
-| TypeScript | Type-safe development |
-| Vite | Build tool and dev server |
-| Tailwind CSS | Utility-first styling |
-| @xyflow/react (ReactFlow) | Pipeline graph visualization |
-| @connectrpc/connect-web | gRPC-Web client for real-time streaming |
-| fast-check | Property-based testing (frontend) |
-| Vitest | Test runner |
-
-## Package Source
-
-Single source: nuget.org (configured in `nuget.config`)
+Node.js >= 20.19. React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 7, @xyflow/react (graph), @dagrejs/dagre (layout), @connectrpc/connect-web + @bufbuild/protobuf (gRPC-Web, codegen with buf), recharts, Vitest 4, fast-check 4, Testing Library.
 
 ## Common Commands
 
 ```bash
-# Build the entire solution
-dotnet build AiSupportWorkflow.sln
+# Build and test everything (backend + modules)
+dotnet build LlmFlows.slnx
+dotnet test --solution LlmFlows.slnx
 
-# Run all backend tests (Microsoft.Testing.Platform mode)
-dotnet test --solution AiSupportWorkflow.sln
+# Single test projects
+dotnet test --project backend/tests/LlmFlows.Engine.Tests
+dotnet test --project backend/tests/LlmFlows.Gateway.Tests
+dotnet test --project backend/tests/LlmFlows.Integration.Tests
+dotnet test --project backend/tests/LlmFlows.Architecture.Tests
+dotnet test --project modules/support/tests
+dotnet test --project modules/_template/tests
 
-# Run unit tests only
-dotnet test --project tests/AiSupportWorkflow.UnitTests
+# Whole platform (engine, enabled modules, gateway :5080, dashboard :5173, Aspire dashboard :15080)
+dotnet run --project backend/src/AppHost/LlmFlows.AppHost
+dotnet run --project backend/src/AppHost/LlmFlows.AppHost -- --AppHost:Modules:template:Enabled=true
 
-# Run property-based tests only
-dotnet test --project tests/AiSupportWorkflow.PropertyTests
+# Services one by one
+dotnet run --project backend/src/Services/LlmFlows.Engine.Service   # :5081
+dotnet run --project modules/support/service                         # :5082
+dotnet run --project backend/src/Services/LlmFlows.Gateway          # :5080
 
-# Run the web API
-dotnet run --project src/AiSupportWorkflow.Presentation
-
-# Frontend — install dependencies
+# Dashboard
 cd dashboard && npm install
-
-# Frontend — run dev server
 cd dashboard && npm run dev
-
-# Frontend — run tests
-cd dashboard && npm run test -- --run
-
-# Frontend — type check
 cd dashboard && npm run typecheck
+cd dashboard && npm run test -- --run
+cd dashboard && npm run build
+cd dashboard && npm run generate     # regenerate src/gen from backend/protos/run_monitor.proto
 ```
 
 ## Configuration
 
-- LLM settings under `LlmProvider` (`Provider`: `Demo` | `OpenAI`, `ApiKey`, `ModelName`, optional `Endpoint` for any OpenAI-compatible server, `DemoLatencyMs`); the API key goes in the git-ignored `appsettings.Development.json`
-- `Provider` defaults to `Demo` (in code and `appsettings.json`): `DemoChatClient` simulates LLM responses, no API key needed. Override with `OpenAI` to use a real model. See `docs/demo-mode.md`
-- `GET /api/support/config` exposes `demoMode`, `llmProvider`, `llmModel` (never the API key/endpoint); the dashboard shows them as a badge
-- Model name configurable in `appsettings.json` (defaults to `gpt-4o-mini`)
-- Teams, agents, personas, and visualization toggle in `appsettings.json` under `Workflow` section
-- `InboxPollingIntervalSeconds` controls the inbox processor polling frequency (default: 5)
-- `EnableVisualization` enables gRPC streaming and agents endpoint
+- Engine (`LlmFlows` section): `EnableVisualization` (gRPC stream + agents endpoint), `SequentialProcessing`, `InboxPollingIntervalSeconds`, `DefaultToolTimeoutSeconds`, `Modules[] { Id, Url, Enabled, RefreshSeconds, TimeoutSeconds, Retries, RetryDelayMilliseconds }`, `Secrets:<moduleId>:<key>` (http step headers).
+- LLM (`LlmFlows:Llm`): `Provider` (`Demo` default | `OpenAI`), `ModelName` (`gpt-4o-mini`), `ApiKey`, optional `Endpoint` (any OpenAI-compatible server), `DemoLatencyMs` (1500). Keep the key in the git-ignored `appsettings.Development.json` of the engine or in environment variables. `GET /api/engine/config` exposes only `sequentialProcessing`, `demoMode`, `llmProvider`, `llmModel`.
+- Module SDK (`LlmFlows:Module`): `DefinitionPath` (`../definition`), `EngineUrl` (`http://localhost:5081`), `FailOnInvalidDefinition` (false).
+- Gateway (`Gateway`): `Engine:Address`, `Modules[] { Id, Address, ExtraRoutes[] }`, `StreamActivityTimeout`.
+- AppHost: `AppHost:Modules:<id>:Enabled`, `AppHost:LlmProvider`.
+- Ports (launch profiles, also used by Aspire): gateway 5080, engine 5081, support 5082, template 5083, dashboard 5173.
 
 ## Code Style (.editorconfig enforced)
 
