@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../../../backend/schemas/module.schema.json
+#
+# Template module: copy modules/_template to modules/<your-id> and follow README.md.
+id: template
+name: Template
+description: Minimal example module - summarises a text with an LLM and counts the words of the summary with a module tool.
+
+config:
+  # Free-form values, available in templates as config.* (never put secrets here).
+  maxSummaryWords: 30
+
+agents:
+  - id: template_writer
+    name: Writer
+    group: Writers
+    role: Writer
+    persona: A concise technical writer.
+
+tools:
+  - name: template.wordCount
+    description: Counts the words of a text.
+    input:
+      schema: { file: schemas/word-count.input.schema.json }
+    output:
+      schema: { file: schemas/word-count.output.schema.json }
+    timeoutSeconds: 10
+
+workflows:
+  - workflows/template-hello.yaml
+
+samples:
+  - samples/template-hello.samples.yaml

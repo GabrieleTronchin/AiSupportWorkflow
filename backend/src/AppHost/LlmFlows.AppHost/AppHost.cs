@@ -19,6 +19,9 @@ var modules = new ModuleWiring(builder, engine, gateway);
 // The support module is the reference module: keep it first (index 0 matches the standalone appsettings).
 modules.Add<Projects.LlmFlows_Modules_Support>("support", "/api/support/{**catch-all}");
 
+// Example module (modules/_template), disabled by default: --AppHost:Modules:template:Enabled=true turns it on.
+modules.Add<Projects.LlmFlows_Modules_Template>("template");
+
 builder.AddViteApp("dashboard", "../../../../dashboard")
     .WithReference(gateway)
     .WithEnvironment("GATEWAY_URL", gateway.GetEndpoint("http"))

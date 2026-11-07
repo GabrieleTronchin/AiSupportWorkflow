@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=../../../../backend/schemas/workflow.schema.json
+id: template-hello
+version: 1
+name: Hello (template)
+description: Summarises a text with an LLM, counts the words of the summary with a module tool and ends.
+title: "{{ input.text | string.truncate 60 }}"
+
+input:
+  schema: { file: schemas/template-hello.input.schema.json }
+  errorMessage: Text is required.
+
+start: summarize
+
+steps:
+  - id: summarize
+    kind: llm
+    name: Summary
+    agent: template_writer
+    temperature: 0.2
+    systemPrompt: { file: prompts/summarize.system.md }
+    prompt: { file: prompts/summarize.user.md }
+    output:
+      schema: { file: schemas/summary.schema.json }
+    # Used in Demo mode (no API key needed): the engine returns this output instead of calling a model.
+    demo:
+      output:
+        summary: "[Demo] {{ input.text | string.truncate 80 }}"
+    detail: "{{ steps.summarize.summary }}"
+    next: count_words
+
+  - id: count_words
+    kind: tool
+    name: Word count
+    tool: template.wordCount
+    input:
+      text: "{{ steps.summarize.summary }}"
+    detail: "{{ steps.count_words.words }} words"
+    next: done
+
+  - id: done
+    kind: terminal
+    name: Done
+    outcome: success
+    message: "{{ steps.summarize.summary }} ({{ steps.count_words.words }} words)"
+    output:
+      summary: "{{ steps.summarize.summary }}"
+      words: "{{ steps.count_words.words }}"

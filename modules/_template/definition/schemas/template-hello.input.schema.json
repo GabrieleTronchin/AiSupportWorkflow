@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Text to summarise",
+  "type": "object",
+  "required": ["text"],
+  "properties": {
+    "text": { "type": "string", "title": "Text", "minLength": 1, "pattern": "\\S", "x-multiline": true }
+  }
+}
