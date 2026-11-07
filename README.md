@@ -37,6 +37,7 @@ Details: [Architecture](docs/architecture.md).
 | Module | Folder | Description |
 |--------|--------|-------------|
 | Support | [`modules/support`](modules/support/README.md) | Reference module: triages support emails and proposes code fixes after human approval. |
+| Jokes | [`modules/jokes`](modules/jokes/definition/module.yaml) | Tiny example: one `llm` step turns a topic into a one-liner joke. A good starting point to read. |
 | Template | [`modules/_template`](modules/_template/README.md) | Minimal module to copy when creating a new one (disabled by default). |
 
 A test-only fixture module (`backend/tests/Fixtures/Flowgent.Fixtures.Module`) covers every step kind in the integration tests.
@@ -136,6 +137,7 @@ backend/
 └── tests/                          # Engine, Gateway, Architecture, Integration tests, Fixtures/
 modules/
 ├── _template/                      # module template
+├── jokes/                          # tiny example module (single llm step, no tools)
 └── support/                        # support module (definition, service, tests, dummy-apps, docs)
 dashboard/                          # React monitoring console
 docs/                               # platform documentation
