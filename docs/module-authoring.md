@@ -100,7 +100,7 @@ The gateway routes `/api/modules/<id>/**` to the module automatically; other pub
 
 With the AppHost (recommended):
 
-1. Add the service and test projects to `LlmFlows.slnx`.
+1. Add the service and test projects to `backend/LlmFlows.slnx`.
 2. Add a `ProjectReference` to the service in `backend/src/AppHost/LlmFlows.AppHost/LlmFlows.AppHost.csproj`.
 3. In `AppHost.cs`: `modules.Add<Projects.LlmFlows_Modules_Notes>("notes");` (extra gateway routes as further arguments). The module is enabled unless `AppHost:Modules:notes:Enabled` is `false`.
 
@@ -139,4 +139,4 @@ Assert.Equal(RunStatus.Completed, run.Status);
 
 The harness also offers `WaitForHumanInputAsync`, `ApproveAsync`, `RejectAsync`, `AbortAsync`, `GetEventsAsync`, `StopModuleAsync`, `StartModuleAsync` and `RestartModuleAsync`. See `modules/_template/tests/TemplateModuleTests.cs` for a complete example.
 
-Run them with `dotnet test --project modules/<id>/tests` or the whole solution with `dotnet test --solution LlmFlows.slnx`.
+Run them with `dotnet test --project modules/<id>/tests` or the whole solution with `dotnet test --solution backend/LlmFlows.slnx`.

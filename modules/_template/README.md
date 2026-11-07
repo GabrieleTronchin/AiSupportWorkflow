@@ -60,9 +60,9 @@ The example uses the id `notes` and the name `Notes`; replace them with yours. I
    - Pick a free port in `Properties/launchSettings.json` and update `template.http`.
 4. Tests (`tests/`): rename the project and its references, then adapt `TemplateModuleTests` (content root `modules/notes/service`).
 5. Register the module:
-   - `LlmFlows.slnx`: add the service and test projects.
+   - `backend/LlmFlows.slnx`: add the service and test projects.
    - AppHost: add a `ProjectReference` to the service in `LlmFlows.AppHost.csproj` and `modules.Add<Projects.LlmFlows_Modules_Notes>("notes");` in `AppHost.cs` (add extra gateway routes as further arguments if the module keeps legacy URLs).
    - Without the AppHost (services started one by one): add `{ "Id": "notes", "Url": "http://localhost:<port>" }` to `LlmFlows:Modules` in the engine `appsettings.json` and `{ "Id": "notes", "Address": "http://localhost:<port>" }` to `Gateway:Modules` in the gateway `appsettings.json`.
-6. Run `dotnet test --solution LlmFlows.slnx`.
+6. Run `dotnet test --solution backend/LlmFlows.slnx`.
 
 No change to the engine, the gateway code or the dashboard is needed: the engine pulls the definition from the module service, the gateway routes `/api/modules/notes/**` to it and the dashboard lists the new workflows.

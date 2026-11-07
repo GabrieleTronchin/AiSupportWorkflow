@@ -15,9 +15,10 @@ Service-to-service calls go directly (service discovery under Aspire), never thr
 ## Repository layout
 
 ```
-LlmFlows.slnx                        # single solution
-Directory.Build.props, Directory.Packages.props, nuget.config, .editorconfig, global.json
+.editorconfig, .gitattributes, global.json   # repo-wide (global.json: test runner, read from the working directory)
 backend/
+├── LlmFlows.slnx                    # single solution (backend + modules, module paths are ../modules/...)
+├── Directory.Build.props, Directory.Packages.props, nuget.config
 ├── schemas/                         # module/workflow/samples JSON Schemas (embedded in LlmFlows.Definitions)
 ├── protos/run_monitor.proto         # gRPC contract (engine + dashboard codegen)
 ├── src/
@@ -43,6 +44,7 @@ backend/
     ├── LlmFlows.Architecture.Tests/ # dependency rules (project files + NetArchTest)
     └── Fixtures/LlmFlows.Fixtures.Module/  # test-only module covering every step kind
 modules/
+├── Directory.Build.props, Directory.Packages.props   # import the backend/ ones; nuget.config mirrors backend/nuget.config
 ├── _template/                       # definition/, service/ (LlmFlows.Modules.Template), tests/, README.md
 └── support/                         # definition/, service/ (LlmFlows.Modules.Support), tests/, dummy-apps/, docs/, README.md
 dashboard/                           # React console: api/, gen/, hooks/, components/, pages/, utils/, types/, __tests__/

@@ -85,8 +85,9 @@ The engine stores runs, transition events and inbox messages with EF Core InMemo
 ## Repository layout
 
 ```
-LlmFlows.slnx                       # one solution: platform, modules, tests
 backend/
+├── LlmFlows.slnx                   # one solution: platform, modules, tests
+├── Directory.Build.props, Directory.Packages.props, nuget.config   # shared build settings (modules/ imports them)
 ├── schemas/                        # JSON Schemas of module.yaml, workflows and samples (editors + engine)
 ├── protos/run_monitor.proto        # gRPC contract (engine + dashboard codegen)
 ├── src/

@@ -3,7 +3,7 @@
 ## Runtime & Language
 
 - .NET 10.0 (`net10.0`), C# `LangVersion: latest`, nullable and implicit usings enabled
-- Central package management (`Directory.Packages.props`, transitive pinning); single package source nuget.org (`nuget.config`)
+- Central package management (`backend/Directory.Packages.props`, transitive pinning; `modules/` imports it); single package source nuget.org (`backend/nuget.config`, mirrored in `modules/nuget.config`)
 - Tests run on Microsoft.Testing.Platform (root `global.json`)
 
 ## Key Libraries — Backend
@@ -36,8 +36,8 @@ Node.js >= 20.19. React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 7
 
 ```bash
 # Build and test everything (backend + modules)
-dotnet build LlmFlows.slnx
-dotnet test --solution LlmFlows.slnx
+dotnet build backend/LlmFlows.slnx
+dotnet test --solution backend/LlmFlows.slnx
 
 # Single test projects
 dotnet test --project backend/tests/LlmFlows.Engine.Tests

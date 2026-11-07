@@ -108,8 +108,8 @@ The engine starts in Demo mode. To use a real model, set `LlmFlows:Llm` in the g
 ### Build and test
 
 ```bash
-dotnet build LlmFlows.slnx
-dotnet test --solution LlmFlows.slnx          # engine, gateway, architecture, integration and module tests
+dotnet build backend/LlmFlows.slnx
+dotnet test --solution backend/LlmFlows.slnx          # engine, gateway, architecture, integration and module tests
 
 cd dashboard
 npm run typecheck
@@ -122,8 +122,10 @@ Tests run in-process (`LlmFlows.Testing.PlatformHarness`): no ports, no Aspire, 
 ## Repository structure
 
 ```
-LlmFlows.slnx                       # single solution
+global.json                         # .NET test runner (Microsoft.Testing.Platform), read from the working directory
 backend/
+├── LlmFlows.slnx                   # single solution (backend and modules)
+├── Directory.Build.props, Directory.Packages.props, nuget.config   # shared build settings and package versions
 ├── schemas/                        # JSON Schemas of the YAML formats
 ├── protos/run_monitor.proto        # gRPC run stream
 ├── src/
