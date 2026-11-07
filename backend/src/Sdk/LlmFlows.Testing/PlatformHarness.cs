@@ -74,10 +74,12 @@ public sealed class PlatformHarness : IAsyncDisposable
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     private static readonly Lazy<string> Root = new(FindRepositoryRoot);
+    private readonly PlatformOptions _options;
     private readonly Dictionary<string, WebApplication> _modules;
 
-    private PlatformHarness(HostRoutingHandler router, WebApplication engine, Dictionary<string, WebApplication> modules, WebApplication? gateway)
+    private PlatformHarness(PlatformOptions options, HostRoutingHandler router, WebApplication engine, Dictionary<string, WebApplication> modules, WebApplication? gateway)
     {
+        _options = options;
         Router = router;
         Engine = engine;
         _modules = modules;
@@ -115,21 +117,7 @@ public sealed class PlatformHarness : IAsyncDisposable
         var modules = new Dictionary<string, WebApplication>(StringComparer.Ordinal);
         foreach (var module in options.Modules)
         {
-            var settings = new Dictionary<string, string?> { ["LlmFlows:Module:EngineUrl"] = "http://engine" };
-            foreach (var (key, value) in options.ModuleSettings.GetValueOrDefault(module.Id) ?? [])
-            {
-                settings[key] = value;
-            }
-
-            var app = module.Create(new WebApplicationOptions { EnvironmentName = "Testing", ContentRootPath = module.ContentRoot }, builder =>
-            {
-                builder.WebHost.UseTestServer();
-                builder.Configuration.AddInMemoryCollection(settings);
-                builder.Services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(router.CreateClientHandler));
-            });
-            await app.StartAsync();
-            router.Register(module.Id, app.GetTestServer().CreateHandler());
-            modules[module.Id] = app;
+            modules[module.Id] = await StartModuleServiceAsync(module, options.ModuleSettings.GetValueOrDefault(module.Id), router);
         }
 
         var engineSettings = new Dictionary<string, string?>
@@ -183,7 +171,7 @@ public sealed class PlatformHarness : IAsyncDisposable
             await gateway.StartAsync();
         }
 
-        var harness = new PlatformHarness(router, engine, modules, gateway);
+        var harness = new PlatformHarness(options, router, engine, modules, gateway);
         await harness.RefreshModulesAsync();
         return harness;
     }
@@ -200,6 +188,23 @@ public sealed class PlatformHarness : IAsyncDisposable
 
     public async Task StartModuleAsync(string id)
     {
+        Router.SetDown(id, down: false);
+        await RefreshModulesAsync();
+    }
+
+    /// <summary>
+    /// Stops the module service and starts a new instance (same factory and settings, e.g. after its definition
+    /// files changed), then lets the engine reload it. Simulates a module redeployed with a new version.
+    /// </summary>
+    public async Task RestartModuleAsync(string id)
+    {
+        var registration = _options.Modules.Single(m => m.Id == id);
+        var previous = _modules[id];
+        Router.SetDown(id);
+        await previous.StopAsync();
+        await previous.DisposeAsync();
+
+        _modules[id] = await StartModuleServiceAsync(registration, _options.ModuleSettings.GetValueOrDefault(id), Router);
         Router.SetDown(id, down: false);
         await RefreshModulesAsync();
     }
@@ -289,6 +294,28 @@ public sealed class PlatformHarness : IAsyncDisposable
             await module.StopAsync();
             await module.DisposeAsync();
         }
+    }
+
+    private static async Task<WebApplication> StartModuleServiceAsync(
+        ModuleRegistration module,
+        IReadOnlyDictionary<string, string?>? moduleSettings,
+        HostRoutingHandler router)
+    {
+        var settings = new Dictionary<string, string?> { ["LlmFlows:Module:EngineUrl"] = "http://engine" };
+        foreach (var (key, value) in moduleSettings ?? new Dictionary<string, string?>())
+        {
+            settings[key] = value;
+        }
+
+        var app = module.Create(new WebApplicationOptions { EnvironmentName = "Testing", ContentRootPath = module.ContentRoot }, builder =>
+        {
+            builder.WebHost.UseTestServer();
+            builder.Configuration.AddInMemoryCollection(settings);
+            builder.Services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler(router.CreateClientHandler));
+        });
+        await app.StartAsync();
+        router.Register(module.Id, app.GetTestServer().CreateHandler());
+        return app;
     }
 
     private static string FindRepositoryRoot()
