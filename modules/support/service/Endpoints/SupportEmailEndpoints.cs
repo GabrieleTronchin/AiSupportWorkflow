@@ -1,7 +1,7 @@
-namespace LlmFlows.Modules.Support.Endpoints;
+namespace Flowgent.Modules.Support.Endpoints;
 
-using LlmFlows.Contracts.Api;
-using LlmFlows.Module.Sdk;
+using Flowgent.Contracts.Api;
+using Flowgent.Module.Sdk;
 
 /// <summary>A support email, as accepted by <c>POST /api/support/emails</c> (property names are case-insensitive).</summary>
 public sealed record IncomingEmail(string? Sender, string? Subject, string? Body);

@@ -104,7 +104,7 @@ export function AgentsPage() {
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 text-center">
           <p className="text-zinc-300 font-medium mb-2">No agents configured</p>
           <p className="text-zinc-500 text-sm">
-            Agents are declared in the module manifests (<code className="text-zinc-400 bg-zinc-700 px-1 rounded">module.yaml</code>); check that a module is available and <code className="text-zinc-400 bg-zinc-700 px-1 rounded">LlmFlows:EnableVisualization</code> is enabled.
+            Agents are declared in the module manifests (<code className="text-zinc-400 bg-zinc-700 px-1 rounded">module.yaml</code>); check that a module is available and <code className="text-zinc-400 bg-zinc-700 px-1 rounded">Flowgent:EnableVisualization</code> is enabled.
           </p>
         </div>
       ) : (

@@ -2,7 +2,7 @@
 
 [← Platform README](../../README.md) · [Pipeline](docs/pipeline.md) · [Demo responses](docs/demo-responses.md) · [Scenarios and dummy apps](docs/scenarios.md) · [Endpoints](docs/endpoints.md)
 
-The support module is the reference module of LlmFlows and its regression suite. Its workflow, `support-email`, triages a support email: an LLM classifies it, rules route it to a team and an agent, a tool finds the affected source file in a sample application, the agent analyses the root cause, a human approves or rejects the proposed fix and, once approved, the agent generates a simulated pull request.
+The support module is the reference module of Flowgent and its regression suite. Its workflow, `support-email`, triages a support email: an LLM classifies it, rules route it to a team and an agent, a tool finds the affected source file in a sample application, the agent analyses the root cause, a human approves or rejects the proposed fix and, once approved, the agent generates a simulated pull request.
 
 It was the original hard-coded pipeline of this repository; it now runs on the generic engine, defined in YAML, with the same outcomes for every scenario.
 
@@ -58,12 +58,12 @@ The `approval` step pauses the run in `AwaitingInput` with the review title `Pro
 | Where | Setting | Value |
 |-------|---------|-------|
 | `definition/module.yaml` | `config.dummyAppsRoot` | `dummy-apps`: folder of the sample applications, relative to `modules/support`. Used by the tool, so prompts and generated paths never hard-code it. |
-| `service/appsettings.json` | `LlmFlows:Module:DefinitionPath` | `../definition` |
-| `service/appsettings.json` | `LlmFlows:Module:EngineUrl` | `http://localhost:5081` (the AppHost sets `http://engine`) |
+| `service/appsettings.json` | `Flowgent:Module:DefinitionPath` | `../definition` |
+| `service/appsettings.json` | `Flowgent:Module:EngineUrl` | `http://localhost:5081` (the AppHost sets `http://engine`) |
 | `service/Properties/launchSettings.json` | port | `5082` |
 | AppHost | `AppHost:Modules:support:Enabled` | `true`; the gateway also routes `/api/support/{**catch-all}` to this module |
 
-The LLM provider is an engine setting (`LlmFlows:Llm`): see the platform's [Demo mode](../../docs/demo-mode.md).
+The LLM provider is an engine setting (`Flowgent:Llm`): see the platform's [Demo mode](../../docs/demo-mode.md).
 
 ## Demo responses
 
@@ -86,7 +86,7 @@ In Demo mode (the default) every `llm` step answers from its `demo:` block, so a
 
 ```bash
 # Whole platform (support is enabled by default), then open http://localhost:5173
-dotnet run --project backend/src/AppHost/LlmFlows.AppHost
+dotnet run --project backend/src/AppHost/Flowgent.AppHost
 
 # Module tests: definition, routing, agent mapping, demo rules, tool, endpoints, support.http, parity of all scenarios
 dotnet test --project modules/support/tests
@@ -104,8 +104,8 @@ modules/support/
 │   ├── prompts/                          # classify, resolve, generate-code (system + user)
 │   ├── schemas/                          # input, classification, resolution, pull request, tool input/output
 │   └── samples/scenarios.yaml            # the ten scenarios
-├── service/                              # LlmFlows.Modules.Support: SupportHost, email endpoints, LocateComponentTool, support.http
-├── tests/                                # LlmFlows.Modules.Support.Tests
+├── service/                              # Flowgent.Modules.Support: SupportHost, email endpoints, LocateComponentTool, support.http
+├── tests/                                # Flowgent.Modules.Support.Tests
 ├── dummy-apps/application-a|b/           # sample applications and BugScenarios.md
 └── docs/                                 # this module's documentation
 ```

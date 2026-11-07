@@ -2,7 +2,7 @@
 
 [← README](../README.md) · [Architecture](architecture.md) · [Engine API](engine-api.md)
 
-`LlmFlows.Gateway` is a YARP reverse proxy and the only component the dashboard and external clients call. It listens on `http://localhost:5080` (launch profile `http`, also used under the AppHost).
+`Flowgent.Gateway` is a YARP reverse proxy and the only component the dashboard and external clients call. It listens on `http://localhost:5080` (launch profile `http`, also used under the AppHost).
 
 ## Routes
 
@@ -11,7 +11,7 @@ Routes are generated in code from the `Gateway` configuration section, so adding
 | Route | Target |
 |-------|--------|
 | `/api/engine/{**catch-all}` | Engine service |
-| `/llmflows.RunMonitor/{**catch-all}` | Engine service, gRPC-Web stream (dedicated cluster, streamed without buffering, idle timeout `StreamActivityTimeout`, default 12 h) |
+| `/flowgent.RunMonitor/{**catch-all}` | Engine service, gRPC-Web stream (dedicated cluster, streamed without buffering, idle timeout `StreamActivityTimeout`, default 12 h) |
 | `/api/modules/{id}/{**catch-all}` | The module service registered as `{id}` |
 | each `ExtraRoutes` entry of a module | That module service |
 

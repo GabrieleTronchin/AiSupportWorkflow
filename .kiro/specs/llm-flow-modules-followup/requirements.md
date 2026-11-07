@@ -29,7 +29,7 @@ Completes [17.4] (task 7.4, "full build and tests").
 
 #### Acceptance Criteria
 
-1. WHEN the final verification runs on the Closing_Commit, THE backend SHALL build with `dotnet build backend/LlmFlows.slnx` with 0 errors and 0 warnings, and `dotnet test --solution backend/LlmFlows.slnx` SHALL pass with no failed tests.
+1. WHEN the final verification runs on the Closing_Commit, THE backend SHALL build with `dotnet build backend/Flowgent.slnx` with 0 errors and 0 warnings, and `dotnet test --solution backend/Flowgent.slnx` SHALL pass with no failed tests.
 2. WHEN the final verification runs on the Closing_Commit, THE dashboard SHALL pass `npm run typecheck`, `npm run test -- --run` and `npm run build`.
 3. IF `dashboard/package-lock.json` is modified by the install, THEN it SHALL be restored when the diff is only install noise (no dependency or version change compared to `package.json`), and reported otherwise.
 4. THE results (commands, counts, Closing_Commit sha) SHALL be recorded in the commit or summary that closes the verification.
@@ -80,6 +80,6 @@ Completes [2.1] for CI and [17.4] for the dashboard pipeline. Done only after Re
 
 #### Acceptance Criteria
 
-1. WHEN the pull request is opened, `.github/workflows/ci.yml` (`backend/LlmFlows.slnx`) SHALL build and test the backend successfully.
+1. WHEN the pull request is opened, `.github/workflows/ci.yml` (`backend/Flowgent.slnx`) SHALL build and test the backend successfully.
 2. `.github/workflows/dashboard-ci.yml` SHALL be reviewed and, where needed, aligned with the platform: Node version against `engines` (`>=20.19`), the `lint` script, path filters (including `backend/protos/**`, the source of the generated gRPC client).
 3. No deployment workflow SHALL be added.

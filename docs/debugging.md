@@ -8,7 +8,7 @@ Requests go through the gateway (`http://localhost:5080`). Open them in Visual S
 
 | File | Content |
 |------|---------|
-| [`backend/src/Services/LlmFlows.Engine.Service/engine.http`](../backend/src/Services/LlmFlows.Engine.Service/engine.http) | Every `/api/engine` route: config, modules, workflows, schemas, submit, runs, abort, human input, events, agents, telemetry, inbox |
+| [`backend/src/Services/Flowgent.Engine.Service/engine.http`](../backend/src/Services/Flowgent.Engine.Service/engine.http) | Every `/api/engine` route: config, modules, workflows, schemas, submit, runs, abort, human input, events, agents, telemetry, inbox |
 | [`modules/_template/service/template.http`](../modules/_template/service/template.http) | Template module summary and a `template-hello` run |
 | Each module's `service/<id>.http` | Module requests (e.g. [support](../modules/support/README.md)) |
 
@@ -23,16 +23,16 @@ Requests go through the gateway (`http://localhost:5080`). Open them in Visual S
 | A run failed | `GET /api/engine/runs/{id}`: `currentStepId` is the failing step and `detail` the reason; `stepOutputs` shows what earlier steps produced. `GET /api/engine/events?runId={id}` gives the full transition history. |
 | A run never starts | `GET /api/engine/inbox?status=queued`; with `SequentialProcessing` on, another run may be running or awaiting input. |
 | `Step '<id>' has no demo response` | Demo mode is on and the `llm` step has no `demo:` block. |
-| LLM errors with a real provider | `LlmFlows:Llm` settings (`ApiKey`, `ModelName`, `Endpoint`); `GET /api/engine/agents/{agentId}/telemetry` shows the last call and its error. |
+| LLM errors with a real provider | `Flowgent:Llm` settings (`ApiKey`, `ModelName`, `Endpoint`); `GET /api/engine/agents/{agentId}/telemetry` shows the last call and its error. |
 
 ## Traces and logs
 
-Under the AppHost, the Aspire dashboard (http://localhost:15080) shows the logs of every service and a trace per request: gateway → engine → module tools, with one span per run step (`step <id>`, tags `llmflows.run_id`, `llmflows.module_id`, `llmflows.workflow_id`, `llmflows.step_id`, `llmflows.step_kind`) and the LLM calls.
+Under the AppHost, the Aspire dashboard (http://localhost:15080) shows the logs of every service and a trace per request: gateway → engine → module tools, with one span per run step (`step <id>`, tags `flowgent.run_id`, `flowgent.module_id`, `flowgent.workflow_id`, `flowgent.step_id`, `flowgent.step_kind`) and the LLM calls.
 
-For more detail, raise the log level of the `LlmFlows` category in the service's `appsettings.Development.json`:
+For more detail, raise the log level of the `Flowgent` category in the service's `appsettings.Development.json`:
 
 ```json
-{ "Logging": { "LogLevel": { "LlmFlows": "Debug" } } }
+{ "Logging": { "LogLevel": { "Flowgent": "Debug" } } }
 ```
 
 ## Validating definitions offline

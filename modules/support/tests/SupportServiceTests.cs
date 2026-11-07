@@ -1,13 +1,13 @@
-namespace LlmFlows.Modules.Support.Tests;
+namespace Flowgent.Modules.Support.Tests;
 
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using LlmFlows.Contracts.Api;
-using LlmFlows.Contracts.Modules;
-using LlmFlows.Testing;
+using Flowgent.Contracts.Api;
+using Flowgent.Contracts.Modules;
+using Flowgent.Testing;
 
 /// <summary>Support service endpoints, SDK contract and the generated <c>support.http</c>.</summary>
 public class SupportServiceTests

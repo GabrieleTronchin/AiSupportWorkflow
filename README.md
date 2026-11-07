@@ -1,4 +1,4 @@
-# LlmFlows
+# Flowgent
 
 ![CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/ci.yml/badge.svg)
 ![Dashboard CI](https://github.com/GabrieleTronchin/AiSupportWorkflow/actions/workflows/dashboard-ci.yml/badge.svg)
@@ -9,7 +9,7 @@
 
 **A spec-driven AI experiment.**
 
-LlmFlows is a base for building LLM workflows. Workflows are described in YAML (steps, transitions, prompts, JSON schemas, rules, human review, demo responses) and run by a domain-agnostic engine on **Microsoft Agent Framework Workflows**. Each business domain is a **module**: a small service that owns its definitions and custom code. A generic dashboard monitors every module, and one command starts everything.
+Flowgent is a base for building LLM workflows. Workflows are described in YAML (steps, transitions, prompts, JSON schemas, rules, human review, demo responses) and run by a domain-agnostic engine on **Microsoft Agent Framework Workflows**. Each business domain is a **module**: a small service that owns its definitions and custom code. A generic dashboard monitors every module, and one command starts everything.
 
 - **Engine**: validates and runs workflows, owns runs, events, the inbox, human input, LLM access (Demo or OpenAI-compatible) and telemetry.
 - **Modules**: publish their definitions and expose tools (C# operations called by workflow steps) and domain endpoints.
@@ -39,11 +39,11 @@ Details: [Architecture](docs/architecture.md).
 | Support | [`modules/support`](modules/support/README.md) | Reference module: triages support emails and proposes code fixes after human approval. |
 | Template | [`modules/_template`](modules/_template/README.md) | Minimal module to copy when creating a new one (disabled by default). |
 
-A test-only fixture module (`backend/tests/Fixtures/LlmFlows.Fixtures.Module`) covers every step kind in the integration tests.
+A test-only fixture module (`backend/tests/Fixtures/Flowgent.Fixtures.Module`) covers every step kind in the integration tests.
 
 ## How modules work
 
-1. A module folder contains `definition/` (`module.yaml`, `workflows/`, `prompts/`, `schemas/`, `samples/`), `service/` (ASP.NET Core on `LlmFlows.Module.Sdk`), `tests/` and its documentation.
+1. A module folder contains `definition/` (`module.yaml`, `workflows/`, `prompts/`, `schemas/`, `samples/`), `service/` (ASP.NET Core on `Flowgent.Module.Sdk`), `tests/` and its documentation.
 2. The module service publishes its definition files at `GET /_module/package`. The engine polls every configured module, validates the definitions and compiles each workflow into an Agent Framework graph.
 3. A client submits an input to `POST /api/engine/workflows/{id}/runs` (or to a module endpoint that forwards it). The engine validates it against the input schema, stores it in the inbox and returns `202`.
 4. The run executes step by step: `llm`, `rule`, `map`, `human-input`, `tool` (calls the module service), `http` (calls an external API) and `terminal`.
@@ -87,12 +87,12 @@ To add a module, copy `modules/_template` and follow its README: no change to th
 Requirements: .NET 10 SDK, Node.js 20.19+.
 
 ```bash
-git clone <repository-url> llmflows
-cd llmflows
+git clone <repository-url> flowgent
+cd flowgent
 cd dashboard && npm install && cd ..
 
 # Engine, enabled modules, gateway and dashboard (.NET Aspire)
-dotnet run --project backend/src/AppHost/LlmFlows.AppHost
+dotnet run --project backend/src/AppHost/Flowgent.AppHost
 ```
 
 | What | Where |
@@ -103,13 +103,13 @@ dotnet run --project backend/src/AppHost/LlmFlows.AppHost
 
 Enable the template module with `-- --AppHost:Modules:template:Enabled=true`. Services can also be started one by one; see [Orchestration](docs/orchestration.md).
 
-The engine starts in Demo mode. To use a real model, set `LlmFlows:Llm` in the git-ignored `backend/src/Services/LlmFlows.Engine.Service/appsettings.Development.json` or in environment variables; see [Demo mode](docs/demo-mode.md).
+The engine starts in Demo mode. To use a real model, set `Flowgent:Llm` in the git-ignored `backend/src/Services/Flowgent.Engine.Service/appsettings.Development.json` or in environment variables; see [Demo mode](docs/demo-mode.md).
 
 ### Build and test
 
 ```bash
-dotnet build backend/LlmFlows.slnx
-dotnet test --solution backend/LlmFlows.slnx          # engine, gateway, architecture, integration and module tests
+dotnet build backend/Flowgent.slnx
+dotnet test --solution backend/Flowgent.slnx          # engine, gateway, architecture, integration and module tests
 
 cd dashboard
 npm run typecheck
@@ -117,22 +117,22 @@ npm run test -- --run
 npm run build
 ```
 
-Tests run in-process (`LlmFlows.Testing.PlatformHarness`): no ports, no Aspire, Demo mode.
+Tests run in-process (`Flowgent.Testing.PlatformHarness`): no ports, no Aspire, Demo mode.
 
 ## Repository structure
 
 ```
 global.json                         # .NET test runner (Microsoft.Testing.Platform), read from the working directory
 backend/
-├── LlmFlows.slnx                   # single solution (backend and modules)
+├── Flowgent.slnx                   # single solution (backend and modules)
 ├── Directory.Build.props, Directory.Packages.props, nuget.config   # shared build settings and package versions
 ├── schemas/                        # JSON Schemas of the YAML formats
 ├── protos/run_monitor.proto        # gRPC run stream
 ├── src/
-│   ├── Engine/                     # LlmFlows.Contracts, .Definitions, .Runtime, .Persistence
-│   ├── Services/                   # LlmFlows.Engine.Service, LlmFlows.Gateway
-│   ├── Sdk/                        # LlmFlows.Module.Sdk, LlmFlows.Testing
-│   └── AppHost/                    # LlmFlows.AppHost, LlmFlows.ServiceDefaults
+│   ├── Engine/                     # Flowgent.Contracts, .Definitions, .Runtime, .Persistence
+│   ├── Services/                   # Flowgent.Engine.Service, Flowgent.Gateway
+│   ├── Sdk/                        # Flowgent.Module.Sdk, Flowgent.Testing
+│   └── AppHost/                    # Flowgent.AppHost, Flowgent.ServiceDefaults
 └── tests/                          # Engine, Gateway, Architecture, Integration tests, Fixtures/
 modules/
 ├── _template/                      # module template

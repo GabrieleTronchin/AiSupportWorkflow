@@ -1,13 +1,13 @@
-namespace LlmFlows.Modules.Template.Tests;
+namespace Flowgent.Modules.Template.Tests;
 
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using LlmFlows.Contracts.Api;
-using LlmFlows.Contracts.Runs;
-using LlmFlows.Module.Sdk;
-using LlmFlows.Modules.Template.Tools;
-using LlmFlows.Testing;
+using Flowgent.Contracts.Api;
+using Flowgent.Contracts.Runs;
+using Flowgent.Module.Sdk;
+using Flowgent.Modules.Template.Tools;
+using Flowgent.Testing;
 
 /// <summary>The template definition is valid and its workflow runs end-to-end in Demo mode through the gateway.</summary>
 public class TemplateModuleTests

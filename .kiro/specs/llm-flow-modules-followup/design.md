@@ -13,8 +13,8 @@ No production code changes are planned. The work is a fixed sequence of checks o
 From the repository root (`global.json` is read from the working directory):
 
 ```bash
-dotnet build backend/LlmFlows.slnx
-dotnet test --solution backend/LlmFlows.slnx
+dotnet build backend/Flowgent.slnx
+dotnet test --solution backend/Flowgent.slnx
 cd dashboard && npm install && npm run typecheck && npm run test -- --run && npm run build
 ```
 
@@ -24,7 +24,7 @@ cd dashboard && npm install && npm run typecheck && npm run test -- --run && npm
 ## 2. AppHost run (Req 2)
 
 ```bash
-dotnet run --project backend/src/AppHost/LlmFlows.AppHost -- --AppHost:LlmProvider=Demo
+dotnet run --project backend/src/AppHost/Flowgent.AppHost -- --AppHost:LlmProvider=Demo
 ```
 
 - Aspire dashboard at http://localhost:15080: `engine`, `support`, `gateway`, `dashboard` running and healthy (`template` absent, disabled by default).
@@ -45,10 +45,10 @@ Run once against the platform from step 2, with the Playwright browser tools (MC
 
 During the run:
 
-- Network requests: only `http://localhost:5173/api/**` and `/llmflows.RunMonitor/**` (Vite proxy → gateway :5080). No request to :5081 or :5082.
+- Network requests: only `http://localhost:5173/api/**` and `/flowgent.RunMonitor/**` (Vite proxy → gateway :5080). No request to :5081 or :5082.
 - Console: no errors.
 
-Everything else in Req 17.3 is already asserted in-process: `SupportParityTests` (all ten samples through the gateway, approve/reject/abort) and `LlmFlows.Integration.Tests` (isolation, module down, version reload, gRPC-Web through the gateway).
+Everything else in Req 17.3 is already asserted in-process: `SupportParityTests` (all ten samples through the gateway, approve/reject/abort) and `Flowgent.Integration.Tests` (isolation, module down, version reload, gRPC-Web through the gateway).
 
 ## 4. Secret scan (Req 4)
 
@@ -65,7 +65,7 @@ git log -p origin/master..HEAD -G '<pattern>'
 git grep -nE '<pattern>' HEAD
 # ignored settings never committed on the branch
 git log --name-only --format= origin/master..HEAD | Select-String -SimpleMatch 'appsettings.Development.json'
-git check-ignore -v backend/src/Services/LlmFlows.Engine.Service/appsettings.Development.json
+git check-ignore -v backend/src/Services/Flowgent.Engine.Service/appsettings.Development.json
 ```
 
 Patterns: `sk-[A-Za-z0-9_-]{20,}`, `gh[pousr]_[A-Za-z0-9]{36}`, `github_pat_`, `AKIA[0-9A-Z]{16}`, `-----BEGIN [A-Z ]*PRIVATE KEY-----`, `AccountKey=`, and non-empty values for keys named `ApiKey`, `Password`, `Secret`, `Token`. Empty placeholders (`"ApiKey": ""`) are allowed. Findings are reported by commit, file and key name only. The ignored files themselves are not read.
@@ -84,7 +84,7 @@ After the user approves: `git push -u origin feature/llm-flows-platform` and `gh
 
 ## 6. CI review (Req 6, optional)
 
-- `ci.yml`: already on `backend/LlmFlows.slnx` with path filters `backend/**`, `modules/**`, `global.json`. Check the first PR run only.
+- `ci.yml`: already on `backend/Flowgent.slnx` with path filters `backend/**`, `modules/**`, `global.json`. Check the first PR run only.
 - `dashboard-ci.yml` (not reviewed in round 1), points to check:
   - `node-version: 20` against `engines.node >=20.19` (pin `20.19` or `22`)
   - `npm run lint` is `tsc --noEmit`, same as `typecheck`; ESLint packages are installed but there is no ESLint config in `dashboard/`

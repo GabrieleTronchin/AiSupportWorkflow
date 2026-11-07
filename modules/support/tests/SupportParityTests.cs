@@ -1,12 +1,12 @@
-namespace LlmFlows.Modules.Support.Tests;
+namespace Flowgent.Modules.Support.Tests;
 
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using LlmFlows.Contracts.Api;
-using LlmFlows.Contracts.Runs;
-using LlmFlows.Testing;
+using Flowgent.Contracts.Api;
+using Flowgent.Contracts.Runs;
+using Flowgent.Testing;
 
 /// <summary>
 /// Every dashboard template (support sample) submitted in Demo mode through the gateway reaches the same final

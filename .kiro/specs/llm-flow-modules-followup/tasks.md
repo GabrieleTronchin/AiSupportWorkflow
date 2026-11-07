@@ -7,7 +7,7 @@ Closes task 7.4 of [`llm-flow-modules`](../llm-flow-modules/tasks.md). Phases ru
 ## Tasks
 
 - [ ] 1. Automated verification on the Closing_Commit
-  - [ ] 1.1 `dotnet build backend/LlmFlows.slnx` (0 warnings, 0 errors) and `dotnet test --solution backend/LlmFlows.slnx` (no failures; round-1 baseline 314 passed).
+  - [ ] 1.1 `dotnet build backend/Flowgent.slnx` (0 warnings, 0 errors) and `dotnet test --solution backend/Flowgent.slnx` (no failures; round-1 baseline 314 passed).
     - _Requirements: 1.1, 1.4_
   - [ ] 1.2 Dashboard: `npm install`, `npm run typecheck`, `npm run test -- --run`, `npm run build`; restore `package-lock.json` if the diff is only install noise, otherwise report it.
     - _Requirements: 1.2, 1.3, 1.4_

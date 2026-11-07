@@ -1,7 +1,7 @@
-namespace LlmFlows.Modules.Support.Tools;
+namespace Flowgent.Modules.Support.Tools;
 
 using System.Text.RegularExpressions;
-using LlmFlows.Module.Sdk;
+using Flowgent.Module.Sdk;
 
 public sealed record LocateComponentInput(string ApplicationFolder, string Text);
 

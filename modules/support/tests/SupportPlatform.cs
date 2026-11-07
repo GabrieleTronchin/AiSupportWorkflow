@@ -1,9 +1,9 @@
-namespace LlmFlows.Modules.Support.Tests;
+namespace Flowgent.Modules.Support.Tests;
 
-using LlmFlows.Definitions;
-using LlmFlows.Definitions.Model;
-using LlmFlows.Module.Sdk;
-using LlmFlows.Testing;
+using Flowgent.Definitions;
+using Flowgent.Definitions.Model;
+using Flowgent.Module.Sdk;
+using Flowgent.Testing;
 
 /// <summary>Shared helpers: the support definition and an in-process platform (gateway + engine + support).</summary>
 public static class SupportPlatform

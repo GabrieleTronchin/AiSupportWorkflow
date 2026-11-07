@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://llmflows.local/schemas/module.schema.json",
-  "title": "LlmFlows module manifest",
+  "$id": "https://flowgent.local/schemas/module.schema.json",
+  "title": "Flowgent module manifest",
   "description": "module.yaml: module id, configuration, agents, tools, workflow and sample files.",
   "type": "object",
   "required": ["id", "name", "workflows"],

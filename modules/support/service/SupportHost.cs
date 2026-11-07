@@ -1,8 +1,8 @@
-namespace LlmFlows.Modules.Support;
+namespace Flowgent.Modules.Support;
 
-using LlmFlows.Module.Sdk;
-using LlmFlows.Modules.Support.Endpoints;
-using LlmFlows.Modules.Support.Tools;
+using Flowgent.Module.Sdk;
+using Flowgent.Modules.Support.Endpoints;
+using Flowgent.Modules.Support.Tools;
 
 /// <summary>
 /// Builds the support module service. <c>Program.cs</c> and the in-process test harness both use it.
@@ -19,12 +19,12 @@ public static class SupportHost
         configure?.Invoke(builder);
 
         builder.AddServiceDefaults();
-        builder.AddLlmFlowsModule();
+        builder.AddFlowgentModule();
         builder.Services.AddModuleTool<LocateComponentTool>(LocateComponentTool.Name);
 
         var app = builder.Build();
 
-        app.MapLlmFlowsModule();
+        app.MapFlowgentModule();
         app.MapSupportEmailEndpoints();
         app.MapDefaultEndpoints();
 

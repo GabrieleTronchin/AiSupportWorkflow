@@ -16,6 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore backend/LlmFlows.slnx
-      - run: dotnet build backend/LlmFlows.slnx --no-restore
-      - run: dotnet test --solution backend/LlmFlows.slnx --no-build
+      - run: dotnet restore backend/Flowgent.slnx
+      - run: dotnet build backend/Flowgent.slnx --no-restore
+      - run: dotnet test --solution backend/Flowgent.slnx --no-build

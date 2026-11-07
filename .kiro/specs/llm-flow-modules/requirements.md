@@ -277,7 +277,7 @@ The platform keeps the current technical choices where they still apply: Agent F
 
 ## Decisions
 
-1. **Engine name**: `LlmFlows` (projects `LlmFlows.*`).
+1. **Engine name**: `Flowgent` (projects `Flowgent.*`).
 2. **Gateway**: YARP, configuration-driven, with gRPC-Web passthrough.
 3. **Orchestrator**: .NET Aspire AppHost with shared service defaults (health, OpenTelemetry, resilience, service discovery).
 4. **Definition ownership**: Module_Services own and publish their definitions; the Engine_Service pulls them (startup, retry, reload on new version).

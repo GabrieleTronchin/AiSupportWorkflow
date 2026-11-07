@@ -4,15 +4,15 @@ inclusion: always
 
 # Product Overview
 
-LlmFlows is a reusable base for building LLM workflows. Workflows are defined in YAML and executed by a domain-agnostic engine on Microsoft Agent Framework Workflows. Each business domain is a module service that owns its definitions and custom code. A generic dashboard monitors every module through a single gateway, and a .NET Aspire AppHost starts everything with one command.
+Flowgent is a reusable base for building LLM workflows. Workflows are defined in YAML and executed by a domain-agnostic engine on Microsoft Agent Framework Workflows. Each business domain is a module service that owns its definitions and custom code. A generic dashboard monitors every module through a single gateway, and a .NET Aspire AppHost starts everything with one command.
 
 ## Components
 
-- **Gateway** (`LlmFlows.Gateway`, :5080): the only entry point for the dashboard and clients. Config-driven YARP routes: `/api/engine/**` and the gRPC-Web stream `/llmflows.RunMonitor/**` to the engine, `/api/modules/{id}/**` (plus per-module extra routes) to module services. Correlation id, `503` problem details when a target is down.
-- **Engine** (`LlmFlows.Engine.Service`, :5081): pulls module packages, validates and compiles workflows, runs them. Owns runs, transition events, the inbox, human input, LLM access (Demo default, OpenAI-compatible), telemetry, the `/api/engine` API and the gRPC `RunMonitor` stream. Contains no domain code.
-- **Module services** (`modules/<id>/service`, on `LlmFlows.Module.Sdk`): publish `definition/` at `GET /_module/package`, implement tools at `POST /_module/tools/{name}`, expose domain endpoints and submit inputs through `IEngineClient`.
+- **Gateway** (`Flowgent.Gateway`, :5080): the only entry point for the dashboard and clients. Config-driven YARP routes: `/api/engine/**` and the gRPC-Web stream `/flowgent.RunMonitor/**` to the engine, `/api/modules/{id}/**` (plus per-module extra routes) to module services. Correlation id, `503` problem details when a target is down.
+- **Engine** (`Flowgent.Engine.Service`, :5081): pulls module packages, validates and compiles workflows, runs them. Owns runs, transition events, the inbox, human input, LLM access (Demo default, OpenAI-compatible), telemetry, the `/api/engine` API and the gRPC `RunMonitor` stream. Contains no domain code.
+- **Module services** (`modules/<id>/service`, on `Flowgent.Module.Sdk`): publish `definition/` at `GET /_module/package`, implement tools at `POST /_module/tools/{name}`, expose domain endpoints and submit inputs through `IEngineClient`.
 - **Dashboard** (`dashboard/`, :5173): generic React console; graph, forms, filters and badges come from the workflow definitions.
-- **AppHost** (`LlmFlows.AppHost`): starts engine, enabled modules, gateway and dashboard; Aspire dashboard at :15080.
+- **AppHost** (`Flowgent.AppHost`): starts engine, enabled modules, gateway and dashboard; Aspire dashboard at :15080.
 
 ## Workflow model
 
@@ -34,7 +34,7 @@ LlmFlows is a reusable base for building LLM workflows. Workflows are defined in
 
 - `modules/support`: reference module and regression suite (support-email triage with human approval). Domain details live in `modules/support/README.md` and `modules/support/docs/`; do not describe them in platform documentation.
 - `modules/_template`: minimal module to copy (`template-hello`), disabled in the AppHost by default.
-- `backend/tests/Fixtures/LlmFlows.Fixtures.Module`: test-only module covering every step kind.
+- `backend/tests/Fixtures/Flowgent.Fixtures.Module`: test-only module covering every step kind.
 
 ## Documentation
 
@@ -42,7 +42,7 @@ Platform docs are in `docs/` (architecture, workflow reference, expressions, mod
 
 ## Constraints
 
-- The engine and gateway never reference module projects or domain types; enforced by `LlmFlows.Architecture.Tests`.
+- The engine and gateway never reference module projects or domain types; enforced by `Flowgent.Architecture.Tests`.
 - Module services reference only the SDK, contracts, definitions and service defaults.
 - Expected failures use result types (`IntakeResult`, `EngineSubmitResult`, `HumanInputResult`, step failures with descriptive reasons); exceptions are for unexpected errors.
-- No authentication: the gateway is the only intended public entry point. Secrets (`LlmFlows:Llm:ApiKey`, `LlmFlows:Secrets:*`) come from configuration and are never returned by any endpoint.
+- No authentication: the gateway is the only intended public entry point. Secrets (`Flowgent:Llm:ApiKey`, `Flowgent:Secrets:*`) come from configuration and are never returned by any endpoint.

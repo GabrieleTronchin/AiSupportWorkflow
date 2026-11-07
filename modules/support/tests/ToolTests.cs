@@ -1,9 +1,9 @@
-namespace LlmFlows.Modules.Support.Tests;
+namespace Flowgent.Modules.Support.Tests;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using LlmFlows.Module.Sdk;
-using LlmFlows.Modules.Support.Tools;
+using Flowgent.Module.Sdk;
+using Flowgent.Modules.Support.Tools;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -83,7 +83,7 @@ public class ToolTests
         var output = await tool.InvokeAsync(Invocation("application-a", "OrderController"), TestContext.Current.CancellationToken);
         var schema = SupportPlatform.Definition.GetSchema(SupportPlatform.Definition.FindTool(LocateComponentTool.Name)!.Output!.Schema);
 
-        Assert.Empty(LlmFlows.Definitions.Schemas.JsonSchemaValidator.Validate(schema, output));
+        Assert.Empty(Flowgent.Definitions.Schemas.JsonSchemaValidator.Validate(schema, output));
     }
 
     internal static LocateComponentOutput Locate(string folder, string text)

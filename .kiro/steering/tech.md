@@ -25,7 +25,7 @@
 | FsCheck.Xunit.v3 | 3.6.0 | Property-based tests |
 | NSubstitute | 6.2.0 | Mocks |
 | NetArchTest.Rules | 1.3.2 | Architecture tests |
-| Microsoft.AspNetCore.TestHost | 10.0.14 | In-process services (`LlmFlows.Testing`) |
+| Microsoft.AspNetCore.TestHost | 10.0.14 | In-process services (`Flowgent.Testing`) |
 | coverlet.MTP | 10.1.0 | Coverage |
 
 ## Key Libraries — Frontend (dashboard)
@@ -36,25 +36,25 @@ Node.js >= 20.19. React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 7
 
 ```bash
 # Build and test everything (backend + modules)
-dotnet build backend/LlmFlows.slnx
-dotnet test --solution backend/LlmFlows.slnx
+dotnet build backend/Flowgent.slnx
+dotnet test --solution backend/Flowgent.slnx
 
 # Single test projects
-dotnet test --project backend/tests/LlmFlows.Engine.Tests
-dotnet test --project backend/tests/LlmFlows.Gateway.Tests
-dotnet test --project backend/tests/LlmFlows.Integration.Tests
-dotnet test --project backend/tests/LlmFlows.Architecture.Tests
+dotnet test --project backend/tests/Flowgent.Engine.Tests
+dotnet test --project backend/tests/Flowgent.Gateway.Tests
+dotnet test --project backend/tests/Flowgent.Integration.Tests
+dotnet test --project backend/tests/Flowgent.Architecture.Tests
 dotnet test --project modules/support/tests
 dotnet test --project modules/_template/tests
 
 # Whole platform (engine, enabled modules, gateway :5080, dashboard :5173, Aspire dashboard :15080)
-dotnet run --project backend/src/AppHost/LlmFlows.AppHost
-dotnet run --project backend/src/AppHost/LlmFlows.AppHost -- --AppHost:Modules:template:Enabled=true
+dotnet run --project backend/src/AppHost/Flowgent.AppHost
+dotnet run --project backend/src/AppHost/Flowgent.AppHost -- --AppHost:Modules:template:Enabled=true
 
 # Services one by one
-dotnet run --project backend/src/Services/LlmFlows.Engine.Service   # :5081
+dotnet run --project backend/src/Services/Flowgent.Engine.Service   # :5081
 dotnet run --project modules/support/service                         # :5082
-dotnet run --project backend/src/Services/LlmFlows.Gateway          # :5080
+dotnet run --project backend/src/Services/Flowgent.Gateway          # :5080
 
 # Dashboard
 cd dashboard && npm install
@@ -67,9 +67,9 @@ cd dashboard && npm run generate     # regenerate src/gen from backend/protos/ru
 
 ## Configuration
 
-- Engine (`LlmFlows` section): `EnableVisualization` (gRPC stream + agents endpoint), `SequentialProcessing`, `InboxPollingIntervalSeconds`, `DefaultToolTimeoutSeconds`, `Modules[] { Id, Url, Enabled, RefreshSeconds, TimeoutSeconds, Retries, RetryDelayMilliseconds }`, `Secrets:<moduleId>:<key>` (http step headers).
-- LLM (`LlmFlows:Llm`): `Provider` (`Demo` default | `OpenAI`), `ModelName` (`gpt-4o-mini`), `ApiKey`, optional `Endpoint` (any OpenAI-compatible server), `DemoLatencyMs` (1500). Keep the key in the git-ignored `appsettings.Development.json` of the engine or in environment variables. `GET /api/engine/config` exposes only `sequentialProcessing`, `demoMode`, `llmProvider`, `llmModel`.
-- Module SDK (`LlmFlows:Module`): `DefinitionPath` (`../definition`), `EngineUrl` (`http://localhost:5081`), `FailOnInvalidDefinition` (false).
+- Engine (`Flowgent` section): `EnableVisualization` (gRPC stream + agents endpoint), `SequentialProcessing`, `InboxPollingIntervalSeconds`, `DefaultToolTimeoutSeconds`, `Modules[] { Id, Url, Enabled, RefreshSeconds, TimeoutSeconds, Retries, RetryDelayMilliseconds }`, `Secrets:<moduleId>:<key>` (http step headers).
+- LLM (`Flowgent:Llm`): `Provider` (`Demo` default | `OpenAI`), `ModelName` (`gpt-4o-mini`), `ApiKey`, optional `Endpoint` (any OpenAI-compatible server), `DemoLatencyMs` (1500). Keep the key in the git-ignored `appsettings.Development.json` of the engine or in environment variables. `GET /api/engine/config` exposes only `sequentialProcessing`, `demoMode`, `llmProvider`, `llmModel`.
+- Module SDK (`Flowgent:Module`): `DefinitionPath` (`../definition`), `EngineUrl` (`http://localhost:5081`), `FailOnInvalidDefinition` (false).
 - Gateway (`Gateway`): `Engine:Address`, `Modules[] { Id, Address, ExtraRoutes[] }`, `StreamActivityTimeout`.
 - AppHost: `AppHost:Modules:<id>:Enabled`, `AppHost:LlmProvider`.
 - Ports (launch profiles, also used by Aspire): gateway 5080, engine 5081, support 5082, template 5083, dashboard 5173.

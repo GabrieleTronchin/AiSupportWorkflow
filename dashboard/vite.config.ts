@@ -17,7 +17,7 @@ export default defineConfig({
         target: gatewayUrl,
         changeOrigin: true,
       },
-      '/llmflows.RunMonitor': {
+      '/flowgent.RunMonitor': {
         target: gatewayUrl,
         changeOrigin: true,
         // gRPC-Web uses HTTP/1.1 streaming — disable response buffering

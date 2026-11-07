@@ -17,36 +17,36 @@ Service-to-service calls go directly (service discovery under Aspire), never thr
 ```
 .editorconfig, .gitattributes, global.json   # repo-wide (global.json: test runner, read from the working directory)
 backend/
-├── LlmFlows.slnx                    # single solution (backend + modules, module paths are ../modules/...)
+├── Flowgent.slnx                    # single solution (backend + modules, module paths are ../modules/...)
 ├── Directory.Build.props, Directory.Packages.props, nuget.config
-├── schemas/                         # module/workflow/samples JSON Schemas (embedded in LlmFlows.Definitions)
+├── schemas/                         # module/workflow/samples JSON Schemas (embedded in Flowgent.Definitions)
 ├── protos/run_monitor.proto         # gRPC contract (engine + dashboard codegen)
 ├── src/
 │   ├── Engine/
-│   │   ├── LlmFlows.Contracts/      # HTTP DTOs: module package, tool invocation, engine API views, RunStatus/RunEventKind
-│   │   ├── LlmFlows.Definitions/    # YAML → JsonNode reader, model records, ModuleLoader, DefinitionValidator, Scriban TemplateEngine
-│   │   ├── LlmFlows.Runtime/        # WorkflowCompiler, step handlers, RunOrchestrator, RunRegistry, HumanInputRegistry,
+│   │   ├── Flowgent.Contracts/      # HTTP DTOs: module package, tool invocation, engine API views, RunStatus/RunEventKind
+│   │   ├── Flowgent.Definitions/    # YAML → JsonNode reader, model records, ModuleLoader, DefinitionValidator, Scriban TemplateEngine
+│   │   ├── Flowgent.Runtime/        # WorkflowCompiler, step handlers, RunOrchestrator, RunRegistry, HumanInputRegistry,
 │   │   │                            #   IntakeService, InboxProcessor, ModuleCatalog(+Service), ModuleClient, LLM (Demo, telemetry)
-│   │   └── LlmFlows.Persistence/    # EF Core InMemory EngineDbContext, EfRunStore (dual-write), EfInboxStore
+│   │   └── Flowgent.Persistence/    # EF Core InMemory EngineDbContext, EfRunStore (dual-write), EfInboxStore
 │   ├── Services/
-│   │   ├── LlmFlows.Engine.Service/ # EngineHost, /api/engine endpoints, RunMonitorService (gRPC), engine.http
-│   │   └── LlmFlows.Gateway/        # GatewayHost, GatewayRoutes, GatewayMiddleware (correlation id, 503)
+│   │   ├── Flowgent.Engine.Service/ # EngineHost, /api/engine endpoints, RunMonitorService (gRPC), engine.http
+│   │   └── Flowgent.Gateway/        # GatewayHost, GatewayRoutes, GatewayMiddleware (correlation id, 503)
 │   ├── Sdk/
-│   │   ├── LlmFlows.Module.Sdk/     # AddLlmFlowsModule/MapLlmFlowsModule, ModuleTool<TIn,TOut>, IEngineClient, ModuleDefinitionAssert
-│   │   └── LlmFlows.Testing/        # PlatformHarness: engine, modules and gateway in-process on TestServer
+│   │   ├── Flowgent.Module.Sdk/     # AddFlowgentModule/MapFlowgentModule, ModuleTool<TIn,TOut>, IEngineClient, ModuleDefinitionAssert
+│   │   └── Flowgent.Testing/        # PlatformHarness: engine, modules and gateway in-process on TestServer
 │   └── AppHost/
-│       ├── LlmFlows.AppHost/        # Aspire AppHost, ModuleWiring, AppHost:Modules toggles
-│       └── LlmFlows.ServiceDefaults/ # health, OpenTelemetry, service discovery, resilience
+│       ├── Flowgent.AppHost/        # Aspire AppHost, ModuleWiring, AppHost:Modules toggles
+│       └── Flowgent.ServiceDefaults/ # health, OpenTelemetry, service discovery, resilience
 └── tests/
-    ├── LlmFlows.Engine.Tests/       # definitions, runtime, persistence, LLM, endpoints (+ FsCheck properties)
-    ├── LlmFlows.Gateway.Tests/      # routes, forwarding, correlation id, 503
-    ├── LlmFlows.Integration.Tests/  # support + fixture modules: isolation, module down, version reload, gRPC-Web via gateway
-    ├── LlmFlows.Architecture.Tests/ # dependency rules (project files + NetArchTest)
-    └── Fixtures/LlmFlows.Fixtures.Module/  # test-only module covering every step kind
+    ├── Flowgent.Engine.Tests/       # definitions, runtime, persistence, LLM, endpoints (+ FsCheck properties)
+    ├── Flowgent.Gateway.Tests/      # routes, forwarding, correlation id, 503
+    ├── Flowgent.Integration.Tests/  # support + fixture modules: isolation, module down, version reload, gRPC-Web via gateway
+    ├── Flowgent.Architecture.Tests/ # dependency rules (project files + NetArchTest)
+    └── Fixtures/Flowgent.Fixtures.Module/  # test-only module covering every step kind
 modules/
 ├── Directory.Build.props, Directory.Packages.props   # import the backend/ ones; nuget.config mirrors backend/nuget.config
-├── _template/                       # definition/, service/ (LlmFlows.Modules.Template), tests/, README.md
-└── support/                         # definition/, service/ (LlmFlows.Modules.Support), tests/, dummy-apps/, docs/, README.md
+├── _template/                       # definition/, service/ (Flowgent.Modules.Template), tests/, README.md
+└── support/                         # definition/, service/ (Flowgent.Modules.Support), tests/, dummy-apps/, docs/, README.md
 dashboard/                           # React console: api/, gen/, hooks/, components/, pages/, utils/, types/, __tests__/
 docs/                                # platform documentation (engine, not domain)
 ```
@@ -58,19 +58,19 @@ Every module follows the same layout; nothing module-specific lives outside it:
 ```
 modules/<id>/
 ├── definition/   # module.yaml, workflows/, prompts/, schemas/, samples/
-├── service/      # LlmFlows.Modules.<Name>.csproj: <Name>Host.Create, Program.cs, Tools/, endpoints, <id>.http
-├── tests/        # LlmFlows.Modules.<Name>.Tests.csproj
+├── service/      # Flowgent.Modules.<Name>.csproj: <Name>Host.Create, Program.cs, Tools/, endpoints, <id>.http
+├── tests/        # Flowgent.Modules.<Name>.Tests.csproj
 ├── docs/, README.md
 └── assets        # e.g. support's dummy-apps/
 ```
 
 New modules start from `modules/_template` (see its README and `docs/module-authoring.md`). Support domain details: `modules/support/README.md`.
 
-## Dependency rules (LlmFlows.Architecture.Tests)
+## Dependency rules (Flowgent.Architecture.Tests)
 
 - `Contracts` has no project references; `Definitions` references only `Contracts`.
 - `Runtime` → `Definitions`; `Persistence` → `Runtime`; `Engine.Service` → `Runtime`, `Persistence`, `ServiceDefaults`; `Gateway` → `ServiceDefaults`; `Module.Sdk` → `Contracts`, `Definitions`; `Testing` → `Engine.Service`, `Gateway`, `Module.Sdk`.
-- Engine projects and the gateway never reference `modules/` or `Fixtures/` and contain no `LlmFlows.Modules.*` types.
+- Engine projects and the gateway never reference `modules/` or `Fixtures/` and contain no `Flowgent.Modules.*` types.
 - Module services reference only `Module.Sdk`, `Contracts`, `Definitions`, `ServiceDefaults`.
 - `Definitions` and `Runtime` do not depend on ASP.NET Core.
 - Engine sources and the proto contain no support-domain terms.
@@ -81,7 +81,7 @@ New modules start from `modules/_template` (see its README and `docs/module-auth
 - **Pull model**: the engine polls module packages with ETag; new versions load atomically, in-flight runs keep their definition.
 - **Per-run graphs**: `WorkflowCompiler` builds one Agent Framework workflow per run with one executor per step; `StepMessage(NextStepId)` is the only message.
 - **Result types** for expected failures; `StepFailedException(stepId, reason)` ends a run as `Failed`.
-- **Configuration-driven**: modules (engine `LlmFlows:Modules`, gateway `Gateway:Modules`, AppHost `AppHost:Modules`), never hard-coded.
+- **Configuration-driven**: modules (engine `Flowgent:Modules`, gateway `Gateway:Modules`, AppHost `AppHost:Modules`), never hard-coded.
 - **Async-first** with `CancellationToken` for all I/O.
 
 ## Testing conventions

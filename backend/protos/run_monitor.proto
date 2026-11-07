@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package llmflows;
+package flowgent;
 
-option csharp_namespace = "LlmFlows.Engine.Service.Grpc";
+option csharp_namespace = "Flowgent.Engine.Service.Grpc";
 
 // Real-time run transitions published by the engine (served as gRPC-Web through the gateway).
 service RunMonitor {

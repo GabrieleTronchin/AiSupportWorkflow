@@ -43,7 +43,7 @@ sequenceDiagram
 
 ## Sequential mode
 
-With `LlmFlows:SequentialProcessing = true` the processor starts a run only when no other run is `Running` or `AwaitingInput`, one message at a time. The dashboard shows a **Sequential Mode** badge on the Overview page.
+With `Flowgent:SequentialProcessing = true` the processor starts a run only when no other run is `Running` or `AwaitingInput`, one message at a time. The dashboard shows a **Sequential Mode** badge on the Overview page.
 
 ## Monitoring
 
@@ -53,5 +53,5 @@ With `LlmFlows:SequentialProcessing = true` the processor starts a run only when
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `LlmFlows:InboxPollingIntervalSeconds` | `5` (`1` in the engine `appsettings.json`) | Polling interval. |
-| `LlmFlows:SequentialProcessing` | `false` | One run at a time. |
+| `Flowgent:InboxPollingIntervalSeconds` | `5` (`1` in the engine `appsettings.json`) | Polling interval. |
+| `Flowgent:SequentialProcessing` | `false` | One run at a time. |

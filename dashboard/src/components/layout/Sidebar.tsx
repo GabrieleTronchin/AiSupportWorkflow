@@ -34,7 +34,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center h-14 px-4 border-b border-zinc-800">
         {!collapsed && (
           <span className="text-sm font-semibold text-zinc-100 truncate">
-            LlmFlows
+            Flowgent
           </span>
         )}
       </div>

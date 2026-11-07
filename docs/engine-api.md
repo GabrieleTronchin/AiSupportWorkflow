@@ -2,7 +2,7 @@
 
 [← README](../README.md) · [Gateway](gateway.md) · [Human input](human-input.md) · [Inbox](inbox.md)
 
-The engine exposes a module-agnostic API under `/api/engine`, reached through the gateway (`http://localhost:5080`). JSON is camelCase with string enums. Errors are problem details (`title`, `detail`, optional `errors`). Ready-made requests: [`engine.http`](../backend/src/Services/LlmFlows.Engine.Service/engine.http).
+The engine exposes a module-agnostic API under `/api/engine`, reached through the gateway (`http://localhost:5080`). JSON is camelCase with string enums. Errors are problem details (`title`, `detail`, optional `errors`). Ready-made requests: [`engine.http`](../backend/src/Services/Flowgent.Engine.Service/engine.http).
 
 No endpoint returns secrets: API keys, LLM endpoint URLs and `http` step secret headers stay in configuration.
 
@@ -57,7 +57,7 @@ See [Human input](human-input.md).
 | Method | Route | Response |
 |--------|-------|----------|
 | GET | `/api/engine/events?limit=&moduleId=&workflowId=&runId=` | Transition events, newest first, `limit` 1–200 (default 200): `{ id, runId, moduleId, workflowId, kind, previousStepId, stepId, status, timestamp, detail }` |
-| GET | `/api/engine/agents?moduleId=` | `[{ agentId, moduleId, name, group, role, status, currentRunId, currentRunTitle, currentStepId }]`; `status` is `Working` while the agent is assigned to a non-terminal run, else `Idle`. `404` when `LlmFlows:EnableVisualization` is `false` |
+| GET | `/api/engine/agents?moduleId=` | `[{ agentId, moduleId, name, group, role, status, currentRunId, currentRunTitle, currentStepId }]`; `status` is `Working` while the agent is assigned to a non-terminal run, else `Idle`. `404` when `Flowgent:EnableVisualization` is `false` |
 | GET | `/api/engine/agents/{agentId}/telemetry` | `{ agentId, totalPromptTokens, totalCompletionTokens, totalCalls, averageLatencyMs, lastCall }` |
 | GET | `/api/engine/telemetry/summary?moduleId=` | `{ totalTokens, totalCalls, averageLatencyMs, errorRate }` |
 | GET | `/api/engine/inbox?status=&moduleId=` | `[{ id, moduleId, workflowId, runId, receivedAt, processedAt, error, status, payload }]`; `status` filter: `queued`, `processed`, `failed` |
@@ -67,7 +67,7 @@ Telemetry is kept in memory by the engine. `lastCall` includes model, tokens, la
 
 ## gRPC run stream
 
-`backend/protos/run_monitor.proto`, served as gRPC-Web at `/llmflows.RunMonitor/Subscribe` through the gateway:
+`backend/protos/run_monitor.proto`, served as gRPC-Web at `/flowgent.RunMonitor/Subscribe` through the gateway:
 
 ```proto
 service RunMonitor {
@@ -87,7 +87,7 @@ message RunUpdate {
 
 Every transition (including `Queued`) is published. The stream returns `Unavailable` when visualization is disabled and `InvalidArgument` when `run_id` is not a GUID. Each subscriber has its own bounded buffer, so a slow client does not slow down the others.
 
-## Engine configuration (`LlmFlows`)
+## Engine configuration (`Flowgent`)
 
 | Key | Default | Description |
 |-----|---------|-------------|

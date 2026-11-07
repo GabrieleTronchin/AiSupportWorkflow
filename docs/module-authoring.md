@@ -2,7 +2,7 @@
 
 [← README](../README.md) · [Workflow reference](workflow-reference.md) · [Template module](../modules/_template/README.md)
 
-A module is one business domain: its workflow definitions plus a small ASP.NET Core service built on `LlmFlows.Module.Sdk`. Adding a module needs no change to the engine, the gateway code or the dashboard.
+A module is one business domain: its workflow definitions plus a small ASP.NET Core service built on `Flowgent.Module.Sdk`. Adding a module needs no change to the engine, the gateway code or the dashboard.
 
 Start from [`modules/_template`](../modules/_template/README.md): it is a minimal, valid module (one `llm` → `tool` → `terminal` workflow, one tool, one sample, tests) and its README lists the copy-and-rename steps.
 
@@ -16,8 +16,8 @@ modules/<id>/
 │   ├── prompts/
 │   ├── schemas/
 │   └── samples/
-├── service/              # LlmFlows.Modules.<Name>.csproj: SDK host, tools, domain endpoints, <id>.http
-├── tests/                # LlmFlows.Modules.<Name>.Tests.csproj
+├── service/              # Flowgent.Modules.<Name>.csproj: SDK host, tools, domain endpoints, <id>.http
+├── tests/                # Flowgent.Modules.<Name>.Tests.csproj
 ├── docs/ and README.md   # module documentation
 └── ...                   # module assets (e.g. sample data)
 ```
@@ -37,11 +37,11 @@ public static class NotesHost
         configure?.Invoke(builder);                      // tests add configuration and handlers here
 
         builder.AddServiceDefaults();                    // health, OpenTelemetry, discovery, resilience
-        builder.AddLlmFlowsModule();                     // definition provider, startup validation, IEngineClient
+        builder.AddFlowgentModule();                     // definition provider, startup validation, IEngineClient
         builder.Services.AddModuleTool<WordCountTool>("notes.wordCount");
 
         var app = builder.Build();
-        app.MapLlmFlowsModule();                         // /_module/package, /_module/tools/{name}, /api/modules/notes
+        app.MapFlowgentModule();                         // /_module/package, /_module/tools/{name}, /api/modules/notes
         app.MapDefaultEndpoints();                       // /health, /alive
         return app;
     }
@@ -50,7 +50,7 @@ public static class NotesHost
 
 `Program.cs` is `NotesHost.Create(new() { Args = args }).Run();`. The `Create` method is what lets tests start the module in-process.
 
-### Configuration (`LlmFlows:Module`)
+### Configuration (`Flowgent:Module`)
 
 | Key | Default | Description |
 |-----|---------|-------------|
@@ -100,19 +100,19 @@ The gateway routes `/api/modules/<id>/**` to the module automatically; other pub
 
 With the AppHost (recommended):
 
-1. Add the service and test projects to `backend/LlmFlows.slnx`.
-2. Add a `ProjectReference` to the service in `backend/src/AppHost/LlmFlows.AppHost/LlmFlows.AppHost.csproj`.
-3. In `AppHost.cs`: `modules.Add<Projects.LlmFlows_Modules_Notes>("notes");` (extra gateway routes as further arguments). The module is enabled unless `AppHost:Modules:notes:Enabled` is `false`.
+1. Add the service and test projects to `backend/Flowgent.slnx`.
+2. Add a `ProjectReference` to the service in `backend/src/AppHost/Flowgent.AppHost/Flowgent.AppHost.csproj`.
+3. In `AppHost.cs`: `modules.Add<Projects.Flowgent_Modules_Notes>("notes");` (extra gateway routes as further arguments). The module is enabled unless `AppHost:Modules:notes:Enabled` is `false`.
 
-`ModuleWiring` then configures the engine (`LlmFlows:Modules`), the gateway (`Gateway:Modules`) and the module (`LlmFlows:Module:EngineUrl`).
+`ModuleWiring` then configures the engine (`Flowgent:Modules`), the gateway (`Gateway:Modules`) and the module (`Flowgent:Module:EngineUrl`).
 
 Without the AppHost, add the module to the engine and gateway `appsettings.json`:
 
 ```jsonc
-// backend/src/Services/LlmFlows.Engine.Service/appsettings.json
-"LlmFlows": { "Modules": [ { "Id": "notes", "Url": "http://localhost:5084" } ] }
+// backend/src/Services/Flowgent.Engine.Service/appsettings.json
+"Flowgent": { "Modules": [ { "Id": "notes", "Url": "http://localhost:5084" } ] }
 
-// backend/src/Services/LlmFlows.Gateway/appsettings.json
+// backend/src/Services/Flowgent.Gateway/appsettings.json
 "Gateway": { "Modules": [ { "Id": "notes", "Address": "http://localhost:5084" } ] }
 ```
 
@@ -125,7 +125,7 @@ The service reads its definition folder once at startup. After editing YAML, pro
 ## Testing
 
 - **Definition**: `ModuleDefinitionAssert.IsValid(path)` loads the folder with the engine's rules and throws with every error (file, line, step).
-- **End-to-end**: `LlmFlows.Testing.PlatformHarness` starts the engine, the module and optionally the gateway in-process on `TestServer`, in Demo mode:
+- **End-to-end**: `Flowgent.Testing.PlatformHarness` starts the engine, the module and optionally the gateway in-process on `TestServer`, in Demo mode:
 
 ```csharp
 await using var platform = await PlatformHarness.StartAsync(options => options
@@ -139,4 +139,4 @@ Assert.Equal(RunStatus.Completed, run.Status);
 
 The harness also offers `WaitForHumanInputAsync`, `ApproveAsync`, `RejectAsync`, `AbortAsync`, `GetEventsAsync`, `StopModuleAsync`, `StartModuleAsync` and `RestartModuleAsync`. See `modules/_template/tests/TemplateModuleTests.cs` for a complete example.
 
-Run them with `dotnet test --project modules/<id>/tests` or the whole solution with `dotnet test --solution backend/LlmFlows.slnx`.
+Run them with `dotnet test --project modules/<id>/tests` or the whole solution with `dotnet test --solution backend/Flowgent.slnx`.

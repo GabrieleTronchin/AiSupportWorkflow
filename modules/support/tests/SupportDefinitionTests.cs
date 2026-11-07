@@ -1,13 +1,13 @@
-namespace LlmFlows.Modules.Support.Tests;
+namespace Flowgent.Modules.Support.Tests;
 
 using System.Text.Json.Nodes;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
-using LlmFlows.Definitions.Expressions;
-using LlmFlows.Definitions.Model;
-using LlmFlows.Definitions.Schemas;
-using LlmFlows.Runtime.Steps;
+using Flowgent.Definitions.Expressions;
+using Flowgent.Definitions.Model;
+using Flowgent.Definitions.Schemas;
+using Flowgent.Runtime.Steps;
 
 /// <summary>
 /// Unit tests of the YAML rules of the support workflow (routing, agent mapping, demo classification and severity),
@@ -173,7 +173,7 @@ public class SupportDefinitionTests
         var demo = ((LlmStep)Workflow.FindStep("generate_code")!).Demo!.Output!;
         var scope = Scope("s", "b", new JsonObject
         {
-            ["locate_component"] = JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(located, LlmFlows.Module.Sdk.ModuleTool<object, object>.JsonOptions)),
+            ["locate_component"] = JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(located, Flowgent.Module.Sdk.ModuleTool<object, object>.JsonOptions)),
             ["resolve"] = new JsonObject { ["affectedComponent"] = located.Component, ["proposedFixSummary"] = "fix" },
         });
         var pullRequest = Templates.EvaluateValue(demo, scope)!;

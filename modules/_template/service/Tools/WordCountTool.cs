@@ -1,6 +1,6 @@
-namespace LlmFlows.Modules.Template.Tools;
+namespace Flowgent.Modules.Template.Tools;
 
-using LlmFlows.Module.Sdk;
+using Flowgent.Module.Sdk;
 
 public sealed record WordCountInput(string Text);
 

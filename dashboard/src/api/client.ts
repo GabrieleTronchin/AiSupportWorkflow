@@ -67,7 +67,7 @@ function query(params: Record<string, string | number | null | undefined>): stri
 
 export interface RuntimeConfig {
   sequentialProcessing: boolean;
-  /** True when the engine uses simulated LLM responses (LlmFlows:Llm:Provider = "Demo"). */
+  /** True when the engine uses simulated LLM responses (Flowgent:Llm:Provider = "Demo"). */
   demoMode: boolean;
   /** Configured LLM provider, e.g. "Demo" or "OpenAI" (null if unknown). */
   llmProvider: string | null;

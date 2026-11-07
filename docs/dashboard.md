@@ -12,7 +12,7 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-The AppHost starts it automatically on port 5173. The dev server proxies `/api` and `/llmflows.RunMonitor` to the gateway: `GATEWAY_URL` (set by the AppHost) or `http://localhost:5080`. The dashboard never calls the engine or a module directly.
+The AppHost starts it automatically on port 5173. The dev server proxies `/api` and `/flowgent.RunMonitor` to the gateway: `GATEWAY_URL` (set by the AppHost) or `http://localhost:5080`. The dashboard never calls the engine or a module directly.
 
 | Command | Purpose |
 |---------|---------|
@@ -37,7 +37,7 @@ Node.js 20.19 or later is required.
 
 ## Module and workflow selection
 
-`ModuleWorkflowPicker` lists the modules and workflows from `/api/engine/modules` and `/api/engine/workflows` (refreshed every 10 s). It shows the module status (`Loading`, `Available`, `Invalid`, `Unavailable`) and its validation errors. The selection is stored in `localStorage` (`llmflows.selection`); by default the first available workflow is selected.
+`ModuleWorkflowPicker` lists the modules and workflows from `/api/engine/modules` and `/api/engine/workflows` (refreshed every 10 s). It shows the module status (`Loading`, `Available`, `Invalid`, `Unavailable`) and its validation errors. The selection is stored in `localStorage` (`flowgent.selection`); by default the first available workflow is selected.
 
 ## Pipeline graph
 

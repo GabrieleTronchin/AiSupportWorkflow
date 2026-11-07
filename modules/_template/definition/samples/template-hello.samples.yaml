@@ -8,4 +8,4 @@ samples:
     workflow: template-hello
     description: Summarises a short paragraph and counts the words of the summary.
     input:
-      text: LlmFlows runs workflows described in YAML. Each module publishes its definitions and tools, and the engine runs them.
+      text: Flowgent runs workflows described in YAML. Each module publishes its definitions and tools, and the engine runs them.

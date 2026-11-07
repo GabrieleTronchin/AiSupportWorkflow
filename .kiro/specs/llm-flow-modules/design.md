@@ -1,14 +1,14 @@
-# Design Document: LLM Flow Modules (LlmFlows platform)
+# Design Document: LLM Flow Modules (Flowgent platform)
 
 ## Overview
 
-The single-purpose support backend becomes **LlmFlows**, a distributed platform that runs LLM workflows described in YAML:
+The single-purpose support backend becomes **Flowgent**, a distributed platform that runs LLM workflows described in YAML:
 
-- **Gateway** (`LlmFlows.Gateway`): YARP reverse proxy, the only public entry point (port 5080).
-- **Engine Service** (`LlmFlows.Engine.Service`): domain-agnostic. Pulls module packages, validates and compiles workflow definitions into Microsoft Agent Framework workflow graphs, runs them, and owns runs, events, the inbox, human input, LLM access (Demo / OpenAI-compatible), telemetry and the gRPC run stream.
-- **Module Services** (one per module, built on `LlmFlows.Module.Sdk`): own and publish their definitions (`module.yaml`, workflows, prompts, schemas, samples), expose Tools and domain endpoints.
+- **Gateway** (`Flowgent.Gateway`): YARP reverse proxy, the only public entry point (port 5080).
+- **Engine Service** (`Flowgent.Engine.Service`): domain-agnostic. Pulls module packages, validates and compiles workflow definitions into Microsoft Agent Framework workflow graphs, runs them, and owns runs, events, the inbox, human input, LLM access (Demo / OpenAI-compatible), telemetry and the gRPC run stream.
+- **Module Services** (one per module, built on `Flowgent.Module.Sdk`): own and publish their definitions (`module.yaml`, workflows, prompts, schemas, samples), expose Tools and domain endpoints.
 - **Dashboard**: generic React console, calls only the gateway.
-- **AppHost** (`LlmFlows.AppHost`, .NET Aspire): starts everything with one command, wires addresses, shows logs/traces/metrics.
+- **AppHost** (`Flowgent.AppHost`, .NET Aspire): starts everything with one command, wires addresses, shows logs/traces/metrics.
 
 The support pipeline is ported to `modules/support` as YAML, with the same outcomes for every scenario, and is the regression suite of the platform. `modules/_template` and a test-only fixture module prove that a new module needs no engine, gateway or dashboard change.
 
@@ -36,7 +36,7 @@ The support pipeline is ported to `modules/support` as YAML, with the same outco
 graph LR
     Browser[Dashboard<br/>Vite :5173] -->|/api/**, gRPC-Web| GW[Gateway<br/>YARP :5080]
     Client[HTTP clients / .http] --> GW
-    GW -->|/api/engine/**<br/>/llmflows.RunMonitor/**| ENG[Engine Service]
+    GW -->|/api/engine/**<br/>/flowgent.RunMonitor/**| ENG[Engine Service]
     GW -->|/api/modules/support/**<br/>/api/support/**| SUP[Support Module Service]
     GW -->|/api/modules/{id}/**| MOD[Other Module Services]
     ENG -->|GET /_module/package<br/>POST /_module/tools/{name}| SUP
@@ -47,38 +47,38 @@ graph LR
     HOST[Aspire AppHost] -. starts & wires .-> GW & ENG & SUP & MOD & Browser
 ```
 
-Service-to-service calls go directly between services (service discovery), never through the gateway. All services use `LlmFlows.ServiceDefaults` (health, OpenTelemetry, resilience, service discovery).
+Service-to-service calls go directly between services (service discovery), never through the gateway. All services use `Flowgent.ServiceDefaults` (health, OpenTelemetry, resilience, service discovery).
 
 ### Project dependencies
 
 ```mermaid
 graph TD
-    Contracts[LlmFlows.Contracts]
-    Definitions[LlmFlows.Definitions] --> Contracts
-    Runtime[LlmFlows.Runtime] --> Definitions
-    Persistence[LlmFlows.Persistence] --> Runtime
-    EngineSvc[LlmFlows.Engine.Service] --> Runtime & Persistence & Defaults
-    Gateway[LlmFlows.Gateway] --> Defaults[LlmFlows.ServiceDefaults]
-    Sdk[LlmFlows.Module.Sdk] --> Definitions & Defaults
-    Support[LlmFlows.Modules.Support] --> Sdk
-    Template[LlmFlows.Modules.Template] --> Sdk
-    Fixture[LlmFlows.Fixtures.Module] --> Sdk
-    Testing[LlmFlows.Testing] --> EngineSvc & Gateway & Sdk
-    AppHost[LlmFlows.AppHost] -.-> EngineSvc & Gateway & Support & Template
+    Contracts[Flowgent.Contracts]
+    Definitions[Flowgent.Definitions] --> Contracts
+    Runtime[Flowgent.Runtime] --> Definitions
+    Persistence[Flowgent.Persistence] --> Runtime
+    EngineSvc[Flowgent.Engine.Service] --> Runtime & Persistence & Defaults
+    Gateway[Flowgent.Gateway] --> Defaults[Flowgent.ServiceDefaults]
+    Sdk[Flowgent.Module.Sdk] --> Definitions & Defaults
+    Support[Flowgent.Modules.Support] --> Sdk
+    Template[Flowgent.Modules.Template] --> Sdk
+    Fixture[Flowgent.Fixtures.Module] --> Sdk
+    Testing[Flowgent.Testing] --> EngineSvc & Gateway & Sdk
+    AppHost[Flowgent.AppHost] -.-> EngineSvc & Gateway & Support & Template
 ```
 
-Rules enforced by `LlmFlows.Architecture.Tests` (project-file inspection + NetArchTest):
+Rules enforced by `Flowgent.Architecture.Tests` (project-file inspection + NetArchTest):
 
 - `Contracts` has no project references. `Definitions` references only `Contracts`.
-- Engine projects (`Contracts`, `Definitions`, `Runtime`, `Persistence`, `Engine.Service`) and `Gateway` never reference anything under `modules/` or `Fixtures/`, and contain no type in a `LlmFlows.Modules.*` namespace.
-- Module service projects reference only `LlmFlows.Module.Sdk`, `LlmFlows.Contracts`, `LlmFlows.Definitions`, `LlmFlows.ServiceDefaults`; never `Runtime`, `Persistence`, `Engine.Service`, `Gateway`, `Testing`.
+- Engine projects (`Contracts`, `Definitions`, `Runtime`, `Persistence`, `Engine.Service`) and `Gateway` never reference anything under `modules/` or `Fixtures/`, and contain no type in a `Flowgent.Modules.*` namespace.
+- Module service projects reference only `Flowgent.Module.Sdk`, `Flowgent.Contracts`, `Flowgent.Definitions`, `Flowgent.ServiceDefaults`; never `Runtime`, `Persistence`, `Engine.Service`, `Gateway`, `Testing`.
 - `Runtime` and `Definitions` do not depend on ASP.NET Core.
 - No source file in engine projects mentions support-domain terms (`IncomingEmail`, `IssueCategory`, `TeamRouter`, `/emails`).
 
 ### Repository layout
 
 ```
-LlmFlows.slnx                      # single solution (backend + modules + tests)
+Flowgent.slnx                      # single solution (backend + modules + tests)
 Directory.Build.props / Directory.Packages.props / nuget.config / .editorconfig / global.json   # moved to repo root
 backend/
 ├── schemas/                       # JSON Schemas of the YAML formats (editors + engine)
@@ -88,36 +88,36 @@ backend/
 ├── protos/run_monitor.proto       # gRPC contract (engine + dashboard codegen)
 ├── src/
 │   ├── Engine/
-│   │   ├── LlmFlows.Contracts/    # HTTP DTOs: module package, tools, intake, engine API
-│   │   ├── LlmFlows.Definitions/  # YAML model, loader, validator, Scriban expressions, JSON Schema helpers
-│   │   ├── LlmFlows.Runtime/      # compiler, step executors, run orchestrator, human input, inbox processor,
+│   │   ├── Flowgent.Contracts/    # HTTP DTOs: module package, tools, intake, engine API
+│   │   ├── Flowgent.Definitions/  # YAML model, loader, validator, Scriban expressions, JSON Schema helpers
+│   │   ├── Flowgent.Runtime/      # compiler, step executors, run orchestrator, human input, inbox processor,
 │   │   │                          #   module catalog/client, LLM (chat client, demo, telemetry)
-│   │   └── LlmFlows.Persistence/  # EF Core InMemory: runs, events, inbox
+│   │   └── Flowgent.Persistence/  # EF Core InMemory: runs, events, inbox
 │   ├── Services/
-│   │   ├── LlmFlows.Engine.Service/   # /api/engine/*, gRPC RunMonitor, hosted services
-│   │   └── LlmFlows.Gateway/          # YARP, config-driven routes, 503 problem details, correlation id
+│   │   ├── Flowgent.Engine.Service/   # /api/engine/*, gRPC RunMonitor, hosted services
+│   │   └── Flowgent.Gateway/          # YARP, config-driven routes, 503 problem details, correlation id
 │   ├── Sdk/
-│   │   ├── LlmFlows.Module.Sdk/   # /_module/* endpoints, tools, offline validation, engine client
-│   │   └── LlmFlows.Testing/      # in-process platform harness for module and platform tests
+│   │   ├── Flowgent.Module.Sdk/   # /_module/* endpoints, tools, offline validation, engine client
+│   │   └── Flowgent.Testing/      # in-process platform harness for module and platform tests
 │   └── AppHost/
-│       ├── LlmFlows.AppHost/
-│       └── LlmFlows.ServiceDefaults/
+│       ├── Flowgent.AppHost/
+│       └── Flowgent.ServiceDefaults/
 └── tests/
-    ├── LlmFlows.Engine.Tests/         # unit + FsCheck property tests of engine libraries and service
-    ├── LlmFlows.Gateway.Tests/
-    ├── LlmFlows.Architecture.Tests/
-    ├── LlmFlows.Integration.Tests/    # multi-module, module down, gateway, end-to-end
-    └── Fixtures/LlmFlows.Fixtures.Module/   # test-only module service + definition
+    ├── Flowgent.Engine.Tests/         # unit + FsCheck property tests of engine libraries and service
+    ├── Flowgent.Gateway.Tests/
+    ├── Flowgent.Architecture.Tests/
+    ├── Flowgent.Integration.Tests/    # multi-module, module down, gateway, end-to-end
+    └── Fixtures/Flowgent.Fixtures.Module/   # test-only module service + definition
 modules/
 ├── _template/
 │   ├── definition/{module.yaml, workflows/, prompts/, samples/, schemas/}
-│   ├── service/LlmFlows.Modules.Template.csproj (+ Program.cs, Tools/)
-│   ├── tests/LlmFlows.Modules.Template.Tests.csproj
+│   ├── service/Flowgent.Modules.Template.csproj (+ Program.cs, Tools/)
+│   ├── tests/Flowgent.Modules.Template.Tests.csproj
 │   ├── docs/ and README.md
 └── support/
     ├── definition/{module.yaml, workflows/support-email.yaml, prompts/, schemas/, samples/scenarios.yaml}
-    ├── service/LlmFlows.Modules.Support.csproj (+ Program.cs, Tools/, Endpoints/, support.http)
-    ├── tests/LlmFlows.Modules.Support.Tests.csproj
+    ├── service/Flowgent.Modules.Support.csproj (+ Program.cs, Tools/, Endpoints/, support.http)
+    ├── tests/Flowgent.Modules.Support.Tests.csproj
     ├── dummy-apps/application-a/ and application-b/   # moved from DummyApps/
     ├── docs/ and README.md
 dashboard/                          # generic console
@@ -132,7 +132,7 @@ Ports (launchSettings, also used by Aspire as proxy ports): gateway 5080, engine
 
 ### 1. Definition formats
 
-All three formats are YAML files validated by the JSON Schemas in `backend/schemas` (embedded in `LlmFlows.Definitions`). Files start with `# yaml-language-server: $schema=<relative path>` for editor autocomplete.
+All three formats are YAML files validated by the JSON Schemas in `backend/schemas` (embedded in `Flowgent.Definitions`). Files start with `# yaml-language-server: $schema=<relative path>` for editor autocomplete.
 
 #### Value conventions (all formats)
 
@@ -248,7 +248,7 @@ demo:
   tool: hello.demoSummary           # Tool producing the demo output (input: {stepId, prompt, systemPrompt})
 ```
 
-`http` details: header values with `secret:` are read from engine configuration `LlmFlows:Secrets:<moduleId>:<key>` and never appear in API responses; non-2xx status codes, invalid JSON and timeouts fail the step.
+`http` details: header values with `secret:` are read from engine configuration `Flowgent:Secrets:<moduleId>:<key>` and never appear in API responses; non-2xx status codes, invalid JSON and timeouts fail the step.
 
 #### Samples (`definition/samples/*.yaml`)
 
@@ -264,7 +264,7 @@ samples:
 
 Samples are validated against the workflow input schema unless `expectInvalid: true` (used for the support "Empty Input" sample).
 
-### 2. Expressions and templates (`LlmFlows.Definitions/Expressions`)
+### 2. Expressions and templates (`Flowgent.Definitions/Expressions`)
 
 - `ScribanTemplate` / `ScribanExpression` wrap parsed Scriban ASTs; parsing happens at load time (Req 7.3) and errors carry the template location (file + step + field).
 - A static AST walk checks `steps.<id>` references point to declared steps.
@@ -276,7 +276,7 @@ Samples are validated against the workflow input schema unless `expectInvalid: t
 - Sandbox: `TemplateContext` with no `TemplateLoader` (include/import of files fails), `LoopLimit = 1000`, `RecursiveLimit = 50`, `RegexTimeOut = 1s`, `LimitToString = 100 000`, `EnableRelaxedMemberAccess = true` (missing members are null). Only `ScriptObject`/`ScriptArray` built from JSON are exposed, so there is no reflection, file, network or process access.
 - Conversions: `JsonNode ⇄ ScriptObject/ScriptArray`; typed full-expression results are converted back to `JsonNode`.
 
-### 3. Loading and validation (`LlmFlows.Definitions`)
+### 3. Loading and validation (`Flowgent.Definitions`)
 
 ```csharp
 public sealed record ModulePackage(string ModuleId, string Version, IReadOnlyDictionary<string, string> Files); // Contracts
@@ -302,15 +302,15 @@ Pipeline: YAML parse (syntax errors with line) → `JsonNode` + JSON-pointer→l
 
 `ModuleDefinition` is immutable and carries `Version` (SHA-256 of the package files), so a run keeps the definition it started with.
 
-### 4. Module SDK (`LlmFlows.Module.Sdk`)
+### 4. Module SDK (`Flowgent.Module.Sdk`)
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
-builder.AddLlmFlowsModule();                                // LlmFlows:Module:DefinitionPath (default "../definition")
+builder.AddFlowgentModule();                                // Flowgent:Module:DefinitionPath (default "../definition")
 builder.Services.AddModuleTool<LocateComponentTool>("support.locateComponent");
 var app = builder.Build();
-app.MapLlmFlowsModule();                                    // /_module/*, /api/modules/{id}
+app.MapFlowgentModule();                                    // /_module/*, /api/modules/{id}
 app.MapDefaultEndpoints();                                  // /health, /alive
 ```
 
@@ -321,15 +321,15 @@ app.MapDefaultEndpoints();                                  // /health, /alive
 | `GET /api/modules/{id}` | Manifest summary (id, name, description, workflows) |
 
 - `IModuleTool { Task<JsonNode?> InvokeAsync(ToolInvocation invocation, CancellationToken ct); }` and `ModuleTool<TInput, TOutput>` (typed, JSON camelCase).
-- Startup: loads and validates the definition with `ModuleLoader.LoadFromDirectory`, logs errors (`LlmFlows:Module:FailOnInvalidDefinition`, default `false`, so the engine can display errors) and checks every declared tool has a handler.
-- `IEngineClient` (named client `llmflows-engine`, base address `LlmFlows:EngineUrl`, default `http://engine`): `SubmitAsync(workflowId, input)` → `IntakeResult` (accepted with ids, invalid with errors, unavailable).
+- Startup: loads and validates the definition with `ModuleLoader.LoadFromDirectory`, logs errors (`Flowgent:Module:FailOnInvalidDefinition`, default `false`, so the engine can display errors) and checks every declared tool has a handler.
+- `IEngineClient` (named client `flowgent-engine`, base address `Flowgent:EngineUrl`, default `http://engine`): `SubmitAsync(workflowId, input)` → `IntakeResult` (accepted with ids, invalid with errors, unavailable).
 - `ModuleDefinitionAssert.IsValid(path)` for module unit tests.
 
-### 5. Engine runtime (`LlmFlows.Runtime`)
+### 5. Engine runtime (`Flowgent.Runtime`)
 
 #### Module catalog
 
-- Config: `LlmFlows:Modules: [{ id, url, enabled, refreshSeconds (5), timeoutSeconds (30), retries (2) }]`.
+- Config: `Flowgent:Modules: [{ id, url, enabled, refreshSeconds (5), timeoutSeconds (30), retries (2) }]`.
 - `ModuleCatalogService` (BackgroundService) polls each module's `/_module/package` with `If-None-Match`, never blocking engine startup.
 - Module states: `Loading` (never loaded), `Available`, `Invalid` (validation errors / id conflicts), `Unavailable` (last fetch failed; definitions kept for in-flight runs).
 - A new version is loaded and compiled atomically; in-flight runs keep their `ModuleDefinition` reference.
@@ -377,20 +377,20 @@ return builder.Build();
 - `NotFound`: unknown run.
 - `Conflict`: run not awaiting input or already terminal.
 
-#### LLM (`LlmFlows.Runtime/Llm`)
+#### LLM (`Flowgent.Runtime/Llm`)
 
-- `ChatClientSetup.AddLlmFlowsChatClient(config)`, ported from today:
-  - `LlmFlows:Llm: { Provider: Demo|OpenAI (default Demo), ModelName, ApiKey, Endpoint, DemoLatencyMs: 1500 }`.
+- `ChatClientSetup.AddFlowgentChatClient(config)`, ported from today:
+  - `Flowgent:Llm: { Provider: Demo|OpenAI (default Demo), ModelName, ApiKey, Endpoint, DemoLatencyMs: 1500 }`.
   - Pipeline: `LlmTelemetryMiddleware` → OpenTelemetry (`UseOpenTelemetry`) → inner client.
 - `DemoChatClient` (generic):
-  - Reads the precomputed JSON from `ChatOptions.AdditionalProperties["llmflows.demo.response"]`, waits the configured latency and returns it with estimated usage and `ModelId = "demo-simulated"`.
+  - Reads the precomputed JSON from `ChatOptions.AdditionalProperties["flowgent.demo.response"]`, waits the configured latency and returns it with estimated usage and `ModelId = "demo-simulated"`.
   - Throws when the key is missing (the llm step checks this first and fails with `Step '<id>' has no demo response; Demo mode requires a demo: block.`).
-- Attribution keys `llmflows.telemetry.{agentId,moduleId,runId,stepId}` are stripped before forwarding (same as today).
+- Attribution keys `flowgent.telemetry.{agentId,moduleId,runId,stepId}` are stripped before forwarding (same as today).
 - `LlmTelemetryStore` entries add `ModuleId`, `WorkflowId`, `RunId`, `StepId`; queries filter by agent and module.
 
 #### Tool and HTTP clients
 
-- Named clients `llmflows-modules` (per-module timeout/retries via `AddStandardResilienceHandler`; retries only on transient failures) and `llmflows-http`.
+- Named clients `flowgent-modules` (per-module timeout/retries via `AddStandardResilienceHandler`; retries only on transient failures) and `flowgent-http`.
 - Tool errors map to `Tool '<name>' failed: <error>`; connection failures to `Module '<id>' is unavailable: <reason>`.
 
 #### Inbox processor
@@ -398,10 +398,10 @@ return builder.Build();
 Ported from today's `InboxProcessor`:
 - FIFO by `ReceivedAt`; starts runs without awaiting them; per-message scope.
 - No retries; `ProcessedAt` is always set and the error is recorded.
-- `LlmFlows:SequentialProcessing` starts a run only when no run is non-terminal.
+- `Flowgent:SequentialProcessing` starts a run only when no run is non-terminal.
 - Messages whose run was aborted while queued are marked processed with no new transition.
 
-### 6. Run model and persistence (`LlmFlows.Persistence`)
+### 6. Run model and persistence (`Flowgent.Persistence`)
 
 ```csharp
 public enum RunStatus { Queued, Running, AwaitingInput, Completed, Failed, Cancelled }    // Contracts
@@ -418,7 +418,7 @@ public enum RunEventKind { Queued, StepStarted, StepCompleted, AwaitingInput, In
 - Intake creates the inbox message and the `Queued` run (and its `Queued` event) in one `SaveChanges`.
 - Terminal statuses: `Completed`, `Failed`, `Cancelled` (`RunStatusExtensions.IsTerminal`).
 
-### 7. Engine API (`LlmFlows.Engine.Service`)
+### 7. Engine API (`Flowgent.Engine.Service`)
 
 All routes are under `/api/engine`. JSON is camelCase with string enums. Errors use problem details (`title`, `detail`, `errors?`).
 
@@ -449,8 +449,8 @@ An agent is `Working` while it is the assigned agent of a non-terminal run.
 
 ```proto
 syntax = "proto3";
-package llmflows;
-option csharp_namespace = "LlmFlows.Engine.Service.Grpc";
+package flowgent;
+option csharp_namespace = "Flowgent.Engine.Service.Grpc";
 
 service RunMonitor {
   rpc Subscribe (SubscribeRequest) returns (stream RunUpdate);
@@ -473,9 +473,9 @@ message RunUpdate {
 }
 ```
 
-The stream is gated by `LlmFlows:EnableVisualization` (as today). `RunUpdateChannel` fans out to all subscribers, each with its own bounded channel, so slow clients do not affect each other.
+The stream is gated by `Flowgent:EnableVisualization` (as today). `RunUpdateChannel` fans out to all subscribers, each with its own bounded channel, so slow clients do not affect each other.
 
-### 8. Gateway (`LlmFlows.Gateway`)
+### 8. Gateway (`Flowgent.Gateway`)
 
 Configuration builds the YARP routes in code (`InMemoryConfigProvider`), so adding a module is one config entry:
 
@@ -493,7 +493,7 @@ Generated routes:
 | Route | Cluster |
 |-------|---------|
 | `/api/engine/{**catch-all}` | `engine` |
-| `/llmflows.RunMonitor/{**catch-all}` | `engine` (gRPC-Web, streamed, no buffering) |
+| `/flowgent.RunMonitor/{**catch-all}` | `engine` (gRPC-Web, streamed, no buffering) |
 | `/api/modules/{id}/{**catch-all}` | `module-{id}` |
 | each `ExtraRoutes` entry | `module-{id}` |
 
@@ -684,12 +684,12 @@ Expected categories, teams and agents per scenario: A1 BackendBug/TeamA_BackendD
 
 ### 10. Template and fixture modules
 
-- `modules/_template` (`id: template`): workflow `template-hello` (`llm` with demo → `tool template.wordCount` → `terminal`), one sample, a typed tool, a test project that validates the definition and runs the workflow end-to-end in Demo mode through `LlmFlows.Testing`. Its README gives copy-and-rename steps. It is in the solution and the AppHost, disabled by default (`AppHost:Modules:template:Enabled = false`).
-- `backend/tests/Fixtures/LlmFlows.Fixtures.Module` (`id: fixture`): workflow `fixture-flow`:
+- `modules/_template` (`id: template`): workflow `template-hello` (`llm` with demo → `tool template.wordCount` → `terminal`), one sample, a typed tool, a test project that validates the definition and runs the workflow end-to-end in Demo mode through `Flowgent.Testing`. Its README gives copy-and-rename steps. It is in the solution and the AppHost, disabled by default (`AppHost:Modules:template:Enabled = false`).
+- `backend/tests/Fixtures/Flowgent.Fixtures.Module` (`id: fixture`): workflow `fixture-flow`:
   - Steps: `llm` (demo) → `map` → `tool fixture.reverse` → `http` (calls the fixture service's own `/api/modules/fixture/echo` as an "external" API via `config.echoBaseUrl`) → `human-input` → terminals `done` (success) / `declined` (failure).
   - A second workflow, `fixture-rules`, uses `rule` with `onNoMatch: {output}` and a failing `onMultipleMatches`.
 
-### 11. LlmFlows.Testing (in-process platform harness)
+### 11. Flowgent.Testing (in-process platform harness)
 
 ```csharp
 await using var platform = await PlatformHarness.StartAsync(o =>
@@ -697,7 +697,7 @@ await using var platform = await PlatformHarness.StartAsync(o =>
     o.AddModule("support", SupportHost.Create, contentRoot: "modules/support/service");
     o.AddModule("fixture", FixtureHost.Create, contentRoot: ...);
     o.WithGateway();                        // optional
-    o.Configure("LlmFlows:Llm:DemoLatencyMs", "0");
+    o.Configure("Flowgent:Llm:DemoLatencyMs", "0");
 });
 var client = platform.GatewayClient;        // or EngineClient
 await platform.WaitForModulesAsync();
@@ -713,14 +713,14 @@ platform.StopModule("fixture");             // module-down scenarios
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
-var engine = builder.AddProject<Projects.LlmFlows_Engine_Service>("engine");
+var engine = builder.AddProject<Projects.Flowgent_Engine_Service>("engine");
 var modules = new List<IResourceBuilder<ProjectResource>>();
-var support = builder.AddProject<Projects.LlmFlows_Modules_Support>("support")
+var support = builder.AddProject<Projects.Flowgent_Modules_Support>("support")
     .WithReference(engine).WaitFor(engine);
 // template module added when AppHost:Modules:template:Enabled = true
-engine.WithEnvironment("LlmFlows__Modules__0__Id", "support")
-      .WithEnvironment("LlmFlows__Modules__0__Url", "http://support").WithReference(support);
-var gateway = builder.AddProject<Projects.LlmFlows_Gateway>("gateway")
+engine.WithEnvironment("Flowgent__Modules__0__Id", "support")
+      .WithEnvironment("Flowgent__Modules__0__Url", "http://support").WithReference(support);
+var gateway = builder.AddProject<Projects.Flowgent_Gateway>("gateway")
     .WithReference(engine).WithReference(support)
     .WithEnvironment("Gateway__Engine__Address", "http://engine")
     .WithEnvironment("Gateway__Modules__0__Id", "support")
@@ -735,9 +735,9 @@ builder.Build().Run();
 - The engine depends on modules only through `WithReference` (no `WaitFor`), so it starts first and retries.
 - Default launch profile `http` with `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true` (no dev certificate needed).
 - ServiceDefaults (Aspire template, adapted):
-  - `AddServiceDefaults()`: OpenTelemetry logs/traces/metrics (ASP.NET Core, HttpClient, runtime, sources `LlmFlows.*` and `Microsoft.Agents.AI*` / `Experimental.Microsoft.Extensions.AI`), OTLP exporter when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, service discovery, standard resilience on HttpClients.
+  - `AddServiceDefaults()`: OpenTelemetry logs/traces/metrics (ASP.NET Core, HttpClient, runtime, sources `Flowgent.*` and `Microsoft.Agents.AI*` / `Experimental.Microsoft.Extensions.AI`), OTLP exporter when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, service discovery, standard resilience on HttpClients.
   - `MapDefaultEndpoints()`: `/health` and `/alive`, in all environments.
-- `LlmFlows.Runtime` emits activities per run step (`ActivitySource("LlmFlows.Runtime")`, tags: run id, module, workflow, step, kind).
+- `Flowgent.Runtime` emits activities per run step (`ActivitySource("Flowgent.Runtime")`, tags: run id, module, workflow, step, kind).
 
 ### 13. Dashboard
 
@@ -757,7 +757,7 @@ Calls only `/api/engine/*` and the gRPC-Web stream, both proxied by Vite to the 
 
 ## Data Models
 
-Contracts (`LlmFlows.Contracts`), all `sealed record`s, camelCase JSON:
+Contracts (`Flowgent.Contracts`), all `sealed record`s, camelCase JSON:
 
 ```csharp
 // Module ↔ engine
@@ -794,7 +794,7 @@ Exceptions are reserved for unexpected errors. Validation, intake and human-inpu
 ## Security Notes
 
 - No end-user or service-to-service authentication (out of scope). The gateway is the only intended public entry point; module and engine endpoints (including `/_module/*`) must stay on the private network. The SDK maps `/_module/*` in a group that can later require an API key or mTLS.
-- Secrets (`ApiKey`, `LlmFlows:Secrets:*`) are only read from configuration/user secrets and never returned by any endpoint or written to logs.
+- Secrets (`ApiKey`, `Flowgent:Secrets:*`) are only read from configuration/user secrets and never returned by any endpoint or written to logs.
 - Scriban is sandboxed (see §2). Regexes run with a 1 s timeout.
 - `support.locateComponent` validates folder names and keeps paths inside the dummy-apps root.
 - `http` steps can call any URL written by the module author. An allow-list per module is a possible later addition.
@@ -803,15 +803,15 @@ Exceptions are reserved for unexpected errors. Validation, intake and human-inpu
 
 | Project | Scope | Ported from |
 |---------|-------|-------------|
-| `LlmFlows.Engine.Tests` | Loader/validator (every rule in §3 with line numbers), Scriban sandbox and conversions, each step handler, compiler/graph, run orchestrator (success, failure outcome, step failure, abort, cancellation, concurrency isolation), human input, inbox processor, persistence dual-write, telemetry, chat client setup, demo client, endpoints (status codes, filters, no secrets), gRPC filtering; FsCheck properties (FIFO order, failure recording, dual-write invariant, run isolation, transition order, round-trip of JSON↔Scriban) | `ChatClientSetupTests`, `DemoChatClientTests`, `LlmTelemetryMiddlewareTests`, `ConfigEndpointsTests`, `ExecutorTests`, `WorkflowOrchestratorTests`, `WorkflowStageTests`, `Persistence/*`, `EndpointTests`, `InboxProperties`, `PersistenceProperties`, `WorkflowProperties`, `MigrationCorrectnessTests` |
-| `LlmFlows.Modules.Support.Tests` | Definition valid; demo classification per scenario and keyword (FsCheck); routing rule (A/B/both/none, case and spacing variants); agent mapping; `locateComponent` (each scenario, traversal rejection); email endpoint (400/202/503); parity of all 10 samples end-to-end incl. approve/reject/abort; generated paths start with `config.dummyAppsRoot`; `.http` and samples in sync | `TeamRouterTests`, `AgentSelectorTests`, `EmailProcessorTests`, `IssueClassifierTests`, `BugResolverTests`, `CodeChangeGeneratorTests`, `ClassificationProperties`, `RoutingProperties`, `ResolutionProperties`, `EmailProcessingProperties` |
-| `LlmFlows.Modules.Template.Tests` | Definition valid, workflow runs in Demo mode | — |
-| `LlmFlows.Gateway.Tests` | Route generation, forwarding, extra routes, correlation id, 503 problem details | — |
-| `LlmFlows.Architecture.Tests` | Dependency rules of §Architecture | — |
-| `LlmFlows.Integration.Tests` | Support + fixture concurrently (isolation of runs, events, human inputs, telemetry, listings), fixture down (unavailable, intake 503, in-flight tool failure, support still OK), version reload with in-flight run, gRPC-Web through gateway | — |
+| `Flowgent.Engine.Tests` | Loader/validator (every rule in §3 with line numbers), Scriban sandbox and conversions, each step handler, compiler/graph, run orchestrator (success, failure outcome, step failure, abort, cancellation, concurrency isolation), human input, inbox processor, persistence dual-write, telemetry, chat client setup, demo client, endpoints (status codes, filters, no secrets), gRPC filtering; FsCheck properties (FIFO order, failure recording, dual-write invariant, run isolation, transition order, round-trip of JSON↔Scriban) | `ChatClientSetupTests`, `DemoChatClientTests`, `LlmTelemetryMiddlewareTests`, `ConfigEndpointsTests`, `ExecutorTests`, `WorkflowOrchestratorTests`, `WorkflowStageTests`, `Persistence/*`, `EndpointTests`, `InboxProperties`, `PersistenceProperties`, `WorkflowProperties`, `MigrationCorrectnessTests` |
+| `Flowgent.Modules.Support.Tests` | Definition valid; demo classification per scenario and keyword (FsCheck); routing rule (A/B/both/none, case and spacing variants); agent mapping; `locateComponent` (each scenario, traversal rejection); email endpoint (400/202/503); parity of all 10 samples end-to-end incl. approve/reject/abort; generated paths start with `config.dummyAppsRoot`; `.http` and samples in sync | `TeamRouterTests`, `AgentSelectorTests`, `EmailProcessorTests`, `IssueClassifierTests`, `BugResolverTests`, `CodeChangeGeneratorTests`, `ClassificationProperties`, `RoutingProperties`, `ResolutionProperties`, `EmailProcessingProperties` |
+| `Flowgent.Modules.Template.Tests` | Definition valid, workflow runs in Demo mode | — |
+| `Flowgent.Gateway.Tests` | Route generation, forwarding, extra routes, correlation id, 503 problem details | — |
+| `Flowgent.Architecture.Tests` | Dependency rules of §Architecture | — |
+| `Flowgent.Integration.Tests` | Support + fixture concurrently (isolation of runs, events, human inputs, telemetry, listings), fixture down (unavailable, intake 503, in-flight tool failure, support still OK), version reload with in-flight run, gRPC-Web through gateway | — |
 | Dashboard (Vitest + fast-check) | Client, hooks, picker, graph from definition (dagre), schema-driven form, samples, badges/status, pages, event log, approvals, agents, inbox, LLM badge | all 15 existing test files |
 
 Final verification:
-- `dotnet build LlmFlows.slnx`, `dotnet test --solution LlmFlows.slnx`, dashboard `npm run typecheck`, `npm run test -- --run`, `npm run build`.
-- Run `dotnet run --project backend/src/AppHost/LlmFlows.AppHost` and a Playwright E2E through the gateway: all samples, approve, reject, abort, agents/telemetry, LLM badge.
+- `dotnet build Flowgent.slnx`, `dotnet test --solution Flowgent.slnx`, dashboard `npm run typecheck`, `npm run test -- --run`, `npm run build`.
+- Run `dotnet run --project backend/src/AppHost/Flowgent.AppHost` and a Playwright E2E through the gateway: all samples, approve, reject, abort, agents/telemetry, LLM badge.
 - Secret scan.

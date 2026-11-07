@@ -1,7 +1,7 @@
-namespace LlmFlows.Modules.Template;
+namespace Flowgent.Modules.Template;
 
-using LlmFlows.Module.Sdk;
-using LlmFlows.Modules.Template.Tools;
+using Flowgent.Module.Sdk;
+using Flowgent.Modules.Template.Tools;
 
 /// <summary>
 /// Builds the template module service. <c>Program.cs</c> and the in-process test harness both use it.
@@ -18,12 +18,12 @@ public static class TemplateHost
         configure?.Invoke(builder);
 
         builder.AddServiceDefaults();
-        builder.AddLlmFlowsModule();
+        builder.AddFlowgentModule();
         builder.Services.AddModuleTool<WordCountTool>(WordCountTool.Name);
 
         var app = builder.Build();
 
-        app.MapLlmFlowsModule();
+        app.MapFlowgentModule();
         app.MapDefaultEndpoints();
 
         return app;

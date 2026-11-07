@@ -2,7 +2,7 @@
 
 [← README](../README.md) · [Workflow reference](workflow-reference.md) · [Engine API](engine-api.md) · [Gateway](gateway.md)
 
-LlmFlows is a small distributed platform that runs LLM workflows described in YAML. The engine knows nothing about business domains: every domain lives in a **module service** that owns its definitions and custom code.
+Flowgent is a small distributed platform that runs LLM workflows described in YAML. The engine knows nothing about business domains: every domain lives in a **module service** that owns its definitions and custom code.
 
 ## Topology
 
@@ -10,7 +10,7 @@ LlmFlows is a small distributed platform that runs LLM workflows described in YA
 graph LR
     Browser[Dashboard<br/>Vite :5173] -->|/api/**, gRPC-Web| GW[Gateway<br/>YARP :5080]
     Client[HTTP clients / .http files] --> GW
-    GW -->|"/api/engine/**<br/>/llmflows.RunMonitor/**"| ENG[Engine service :5081]
+    GW -->|"/api/engine/**<br/>/flowgent.RunMonitor/**"| ENG[Engine service :5081]
     GW -->|"/api/modules/{id}/**<br/>+ extra routes"| MOD[Module services<br/>support :5082, template :5083]
     ENG -->|"GET /_module/package<br/>POST /_module/tools/{name}"| MOD
     MOD -->|"POST /api/engine/workflows/{id}/runs"| ENG
@@ -21,17 +21,17 @@ graph LR
 
 | Component | Project | Responsibility |
 |-----------|---------|----------------|
-| Gateway | `LlmFlows.Gateway` | Single public entry point. Config-driven YARP routes, gRPC-Web passthrough, correlation id, `503` problem details. See [Gateway](gateway.md). |
-| Engine service | `LlmFlows.Engine.Service` | Pulls module packages, validates and compiles workflows, runs them on Microsoft Agent Framework Workflows. Owns runs, events, inbox, human input, LLM access (Demo or OpenAI-compatible), telemetry, the `/api/engine` API and the gRPC run stream. |
-| Module services | `modules/<id>/service` (on `LlmFlows.Module.Sdk`) | Own one domain: `module.yaml`, workflows, prompts, schemas, samples, tools (HTTP operations called by `tool` steps) and domain endpoints. |
+| Gateway | `Flowgent.Gateway` | Single public entry point. Config-driven YARP routes, gRPC-Web passthrough, correlation id, `503` problem details. See [Gateway](gateway.md). |
+| Engine service | `Flowgent.Engine.Service` | Pulls module packages, validates and compiles workflows, runs them on Microsoft Agent Framework Workflows. Owns runs, events, inbox, human input, LLM access (Demo or OpenAI-compatible), telemetry, the `/api/engine` API and the gRPC run stream. |
+| Module services | `modules/<id>/service` (on `Flowgent.Module.Sdk`) | Own one domain: `module.yaml`, workflows, prompts, schemas, samples, tools (HTTP operations called by `tool` steps) and domain endpoints. |
 | Dashboard | `dashboard/` | Generic React console. Calls only the gateway. See [Dashboard](dashboard.md). |
-| AppHost | `LlmFlows.AppHost` | .NET Aspire host: starts everything with one command and shows logs, traces and metrics. See [Orchestration](orchestration.md). |
+| AppHost | `Flowgent.AppHost` | .NET Aspire host: starts everything with one command and shows logs, traces and metrics. See [Orchestration](orchestration.md). |
 
-Service-to-service calls go directly between services (by name under Aspire, by `localhost` port otherwise), never through the gateway. Every service uses `LlmFlows.ServiceDefaults`: health endpoints (`/health`, `/alive`), OpenTelemetry, service discovery and resilience for outgoing HTTP calls.
+Service-to-service calls go directly between services (by name under Aspire, by `localhost` port otherwise), never through the gateway. Every service uses `Flowgent.ServiceDefaults`: health endpoints (`/health`, `/alive`), OpenTelemetry, service discovery and resilience for outgoing HTTP calls.
 
 ## Service contracts
 
-Modules and the engine talk only through the HTTP contracts in `LlmFlows.Contracts`.
+Modules and the engine talk only through the HTTP contracts in `Flowgent.Contracts`.
 
 | Direction | Endpoint | Purpose |
 |-----------|----------|---------|
@@ -44,7 +44,7 @@ The engine never loads module code: custom logic runs in the module process and 
 
 ## Module catalog
 
-The engine reads the module list from `LlmFlows:Modules` and polls each module in the background (`ModuleCatalogService`), so its own startup never waits for modules.
+The engine reads the module list from `Flowgent:Modules` and polls each module in the background (`ModuleCatalogService`), so its own startup never waits for modules.
 
 | Status | Meaning |
 |--------|---------|
@@ -76,25 +76,25 @@ Each submitted input becomes a **run** of one workflow. A run has a current step
 - The only message between executors is `StepMessage(NextStepId)`. Each step evaluates its own transitions and the graph routes the message to the chosen step.
 - A step that fails (LLM error, schema mismatch, rule failure, tool or HTTP error, template error) ends the run as `Failed` on that step with a descriptive reason.
 - A `maxSteps` guard (default 100 per run) stops loops: `Run exceeded the maximum of N steps.`
-- Each step emits an OpenTelemetry activity (`ActivitySource` `LlmFlows.Runtime`) tagged with run, module, workflow and step.
+- Each step emits an OpenTelemetry activity (`ActivitySource` `Flowgent.Runtime`) tagged with run, module, workflow and step.
 
 ### Persistence
 
-The engine stores runs, transition events and inbox messages with EF Core InMemory (`LlmFlows.Persistence`, `EngineDbContext`). Every transition updates the run **and** appends an event in a single `SaveChanges` (dual-write), then publishes the update to the gRPC stream. Data is lost when the engine restarts.
+The engine stores runs, transition events and inbox messages with EF Core InMemory (`Flowgent.Persistence`, `EngineDbContext`). Every transition updates the run **and** appends an event in a single `SaveChanges` (dual-write), then publishes the update to the gRPC stream. Data is lost when the engine restarts.
 
 ## Repository layout
 
 ```
 backend/
-├── LlmFlows.slnx                   # one solution: platform, modules, tests
+├── Flowgent.slnx                   # one solution: platform, modules, tests
 ├── Directory.Build.props, Directory.Packages.props, nuget.config   # shared build settings (modules/ imports them)
 ├── schemas/                        # JSON Schemas of module.yaml, workflows and samples (editors + engine)
 ├── protos/run_monitor.proto        # gRPC contract (engine + dashboard codegen)
 ├── src/
-│   ├── Engine/                     # LlmFlows.Contracts, .Definitions, .Runtime, .Persistence
-│   ├── Services/                   # LlmFlows.Engine.Service, LlmFlows.Gateway
-│   ├── Sdk/                        # LlmFlows.Module.Sdk, LlmFlows.Testing (in-process harness)
-│   └── AppHost/                    # LlmFlows.AppHost, LlmFlows.ServiceDefaults
+│   ├── Engine/                     # Flowgent.Contracts, .Definitions, .Runtime, .Persistence
+│   ├── Services/                   # Flowgent.Engine.Service, Flowgent.Gateway
+│   ├── Sdk/                        # Flowgent.Module.Sdk, Flowgent.Testing (in-process harness)
+│   └── AppHost/                    # Flowgent.AppHost, Flowgent.ServiceDefaults
 └── tests/                          # Engine, Gateway, Integration, Architecture tests + Fixtures/ (test-only module)
 modules/
 ├── _template/                      # minimal module to copy
@@ -107,28 +107,28 @@ docs/                               # platform documentation
 
 ```mermaid
 graph TD
-    Contracts[LlmFlows.Contracts]
-    Definitions[LlmFlows.Definitions] --> Contracts
-    Runtime[LlmFlows.Runtime] --> Definitions
-    Persistence[LlmFlows.Persistence] --> Runtime
-    EngineSvc[LlmFlows.Engine.Service] --> Runtime & Persistence & Defaults
-    Gateway[LlmFlows.Gateway] --> Defaults[LlmFlows.ServiceDefaults]
-    Sdk[LlmFlows.Module.Sdk] --> Contracts & Definitions
+    Contracts[Flowgent.Contracts]
+    Definitions[Flowgent.Definitions] --> Contracts
+    Runtime[Flowgent.Runtime] --> Definitions
+    Persistence[Flowgent.Persistence] --> Runtime
+    EngineSvc[Flowgent.Engine.Service] --> Runtime & Persistence & Defaults
+    Gateway[Flowgent.Gateway] --> Defaults[Flowgent.ServiceDefaults]
+    Sdk[Flowgent.Module.Sdk] --> Contracts & Definitions
     Modules[Module services] --> Sdk & Defaults
-    Testing[LlmFlows.Testing] --> EngineSvc & Gateway & Sdk
+    Testing[Flowgent.Testing] --> EngineSvc & Gateway & Sdk
 ```
 
-`LlmFlows.Architecture.Tests` enforces the rules:
+`Flowgent.Architecture.Tests` enforces the rules:
 
 - `Contracts` has no project references; `Definitions` references only `Contracts`.
-- Engine projects and the gateway never reference `modules/` or `Fixtures/` and contain no `LlmFlows.Modules.*` types.
-- Module services reference only `LlmFlows.Module.Sdk`, `LlmFlows.Contracts`, `LlmFlows.Definitions` and `LlmFlows.ServiceDefaults`.
+- Engine projects and the gateway never reference `modules/` or `Fixtures/` and contain no `Flowgent.Modules.*` types.
+- Module services reference only `Flowgent.Module.Sdk`, `Flowgent.Contracts`, `Flowgent.Definitions` and `Flowgent.ServiceDefaults`.
 - `Definitions` and `Runtime` do not depend on ASP.NET Core.
 - Engine sources and the proto contain no domain terms of the support module.
 
 ## Security notes
 
 - There is no end-user or service-to-service authentication. The gateway is the only intended public entry point; engine and module ports, including `/_module/*`, must stay on a private network.
-- Secrets (`LlmFlows:Llm:ApiKey`, `LlmFlows:Secrets:*`) are read from configuration only and never returned by any endpoint. Keep them in user secrets, environment variables or the git-ignored `appsettings.Development.json`.
+- Secrets (`Flowgent:Llm:ApiKey`, `Flowgent:Secrets:*`) are read from configuration only and never returned by any endpoint. Keep them in user secrets, environment variables or the git-ignored `appsettings.Development.json`.
 - Templates run in a Scriban sandbox (see [Expressions](expressions.md)); regexes have a 1 s timeout.
 - `http` steps can call any URL written by the module author.

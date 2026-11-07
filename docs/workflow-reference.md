@@ -210,7 +210,7 @@ Calls a tool of the owning module service (declared in `module.yaml`). `input` i
   next: done
 ```
 
-Timeout precedence: the tool's `timeoutSeconds` in `module.yaml`, then the step's `timeoutSeconds`, then the module's `TimeoutSeconds` in the engine configuration, then `LlmFlows:DefaultToolTimeoutSeconds` (30). Failures: `Tool '<name>' failed: …`, `Tool '<name>' timed out after Ns.`, `Module '<id>' is unavailable: …`.
+Timeout precedence: the tool's `timeoutSeconds` in `module.yaml`, then the step's `timeoutSeconds`, then the module's `TimeoutSeconds` in the engine configuration, then `Flowgent:DefaultToolTimeoutSeconds` (30). Failures: `Tool '<name>' failed: …`, `Tool '<name>' timed out after Ns.`, `Module '<id>' is unavailable: …`.
 
 ### `http`
 
@@ -224,7 +224,7 @@ Calls an external HTTP API and stores the parsed JSON response.
   url: "{{ config.enrichBaseUrl }}/api/enrich"
   headers:
     X-Run-Id: "{{ run.id }}"                 # literal or template
-    Authorization: { secret: enrichToken }   # read from LlmFlows:Secrets:<moduleId>:enrichToken
+    Authorization: { secret: enrichToken }   # read from Flowgent:Secrets:<moduleId>:enrichToken
   body:
     text: "{{ steps.summarize.summary }}"
   timeoutSeconds: 30                         # default 30

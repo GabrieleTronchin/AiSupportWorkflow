@@ -1,4 +1,4 @@
-# Implementation Plan: LLM Flow Modules (LlmFlows platform)
+# Implementation Plan: LLM Flow Modules (Flowgent platform)
 
 ## Overview
 
@@ -9,26 +9,26 @@ Status: the first implementation round is closed. Everything is done except the 
 ## Tasks
 
 - [x] 1. Repository structure, shared build files, ServiceDefaults, gateway, AppHost
-  - [x] 1.1 Move `Directory.Build.props`, `Directory.Packages.props`, `nuget.config` and `.editorconfig` from `backend/` to the repo root. Create `LlmFlows.slnx` with the existing projects. Update CI to the new solution.
+  - [x] 1.1 Move `Directory.Build.props`, `Directory.Packages.props`, `nuget.config` and `.editorconfig` from `backend/` to the repo root. Create `Flowgent.slnx` with the existing projects. Update CI to the new solution.
     - Later moved back (0dc8fec): solution and build files live in `backend/`; see Implementation notes.
     - _Requirements: 2.1_
   - [x] 1.2 Add the new package versions to `Directory.Packages.props`: Aspire 13.6.4, ServiceDiscovery 10.11.0, Yarp 2.3.0, YamlDotNet 18.1.0, Scriban 7.5.3, JsonSchema.Net 9.6.0, OpenTelemetry 1.20.x, NetArchTest 1.3.2.
     - _Requirements: 16.2_
-  - [x] 1.3 Create `LlmFlows.ServiceDefaults`: health, OpenTelemetry, service discovery, resilience.
+  - [x] 1.3 Create `Flowgent.ServiceDefaults`: health, OpenTelemetry, service discovery, resilience.
     - _Requirements: 16.2_
-  - [x] 1.4 Create `LlmFlows.Gateway`:
+  - [x] 1.4 Create `Flowgent.Gateway`:
     - config-driven YARP routes (engine, modules, extra routes, gRPC-Web)
     - correlation id and 503 problem details
     - `GatewayHost.Create`
-    - `LlmFlows.Gateway.Tests`
+    - `Flowgent.Gateway.Tests`
     - _Requirements: 3.1–3.6_
-  - [x] 1.5 Create `LlmFlows.AppHost`: engine/modules/gateway/dashboard wiring, `http` profile, module list from config. Make `vite.config.ts` read `GATEWAY_URL`.
+  - [x] 1.5 Create `Flowgent.AppHost`: engine/modules/gateway/dashboard wiring, `http` profile, module list from config. Make `vite.config.ts` read `GATEWAY_URL`.
     - _Requirements: 16.1, 16.3_
 
 - [x] 2. Engine definition libraries
-  - [x] 2.1 `LlmFlows.Contracts`: module package, tool invocation, intake, engine API DTOs, `RunStatus`, `RunEventKind`.
+  - [x] 2.1 `Flowgent.Contracts`: module package, tool invocation, intake, engine API DTOs, `RunStatus`, `RunEventKind`.
     - _Requirements: 1.4, 10.1_
-  - [x] 2.2 JSON Schemas `backend/schemas/{module,workflow,samples}.schema.json`, embedded in `LlmFlows.Definitions`.
+  - [x] 2.2 JSON Schemas `backend/schemas/{module,workflow,samples}.schema.json`, embedded in `Flowgent.Definitions`.
     - _Requirements: 5.4_
   - [x] 2.3 YAML → `JsonNode` with line map; definition model records; `ModuleLoader.Load/LoadFromDirectory`.
     - _Requirements: 5.1, 5.2, 5.5_
@@ -50,21 +50,21 @@ Status: the first implementation round is closed. Everything is done except the 
     - _Requirements: 6.1–6.8, 12.2, 12.3, 13_
   - [x] 3.3 `WorkflowCompiler` (per-run executors, `StepMessage` edges, outputs) and `RunOrchestrator` (outcomes, abort, cancellation, max steps), `RunRegistry`, `HumanInputRegistry`/`HumanInputService`.
     - _Requirements: 9.1–9.3, 13.1, 13.2_
-  - [x] 3.4 `LlmFlows.Persistence`: entities, `EngineDbContext`, run store with dual-write and update channel, inbox store.
+  - [x] 3.4 `Flowgent.Persistence`: entities, `EngineDbContext`, run store with dual-write and update channel, inbox store.
     - _Requirements: 10.1–10.3, 11.1_
   - [x] 3.5 Module catalog: polling with ETag, states, conflicts, version reload, per-module timeouts and retries.
     - _Requirements: 4.2–4.5, 9.4_
   - [x] 3.6 Inbox processor ported (FIFO, non-blocking, sequential mode, unknown/unavailable workflow failure).
     - _Requirements: 11.2, 11.3_
-  - [x] 3.7 `LlmFlows.Engine.Service`: `/api/engine/*` endpoints, gRPC `RunMonitor` with filters, `EngineHost.Create`, config, `.http`.
+  - [x] 3.7 `Flowgent.Engine.Service`: `/api/engine/*` endpoints, gRPC `RunMonitor` with filters, `EngineHost.Create`, config, `.http`.
     - _Requirements: 10.4, 11.1, 13, 14_
   - [x] 3.8 Port the engine tests: orchestrator, executors, inbox, persistence, endpoints and properties.
     - _Requirements: 17.4_
 
 - [x] 4. Module SDK and support module
-  - [x] 4.1 `LlmFlows.Module.Sdk`: package endpoint with ETag, tools, startup validation, `IEngineClient`, `ModuleDefinitionAssert`.
+  - [x] 4.1 `Flowgent.Module.Sdk`: package endpoint with ETag, tools, startup validation, `IEngineClient`, `ModuleDefinitionAssert`.
     - _Requirements: 4.1, 8.3_
-  - [x] 4.2 `LlmFlows.Testing`: in-process `PlatformHarness`.
+  - [x] 4.2 `Flowgent.Testing`: in-process `PlatformHarness`.
     - _Requirements: 1.5_
   - [x] 4.3 Move `DummyApps/` to `modules/support/dummy-apps/application-a|b` (git mv).
     - _Requirements: 17.5_
@@ -114,7 +114,7 @@ Status: the first implementation round is closed. Everything is done except the 
   - [x] 7.3 Steering files (product, structure, tech) for the platform.
     - _Requirements: 19.5_
   - [ ] 7.4 Final verification (moved to `llm-flow-modules-followup`, except the backend run noted below):
-    - full build and tests (backend + dashboard): backend done in round 1 (`dotnet build backend/LlmFlows.slnx` 0 warnings/0 errors, `dotnet test --solution backend/LlmFlows.slnx` 314 passed, commit 0dc8fec); the final backend + dashboard run on the closing commit is moved
+    - full build and tests (backend + dashboard): backend done in round 1 (`dotnet build backend/Flowgent.slnx` 0 warnings/0 errors, `dotnet test --solution backend/Flowgent.slnx` 314 passed, commit 0dc8fec); the final backend + dashboard run on the closing commit is moved
     - AppHost run and Playwright E2E through the gateway: moved, Playwright reduced to one smoke scenario
     - secret scan: moved
     - review with the user before pushing: moved
@@ -130,10 +130,10 @@ Deviations from design.md and additions made during round 1 (design.md is not re
 - Host shutdown ends in-flight runs as `Cancelled` (reason `Workflow was cancelled.`); abort stays a single `Failed` "Aborted by user".
 - Intake creates the inbox message and the run as `Queued` in one operation and returns `202 { messageId, runId }` with Location `/api/engine/runs/{runId}` (Req 11.1 only asked for the message id); `POST /api/support/emails` returns the same body.
 - The out-of-scope branch (`classified_out_of_scope`) is a success terminal, so the run ends `Completed`.
-- `LlmFlows.Gateway.Tests` is a separate test project (routes, forwarding, correlation id, 503).
-- The AppHost accepts `--AppHost:LlmProvider=Demo` (or any provider), passed to the engine as `LlmFlows__Llm__Provider`.
+- `Flowgent.Gateway.Tests` is a separate test project (routes, forwarding, correlation id, 503).
+- The AppHost accepts `--AppHost:LlmProvider=Demo` (or any provider), passed to the engine as `Flowgent__Llm__Provider`.
 - The template tool is `template.wordCount` (design example: `hello.wordCount`).
 - The fixture module's `http` step calls the fixture service's own `/api/modules/fixture/echo` through `config.echoBaseUrl`.
-- `PlatformHarness.RestartModuleAsync` was added to `LlmFlows.Testing` as a test seam for the version-reload integration test.
+- `PlatformHarness.RestartModuleAsync` was added to `Flowgent.Testing` as a test seam for the version-reload integration test.
 - `Grpc.Net.Client.Web` 2.85.0 was added (integration tests only) for the gRPC-Web-through-the-gateway test.
-- `LlmFlows.slnx`, `Directory.Build.props`, `Directory.Packages.props` and `nuget.config` live in `backend/` (not the repo root as in task 1.1 and design.md); `modules/` has `Directory.Build.props`/`Directory.Packages.props` importing the backend ones and a mirrored `nuget.config`. `global.json`, `.editorconfig` and `.gitattributes` stay at the root. CI builds `backend/LlmFlows.slnx`.
+- `Flowgent.slnx`, `Directory.Build.props`, `Directory.Packages.props` and `nuget.config` live in `backend/` (not the repo root as in task 1.1 and design.md); `modules/` has `Directory.Build.props`/`Directory.Packages.props` importing the backend ones and a mirrored `nuget.config`. `global.json`, `.editorconfig` and `.gitattributes` stay at the root. CI builds `backend/Flowgent.slnx`.

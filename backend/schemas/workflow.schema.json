@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://llmflows.local/schemas/workflow.schema.json",
-  "title": "LlmFlows workflow definition",
+  "$id": "https://flowgent.local/schemas/workflow.schema.json",
+  "title": "Flowgent workflow definition",
   "description": "A workflow: input schema, steps and transitions. Strings containing {{ }} are Scriban templates; 'when' conditions are Scriban expressions.",
   "type": "object",
   "required": ["id", "version", "name", "input", "start", "steps"],

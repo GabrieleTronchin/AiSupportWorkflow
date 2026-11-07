@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://llmflows.local/schemas/samples.schema.json",
-  "title": "LlmFlows sample inputs",
+  "$id": "https://flowgent.local/schemas/samples.schema.json",
+  "title": "Flowgent sample inputs",
   "description": "Example inputs shown as templates in the dashboard.",
   "type": "object",
   "required": ["samples"],

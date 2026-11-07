@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { ModuleInfo, WorkflowInfo } from '../types';
 import { fetchModules, fetchWorkflows } from '../api/client';
 
-export const SELECTION_STORAGE_KEY = 'llmflows.selection';
+export const SELECTION_STORAGE_KEY = 'flowgent.selection';
 const REFRESH_INTERVAL_MS = 10000;
 
 export interface WorkflowSelection {

@@ -4,14 +4,14 @@
 
 The engine owns LLM access; module services never call a model for workflow steps. Two providers exist:
 
-| `LlmFlows:Llm:Provider` | Behaviour |
+| `Flowgent:Llm:Provider` | Behaviour |
 |-------------------------|-----------|
 | `Demo` (default) | No model, no API key, no network. Each `llm` step answers with the response declared in its `demo:` block. |
 | `OpenAI` | Any OpenAI-compatible chat API (`ApiKey` required, optional `Endpoint`). |
 
 Everything else (inbox, runs, tools, http steps, human input, persistence, telemetry, dashboard) behaves the same in both modes.
 
-## Settings (`LlmFlows:Llm`, engine service)
+## Settings (`Flowgent:Llm`, engine service)
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -21,17 +21,17 @@ Everything else (inbox, runs, tools, http steps, human input, persistence, telem
 | `Endpoint` | OpenAI | Optional absolute `http(s)` URL of an OpenAI-compatible server (e.g. Groq `https://api.groq.com/openai/v1`, Ollama `http://localhost:11434/v1`). |
 | `DemoLatencyMs` | `1500` | Simulated latency per call in Demo mode, so progress is visible in the dashboard. `0` = instant. |
 
-The configuration is read at startup. Keep the API key out of committed files: use the git-ignored `backend/src/Services/LlmFlows.Engine.Service/appsettings.Development.json`, or environment variables (`LlmFlows__Llm__Provider`, `LlmFlows__Llm__ApiKey`, …). Example `appsettings.Development.json`:
+The configuration is read at startup. Keep the API key out of committed files: use the git-ignored `backend/src/Services/Flowgent.Engine.Service/appsettings.Development.json`, or environment variables (`Flowgent__Llm__Provider`, `Flowgent__Llm__ApiKey`, …). Example `appsettings.Development.json`:
 
 ```json
 {
-  "LlmFlows": {
+  "Flowgent": {
     "Llm": { "Provider": "OpenAI", "ModelName": "gpt-4o-mini", "ApiKey": "<your key>" }
   }
 }
 ```
 
-The AppHost can also override the provider without touching files: `dotnet run --project backend/src/AppHost/LlmFlows.AppHost -- --AppHost:LlmProvider=Demo`.
+The AppHost can also override the provider without touching files: `dotnet run --project backend/src/AppHost/Flowgent.AppHost -- --AppHost:LlmProvider=Demo`.
 
 ## Declaring demo responses
 
