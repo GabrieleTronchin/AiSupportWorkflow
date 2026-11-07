@@ -10,6 +10,7 @@ Status: the first implementation round is closed. Everything is done except the 
 
 - [x] 1. Repository structure, shared build files, ServiceDefaults, gateway, AppHost
   - [x] 1.1 Move `Directory.Build.props`, `Directory.Packages.props`, `nuget.config` and `.editorconfig` from `backend/` to the repo root. Create `LlmFlows.slnx` with the existing projects. Update CI to the new solution.
+    - Later moved back (0dc8fec): solution and build files live in `backend/`; see Implementation notes.
     - _Requirements: 2.1_
   - [x] 1.2 Add the new package versions to `Directory.Packages.props`: Aspire 13.6.4, ServiceDiscovery 10.11.0, Yarp 2.3.0, YamlDotNet 18.1.0, Scriban 7.5.3, JsonSchema.Net 9.6.0, OpenTelemetry 1.20.x, NetArchTest 1.3.2.
     - _Requirements: 16.2_
@@ -113,7 +114,7 @@ Status: the first implementation round is closed. Everything is done except the 
   - [x] 7.3 Steering files (product, structure, tech) for the platform.
     - _Requirements: 19.5_
   - [ ] 7.4 Final verification (moved to `llm-flow-modules-followup`, except the backend run noted below):
-    - full build and tests (backend + dashboard): backend done in round 1 (`dotnet build` 0 warnings/0 errors, `dotnet test --solution LlmFlows.slnx` 314 passed, commit 6ddeb7f); the final backend + dashboard run on the closing commit is moved
+    - full build and tests (backend + dashboard): backend done in round 1 (`dotnet build backend/LlmFlows.slnx` 0 warnings/0 errors, `dotnet test --solution backend/LlmFlows.slnx` 314 passed, commit 0dc8fec); the final backend + dashboard run on the closing commit is moved
     - AppHost run and Playwright E2E through the gateway: moved, Playwright reduced to one smoke scenario
     - secret scan: moved
     - review with the user before pushing: moved
@@ -135,3 +136,4 @@ Deviations from design.md and additions made during round 1 (design.md is not re
 - The fixture module's `http` step calls the fixture service's own `/api/modules/fixture/echo` through `config.echoBaseUrl`.
 - `PlatformHarness.RestartModuleAsync` was added to `LlmFlows.Testing` as a test seam for the version-reload integration test.
 - `Grpc.Net.Client.Web` 2.85.0 was added (integration tests only) for the gRPC-Web-through-the-gateway test.
+- `LlmFlows.slnx`, `Directory.Build.props`, `Directory.Packages.props` and `nuget.config` live in `backend/` (not the repo root as in task 1.1 and design.md); `modules/` has `Directory.Build.props`/`Directory.Packages.props` importing the backend ones and a mirrored `nuget.config`. `global.json`, `.editorconfig` and `.gitattributes` stay at the root. CI builds `backend/LlmFlows.slnx`.
