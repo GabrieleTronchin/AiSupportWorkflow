@@ -71,11 +71,11 @@ public static class ProjectGraph
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LlmFlows.slnx")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "backend", "LlmFlows.slnx")))
         {
             directory = directory.Parent;
         }
 
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root (LlmFlows.slnx) not found.");
+        return directory?.FullName ?? throw new InvalidOperationException("Repository root (folder containing backend/LlmFlows.slnx) not found.");
     }
 }

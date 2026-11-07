@@ -88,7 +88,7 @@ public sealed class PlatformHarness : IAsyncDisposable
         GatewayClient = gateway?.GetTestClient();
     }
 
-    /// <summary>Repository root (folder containing <c>LlmFlows.slnx</c>).</summary>
+    /// <summary>Repository root (folder containing <c>backend/LlmFlows.slnx</c>).</summary>
     public static string RepositoryRoot => Root.Value;
 
     public HostRoutingHandler Router { get; }
@@ -321,12 +321,12 @@ public sealed class PlatformHarness : IAsyncDisposable
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LlmFlows.slnx")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "backend", "LlmFlows.slnx")))
         {
             directory = directory.Parent;
         }
 
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root (LlmFlows.slnx) not found.");
+        return directory?.FullName ?? throw new InvalidOperationException("Repository root (folder containing backend/LlmFlows.slnx) not found.");
     }
 
     internal static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);

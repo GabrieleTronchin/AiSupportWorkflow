@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches: [master]
-    paths: ['backend/**', 'modules/**', 'LlmFlows.slnx', 'Directory.*.props', 'global.json']
+    paths: ['backend/**', 'modules/**', 'global.json']
   pull_request:
     branches: [master]
-    paths: ['backend/**', 'modules/**', 'LlmFlows.slnx', 'Directory.*.props', 'global.json']
+    paths: ['backend/**', 'modules/**', 'global.json']
 
 jobs:
   build-and-test:
@@ -16,6 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore LlmFlows.slnx
-      - run: dotnet build LlmFlows.slnx --no-restore
-      - run: dotnet test --solution LlmFlows.slnx --no-build
+      - run: dotnet restore backend/LlmFlows.slnx
+      - run: dotnet build backend/LlmFlows.slnx --no-restore
+      - run: dotnet test --solution backend/LlmFlows.slnx --no-build
