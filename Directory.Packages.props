@@ -27,6 +27,7 @@
   <ItemGroup Label="gRPC">
     <PackageVersion Include="Grpc.AspNetCore" Version="2.85.0" />
     <PackageVersion Include="Grpc.AspNetCore.Web" Version="2.85.0" />
+    <PackageVersion Include="Grpc.Net.Client.Web" Version="2.85.0" />
   </ItemGroup>
 
   <!-- ═══════════════════════════════════════════════════════════════════
